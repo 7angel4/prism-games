@@ -721,7 +721,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 							m = onmap.get(u);
 						}
 						// TODO: check which player p
-						d.add(m, model.getDoubleChoice(s, t, prechoices[0].soln).get(u) * prods.get(tmp));
+						d.add(m, model.getDoubleChoice(s, t, getPrechoicesSoln(0)).get(u) * prods.get(tmp));
 					}
 				}
 			}

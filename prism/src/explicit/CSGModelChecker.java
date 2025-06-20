@@ -144,7 +144,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param coalition The coalition of players which define player 1
 	 */
-	public ModelCheckerResult computeNextProbs(CSG<Double> csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeNextProbs(CSG<?> csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
@@ -612,7 +612,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 * @param genAdv Whether or not to generate a strategy
 	 */
-	public ModelCheckerResult computeCumulativeRewards(CSG<Double> csg, CSGRewards<Double> csgRewards, Coalition coalition, int k, boolean min1, boolean min2, boolean genAdv)
+	public ModelCheckerResult computeCumulativeRewards(CSG<?> csg, CSGRewards<Double> csgRewards, Coalition coalition, int k, boolean min1, boolean min2, boolean genAdv)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -637,7 +637,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeTotalRewards(CSG<Double> csg, CSGRewards<Double> rewards, boolean min1, boolean min2, Coalition coalition) throws PrismException
+	public ModelCheckerResult computeTotalRewards(CSG<?> csg, CSGRewards<Double> rewards, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = new ModelCheckerResult();
@@ -748,7 +748,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachRewardsInfinity(CSG<Double> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2)
+	public ModelCheckerResult computeReachRewardsInfinity(CSG<?> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2)
 			throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -878,7 +878,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param min1 Min or max probabilities for player 1 (true=min, false=max)
 	 * @param min2 Min or max probabilities for player 2 (true=min, false=max)
 	 */
-	public ModelCheckerResult computeReachRewardsCumulative(CSG<Double> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2,
+	public ModelCheckerResult computeReachRewardsCumulative(CSG<?> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2,
 			boolean genAdv) throws PrismException
 	{
 		// TODO: confirm that the case min1==min2 is not handled  
@@ -972,7 +972,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 * @param bounded Is the problem (step) bounded?
 	 * @param min Min or max probabilities for player 1 (true=min, false=max)
 	 **/
-	public ModelCheckerResult computeReachRewardsValIter(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
+	public ModelCheckerResult computeReachRewardsValIter(CSG<?> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
 		if (genStrat && bounded) {
@@ -1517,7 +1517,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Auxiliary method for AFG (as defined in L. Alfaro and T. Henzinger, Concurrent Omega-Regular Games)
 	 */
-	public BitSet apreXYZ(CSG<Double> csg, BitSet x, BitSet y, BitSet z) throws PrismException
+	public BitSet apreXYZ(CSG<?> csg, BitSet x, BitSet y, BitSet z) throws PrismException
 	{
 		ArrayList<ArrayList<Distribution<Double>>> mdist;
 		BitSet result = new BitSet();
@@ -1531,7 +1531,7 @@ public class CSGModelChecker extends ProbModelChecker
 	/*
 	 * Eventually globally b
 	 */
-	public BitSet AFG(CSG<Double> csg, BitSet b) throws PrismException
+	public BitSet AFG(CSG<?> csg, BitSet b) throws PrismException
 	{
 		int n = csg.getNumStates();
 		BitSet x, y, z, sol1, sol2;
