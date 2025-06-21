@@ -34,6 +34,8 @@ import java.util.Map;
 
 import prism.ModelType;
 import prism.PlayerInfoOwner;
+import strat.CSGStrategy;
+import strat.Strategy;
 
 /**
  * Interface for classes that provide (read) access to an explicit-state concurrent stochastic game (CSG).
@@ -117,6 +119,10 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 			Map.Entry<Integer, Double> e = it.next();
 			c.accept(s, e.getKey(), e.getValue());
 		}
+	}
+
+	public default Strategy<?> getStrategy(List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, CSGStrategy.CSGStrategyType type) {
+		return new CSGStrategy(this, lstrat, no, yes, inf, type);
 	}
 
 }
