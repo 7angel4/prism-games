@@ -11,16 +11,13 @@ import strat.Strategy;
 import java.util.*;
 
 public class ICSGModelChecker extends CSGModelChecker {
-//    protected CSGModelChecker mcCSG = null;
 
     /**
-     * Create a new IMDPModelChecker, inherit basic state from parent (unless null).
+     * Create a new ICSGModelChecker, inherit basic state from parent (unless null).
      */
     public ICSGModelChecker(PrismComponent parent) throws PrismException
     {
         super(parent);
-//        mcCSG = new CSGModelChecker(this);
-//        mcCSG.inheritSettings(this);
     }
 
 
@@ -39,7 +36,7 @@ public class ICSGModelChecker extends CSGModelChecker {
     public ModelCheckerResult computeNextProbs(ICSG<Double> icsg, BitSet target, MinMax minMax) throws PrismException {
         icsg.checkLowerBoundsArePositive();
         icsg.checkForDeadlocks(target);
-        return super.computeNextProbs(icsg, target, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+        return super.computeNextProbs(icsg.getIntervalModel(), target, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
     }
 
     public ModelCheckerResult computeUntilProbs(ICSG<Double> icsg, BitSet remain, BitSet target, int bound, MinMax minmax)
@@ -62,14 +59,14 @@ public class ICSGModelChecker extends CSGModelChecker {
     public ModelCheckerResult computeReachRewardsCumulative(ICSG<Double> icsg, CSGRewards<Double> rewards, BitSet target, MinMax minMax) throws PrismException {
         icsg.checkLowerBoundsArePositive();
         icsg.checkForDeadlocks(target);
-        return super.computeReachRewardsCumulative(icsg, minMax.getCoalition(), rewards, target, minMax.isMin1(), minMax.isMin2(), false);
+        return super.computeReachRewardsCumulative(icsg.getIntervalModel(), minMax.getCoalition(), rewards, target, minMax.isMin1(), minMax.isMin2(), false);
     }
 
     public ModelCheckerResult computeReachRewardsInfinity(ICSG<Double> icsg, CSGRewards<Double> rewards, BitSet target, MinMax minMax)
             throws PrismException {
         icsg.checkLowerBoundsArePositive();
         icsg.checkForDeadlocks(target);
-        return super.computeReachRewardsInfinity(icsg, minMax.getCoalition(), rewards, target, minMax.isMin1(), minMax.isMin2());
+        return super.computeReachRewardsInfinity(icsg.getIntervalModel(), minMax.getCoalition(), rewards, target, minMax.isMin1(), minMax.isMin2());
     }
 
     public ModelCheckerResult computeReachRewards(ICSG<Double> icsg, CSGRewards<Double> rewards, BitSet target, int unreachingSemantics, MinMax minMax) throws PrismException {
@@ -90,13 +87,13 @@ public class ICSGModelChecker extends CSGModelChecker {
             throws PrismException
     {
         icsg.checkLowerBoundsArePositive();
-        return super.computeCumulativeRewards(icsg, rewards, minMax.getCoalition(), k, minMax.isMin1(), minMax.isMin2(), false);
+        return super.computeCumulativeRewards(icsg.getIntervalModel(), rewards, minMax.getCoalition(), k, minMax.isMin1(), minMax.isMin2(), false);
     }
 
     public ModelCheckerResult computeTotalRewards(ICSG<Double> icsg, CSGRewards<Double> rewards, MinMax minMax)
             throws PrismException {
         icsg.checkLowerBoundsArePositive();
-        return super.computeTotalRewards(icsg, rewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
+        return super.computeTotalRewards(icsg.getIntervalModel(), rewards, minMax.isMin1(), minMax.isMin2(), minMax.getCoalition());
     }
 
 }
