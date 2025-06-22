@@ -27,17 +27,13 @@
 
 package explicit;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 import prism.JointAction;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
+import strat.CSGStrategy;
+import strat.Strategy;
 
 /**
  * Simple explicit-state representation of a (multi-player) concurrent stochastic game (CSG).
@@ -439,5 +435,10 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 				System.out.println(Arrays.toString(getIndexes(s, t)) + " : " + Arrays.toString(getActions(s, t)));
 			}
 		}
+	}
+
+	@Override
+	public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]) {
+		return ((CSG<Double>) this).getTransitionsIterator(s, i);
 	}
 }

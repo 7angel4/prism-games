@@ -153,7 +153,8 @@ public class OpRelOpBound
 					}
 				}
 			} else {
-				if (modelType == ModelType.SMG || modelType == ModelType.CSG) {
+				// TODO: Check if add support to ICSG
+				if (modelType == ModelType.SMG || modelType == ModelType.CSG || modelType == ModelType.ICSG) {
 					if (relOp == RelOp.EQ && isNumeric()) {
 						throw new PrismLangException("Can't use \"" + op + "=?\" for SMGs; use e.g. \"" + op + "min=?\" or \"" + op + "max=?\"");
 					}

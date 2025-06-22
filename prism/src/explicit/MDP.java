@@ -146,6 +146,7 @@ public interface MDP<Value> extends NondetModel<Value>
 	 */
 	public Iterator<Entry<Integer, Value>> getTransitionsIterator(int s, int i);
 
+
 	/**
 	 * Get an iterator over the transitions from choice {@code i} of state {@code s},
 	 * after mapping probability values using the provided function.

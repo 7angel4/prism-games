@@ -1635,6 +1635,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public void buildCoalitions(CSG<?> csg, Coalition coalition, boolean min) throws PrismException
 	{
 		if (coalition == null || coalition.isEmpty()) {
+			System.out.println("Coalition is " + coalition);
 			throw new PrismException("Coalitions must not be empty");
 		}
 		numPlayers = csg.getNumPlayers();

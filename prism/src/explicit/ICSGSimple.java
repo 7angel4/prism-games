@@ -48,10 +48,18 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 {
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
-	 * @param <T>
 	 */
-	public class ICSGCSGSimple<T> extends CSGSimple<T>
+	public class ICSGCSGSimple extends CSGSimple<Interval<Value>>
 	{
+		public ICSGCSGSimple()
+		{
+			super();
+		}
+
+		public ICSGCSGSimple(ICSGCSGSimple icsg, int permut[])
+		{
+			super(icsg, permut);
+		}
 		/**
 		 * Returns arg min/max_P { sum_j P(s,j)*vect[j] }
 		 */
@@ -63,7 +71,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				List<Integer> indices = new ArrayList<>();
 				List<Double> lowers = new ArrayList<>();
 				List<Double> uppers = new ArrayList<>();
-				Iterator<Map.Entry<Integer, Interval<Double>>> iter = ((ICSG<Double>) this).getIntervalModel().getTransitionsIterator(s, t);
+				Iterator<Map.Entry<Integer, Interval<Double>>> iter = ((ICSGSimple<Double>) ICSGSimple.this).getIntervalModel().getTransitionsIterator(s, t);
 				while (iter.hasNext()) {
 					Map.Entry<Integer, Interval<Double>> e = iter.next();
 					indices.add(e.getKey());
@@ -71,7 +79,10 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 					uppers.add(e.getValue().getUpper());
 				}
 				int size = indices.size();
-
+				// if `val` is null, then this method is called when precomputing (e.g., in CSGModelChecker.prob1)
+				// where we just perform simple graph analysis
+				double[] myVal = (val == null) ? new double[this.getNumTransitions()] : val;
+//				System.out.println("ICSGSimple.getDoubleTransitionsIterator: myVal = " + myVal.length + "; size = " + size);
 				// Trivial case: singleton interval [1.0,1.0]
 				if (size == 1 && lowers.get(0) == 1.0 && uppers.get(0) == 1.0) {
 					Map<Integer, Double> singleton = new HashMap<>();
@@ -83,9 +94,9 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				List<Integer> order = new ArrayList<>();
 				for (int i = 0; i < size; i++) order.add(i);
 				if (minMax.isMaxUnc()) {
-					order.sort((o1, o2) -> -Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+					order.sort((o1, o2) -> -Double.compare(myVal[indices.get(o1)], myVal[indices.get(o2)]));
 				} else {
-					order.sort((o1, o2) -> Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+					order.sort((o1, o2) -> Double.compare(myVal[indices.get(o1)], myVal[indices.get(o2)]));
 				}
 
 				// Build the extreme distribution
@@ -111,7 +122,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	 * The ICSG, stored as a CSGSimple over Intervals.
 	 * Also stored in {@link ModelExplicitWrapper#model} as a ModelExplicit.
 	 */
-	protected CSGSimple<Interval<Value>> csg;
+	protected ICSGCSGSimple csg;
 
 	// Constructors
 
@@ -121,7 +132,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	@SuppressWarnings("unchecked")
 	public ICSGSimple()
 	{
-		this.csg = new CSGSimple<>();
+		this.csg = new ICSGCSGSimple();
 		this.model = (ModelExplicit<Value>) csg;
 		createDefaultEvaluatorForCSG();
 	}
@@ -158,7 +169,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	@SuppressWarnings("unchecked")
 	public ICSGSimple(ICSGSimple<Value> icsg, int permut[])
 	{
-		this.csg = new CSGSimple<>(icsg.csg, permut);
+		this.csg = new ICSGCSGSimple(icsg.csg, permut);
 		this.model = (ModelExplicit<Value>) csg;
 		createDefaultEvaluatorForCSG();
 	}
