@@ -441,4 +441,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]) {
 		return ((CSG<Double>) this).getTransitionsIterator(s, i);
 	}
+
+	@Override
+	public Iterator<Map.Entry<Integer, Double>> getChosenTransitionsIterator(int s, int i) {
+		return getDoubleTransitionsIterator(s, i, null);
+	}
 }

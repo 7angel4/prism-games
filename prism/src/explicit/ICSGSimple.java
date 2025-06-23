@@ -46,6 +46,7 @@ import java.util.Map;
  */
 public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements NondetModelSimple<Value>, IntervalModelExplicit<Value>, ICSG<Value>
 {
+	private Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
 	 */
@@ -114,10 +115,18 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 					totP -= add;
 					if (totP <= 0) break;
 				}
+				chosenTransitions.putIfAbsent(s, new HashMap<>());
+				chosenTransitions.get(s).put(t, dist);
 				return dist.entrySet().iterator();
 			}
 		}
+
+		@Override
+		public Iterator<Map.Entry<Integer, Double>> getChosenTransitionsIterator(int s, int t) {
+			return chosenTransitions.getOrDefault(s, new HashMap<>()).getOrDefault(t, new HashMap<>()).entrySet().iterator();
+		}
 	}
+
 	/**
 	 * The ICSG, stored as a CSGSimple over Intervals.
 	 * Also stored in {@link ModelExplicitWrapper#model} as a ModelExplicit.

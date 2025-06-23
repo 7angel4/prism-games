@@ -108,14 +108,28 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 
 	public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]);
 
+	public Iterator<Map.Entry<Integer, Double>> getChosenTransitionsIterator(int s, int i);
+
 	public default Distribution<Double> getDoubleChoice(int s, int i, double val[]) {
 		return Distribution.ofDouble(this.getDoubleTransitionsIterator(s, i, val));
+	}
+
+	public default Distribution<Double> getChosenChoice(int s, int i) {
+		return Distribution.ofDouble(this.getChosenTransitionsIterator(s, i));
 	}
 
 
 	public default void forEachDoubleTransition(int s, int i, double[] val, TransitionConsumer<Double> c)
 	{
 		for (Iterator<Map.Entry<Integer, Double>> it = getDoubleTransitionsIterator(s, i, val); it.hasNext(); ) {
+			Map.Entry<Integer, Double> e = it.next();
+			c.accept(s, e.getKey(), e.getValue());
+		}
+	}
+
+	public default void forEachChosenTransition(int s, int i, TransitionConsumer<Double> c)
+	{
+		for (Iterator<Map.Entry<Integer, Double>> it = getChosenTransitionsIterator(s, i); it.hasNext(); ) {
 			Map.Entry<Integer, Double> e = it.next();
 			c.accept(s, e.getKey(), e.getValue());
 		}

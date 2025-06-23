@@ -368,7 +368,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 			int t = prechoices[(p + 1) % 2].strat.getChoiceIndex(s, -1);
 				//v = prechoices[(p + 1) % 2].strat.getNextMove(s).get(t);
 				v = 1.0;
-				for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, prechoices[(p + 1) % 2].soln); iter.hasNext(); ) {
+				for (Iterator<Map.Entry<Integer, Double>> iter = model.getChosenTransitionsIterator(s,t); iter.hasNext(); ) {
 					Map.Entry<Integer, Double> e = iter.next();
 					int u = e.getKey();
 					if (!onmap.containsKey(u)) {
@@ -464,7 +464,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {						
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, getPrechoicesSoln(p)); iter.hasNext(); ) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getChosenTransitionsIterator(s, t); iter.hasNext(); ) {
 							Map.Entry<Integer, Double> e = iter.next();
 							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
@@ -562,12 +562,12 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 							if (m == n && model.getChoice(s, t).getSupport().size() == 1 && model.getNumChoices(s) == 1)
 								loop = true;
 						}
-						d.add(m, model.getDoubleChoice(s, t, getPrechoicesSoln(p)).get(u) * prods.get(tmp));
+						d.add(m, model.getDoubleChoice(s, t, null).get(u) * prods.get(tmp));
 					}
 				}
 			}
 			if (loop) {
-				mdp.addActionLabelledChoice(n, d, lsubg);	
+				mdp.addActionLabelledChoice(n, d, lsubg);
 			}
 			else if (!d.isEmpty()) {
 				label = "CSG: ";
@@ -579,14 +579,14 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						joint += "[" + model.getActions().get(i - 1) + "]";
 					}
 					c--;
-					prob += joint + ((c > 0)? " + " : ""); 
+					prob += joint + ((c > 0)? " + " : "");
 				}
 				label += prob;
 				mdp.addActionLabelledChoice(n, d, label);
 			}
 		}
 	}
-	
+
 	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
 		Distribution d;
 		String[] action = new String[csgchoices.size()];
@@ -629,11 +629,11 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				for (t = 0; t < model.getNumChoices(s); t++) {
 					tmp.clear();
 					for (q = 0; q < model.getIndexes(s, t).length; q++) {
-						i = model.getIndexes(s, t)[q];						
+						i = model.getIndexes(s, t)[q];
 						tmp.set((i > 0)? i : model.getIdles()[q]);
 					}
 					if (prods.containsKey(tmp)) {
-						model.forEachDoubleTransition(s, t, getPrechoicesSoln(p), (__, u, pr) -> {
+						model.forEachChosenTransition(s, t, (__, u, pr) -> {
 							int m;
 							if (!onmap.containsKey(u)) {
 								m = mdp.addState();
@@ -659,7 +659,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 								joint += "[" + model.getActions().get(i - 1) + "]";
 							}
 							c--;
-							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
+							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : "");
 						}
 						label += (p + 1 < csgchoices.size())? action[p] + " -- " : action[p];
 					}
@@ -668,7 +668,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 			}
 		}
 	}
-	
+
 	public void generateMDPCorrelatedEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
 		Distribution d;
 		String prob = "";
@@ -705,7 +705,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 			for (t = 0; t < model.getNumChoices(s); t++) {
 				tmp.clear();
 				for (q = 0; q < model.getIndexes(s, t).length; q++) {
-					i = model.getIndexes(s, t)[q];						
+					i = model.getIndexes(s, t)[q];
 					tmp.set((i > 0)? i : model.getIdles()[q]);
 				}
 				if (prods.containsKey(tmp)) {
@@ -720,8 +720,8 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						else {
 							m = onmap.get(u);
 						}
-						// TODO: check which player p
-						d.add(m, model.getDoubleChoice(s, t, getPrechoicesSoln(0)).get(u) * prods.get(tmp));
+						// for standard CSGs only
+						d.add(m, model.getDoubleChoice(s, t, null).get(u) * prods.get(tmp));
 					}
 				}
 			}
@@ -783,7 +783,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 					tmp2.andNot(tmp1);
 					if (tmp2.isEmpty()) {
 						d = new Distribution();
-						for (Iterator<Map.Entry<Integer, Double>> iter = model.getDoubleTransitionsIterator(s, t, getPrechoicesSoln(p)); iter.hasNext(); ) {
+						for (Iterator<Map.Entry<Integer, Double>> iter = model.getChosenTransitionsIterator(s, t); iter.hasNext(); ) {
 							Map.Entry<Integer, Double> e = iter.next();
 							int u = e.getKey();
 							if (!onmap.containsKey(u)) {
@@ -814,8 +814,8 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		}
 	}
 
-	private double[] getPrechoicesSoln(int p) {
-		return prechoices == null ? null : prechoices[(p+1)%2].soln;
+	private double[] getVal() {
+		return null;
 	}
 
 	@Override
