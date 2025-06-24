@@ -37,14 +37,7 @@ import java.util.List;
 import java.util.Map;
 
 import common.Interval;
-import explicit.CSG;
-import explicit.DTMC;
-import explicit.IDTMC;
-import explicit.MDP;
-import explicit.Model;
-import explicit.NondetModel;
-import explicit.SMG;
-import explicit.STPG;
+import explicit.*;
 import parser.State;
 import parser.Values;
 import parser.ast.ASTElement;
@@ -105,7 +98,10 @@ public class ConstructRewards extends PrismComponent
 	{
 		if (model.getModelType() == ModelType.CSG) {
 			return buildCSGRewardStructure((CSG<Value>) model, rewardGen, r);
+		} else if (model.getModelType() == ModelType.ICSG) {
+			return  buildCSGRewardStructure(((ICSG) model).getIntervalModel(), rewardGen, r);
 		}
+
 
 		// If the RewardGenerator already has the rewards built, use this (after checking)
 		if (rewardGen.isRewardLookupSupported(RewardLookup.BY_REWARD_OBJECT)) {
