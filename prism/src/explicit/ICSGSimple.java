@@ -47,6 +47,7 @@ import java.util.Map;
 public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements NondetModelSimple<Value>, IntervalModelExplicit<Value>, ICSG<Value>
 {
 	private Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
+
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
 	 */
@@ -82,8 +83,9 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				int size = indices.size();
 				// if `val` is null, then this method is called when precomputing (e.g., in CSGModelChecker.prob1)
 				// where we just perform simple graph analysis
-				double[] myVal = (val == null) ? new double[this.getNumTransitions()] : val;
-//				System.out.println("ICSGSimple.getDoubleTransitionsIterator: myVal = " + myVal.length + "; size = " + size);
+
+//				double[] val = (val == null) ? new double[this.getNumTransitions()] : val;
+//				System.out.println("ICSGSimple.getDoubleTransitionsIterator: val = " + val.length + "; size = " + size);
 				// Trivial case: singleton interval [1.0,1.0]
 				if (size == 1 && lowers.get(0) == 1.0 && uppers.get(0) == 1.0) {
 					Map<Integer, Double> singleton = new HashMap<>();
@@ -94,10 +96,12 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				// Sort indices by vect values
 				List<Integer> order = new ArrayList<>();
 				for (int i = 0; i < size; i++) order.add(i);
-				if (minMax.isMaxUnc()) {
-					order.sort((o1, o2) -> -Double.compare(myVal[indices.get(o1)], myVal[indices.get(o2)]));
-				} else {
-					order.sort((o1, o2) -> Double.compare(myVal[indices.get(o1)], myVal[indices.get(o2)]));
+				if (val != null) {
+					if (minMax.isMaxUnc()) {
+						order.sort((o1, o2) -> -Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+					} else {
+						order.sort((o1, o2) -> Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+					}
 				}
 
 				// Build the extreme distribution
@@ -228,6 +232,11 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		csg.setPlayerNames(playerNames);
 	}
 
+	public void addIdleIndexes()
+	{
+		csg.addIdleIndexes();
+	}
+
 	/**
 	 * Set the list of all action labels
 	 */
@@ -296,6 +305,12 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	public int getNumChoices(int s)
 	{
 		return csg.getNumChoices(s);
+	}
+
+	@Override
+	public List<Object> getActions()
+	{
+		return csg.getActions();
 	}
 
 	@Override

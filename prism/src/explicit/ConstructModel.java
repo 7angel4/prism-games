@@ -558,9 +558,10 @@ public class ConstructModel extends PrismComponent
 		}
 
 		// Add idle actions
-		if (modelType == ModelType.CSG) 
+		if (modelType == ModelType.CSG)
 			csg.addIdleIndexes();
-		
+		else if (modelType == ModelType.ICSG)
+			icsg.addIdleIndexes();
 		// Discard permutation
 		permut = null;
 
