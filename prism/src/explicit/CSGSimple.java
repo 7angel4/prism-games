@@ -257,7 +257,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	public void fixDeadlock(int s)
 	{
 		int numPlayers = getNumPlayers();
-		Distribution<Value> distr = new Distribution<>();
+		Distribution<Value> distr = new Distribution<>(this.eval);
 		distr.add(s, getEvaluator().one());
 		int[] indexes = new int[numPlayers];
 		for (int p = 0; p < numPlayers; p++) {
