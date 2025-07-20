@@ -40,3 +40,4 @@ prism/\.project
 prism/\.settings/
 /prism-examples/csgs/simple/icsg-tests
 /prism-examples/csgs/simple/icsg-tests/*
+/prism/parsed-results/
