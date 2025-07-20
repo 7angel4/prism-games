@@ -237,6 +237,11 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		csg.addIdleIndexes();
 	}
 
+	public void fixDeadlock(int s)
+	{
+		csg.fixDeadlock(s);
+	}
+
 	/**
 	 * Set the list of all action labels
 	 */
