@@ -1,0 +1,27 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// first player
+module m1
+    // actions
+	[a1] true -> true;
+	[b1] true -> true;
+endmodule
+
+// second player constructed through renaming
+module m2 = m1[a1=a2,b1=b2] endmodule
+
+// module to record state
+module recorder
+    // state
+    s : [0..2] init 0; // 0: s0, 1: s1, 2: s2 (target)
+
+    // Transitions from s0
+    [a1] (s=0) -> [0.2,0.5]:(s'=0) + [0.1,0.3]:(s'=1) + [0.5,0.7]:(s'=2);
+    [b1] (s=0) -> (s'=1);
+    [] (s=1) -> (s'=1); // absorbing state
+    [] (s=2) -> (s'=2); // absorbing target state
+
+endmodule

@@ -1,0 +1,10 @@
+// maximum probability of reaching s1 in 1 step
+<<p1>> Pmax=? [ F<=1 s=1 ]
+
+// <<p1>> Pmax=? [ F<=2 (s=1)]
+
+// <<p1>> Pmax=? [ F s=1 ]
+
+// <<p1>> Pmax=? [ F (s=2) ]
+
+// <<p1>> Rmax=? [ F (s=0) ]
