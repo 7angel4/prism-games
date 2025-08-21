@@ -42,7 +42,8 @@ endmodule
 // UNCHANGED
 module value
     v : [0..10] init 5;
-    [] m=1 -> [p/10,p/10] : (v'=min(v+1,c)) + [(1-p/10),(1-p/10)] : (v'=min(max(v-1,0),c));
+    [] m=1 & (p/10 <= eps | 1-p/10 <= eps) -> p/10 : (v'=min(v+1,c)) + (1-p/10) : (v'=min(max(v-1,0),c));
+    [] m=1 & (p/10 > eps) & (1-p/10 > eps) -> [p/10-eps,p/10+eps] : (v'=min(v+1,c)) + [1-p/10-eps, 1-p/10+eps]: (v'=min(max(v-1,0),c));
 endmodule
 
 module probability
