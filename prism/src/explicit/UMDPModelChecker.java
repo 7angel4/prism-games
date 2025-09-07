@@ -286,6 +286,69 @@ public class UMDPModelChecker extends ProbModelChecker
 		}
 		return res;
 	}
+
+	/**
+	 * Compute expected cumulative (step-bounded) rewards.
+	 * i.e. compute the min/max reward accumulated within {@code k} steps.
+	 * @param umdp The UMDP
+	 * @param mdpRewards The rewards
+	 * @param k Bound
+	 * @param minMax Min/max info
+	 */
+	public ModelCheckerResult computeCumulativeRewards(UMDP<Double> umdp, MDPRewards<Double> mdpRewards, int k, MinMax minMax) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		BitSet unknown;
+		int i, n, iters;
+		double soln[], soln2[], tmpsoln[];
+		long timer;
+		int strat[] = null;
+
+		// Start bounded probabilistic reachability
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting bounded probabilistic reachability...");
+
+		// Check for any zero lower probability bounds (not supported
+		// since this approach assumes the graph structure remains static)
+		umdp.checkLowerBoundsArePositive();
+
+		// Store num states
+		n = umdp.getNumStates();
+
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = soln2[i] = 0.0;
+
+		// Start iterations
+		iters = 0;
+		while (iters < k) {
+			iters++;
+			// Matrix-vector multiply and min/max ops
+			umdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, null, false, strat);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished bounded probabilistic reachability
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Expected cumulative reward");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.lastSoln = soln2;
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+
+		return res;
+	}
 	
 	/**
 	 * Compute reachability probabilities.
