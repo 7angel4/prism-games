@@ -46,4 +46,22 @@ public interface IntervalModel<Value> extends Model<Value>
 	 * Get the underlying model over Interval<Value>.
 	 */
 	Model<Interval<Value>> getIntervalModel();
+
+	/**
+	 * Add a state to the list of initial states.
+	 */
+	@Override
+	public default void addInitialState(int i)
+	{
+		getIntervalModel().addInitialState(i);
+	}
+
+	/**
+	 * Empty the list of initial states.
+	 */
+	@Override
+	public default void clearInitialStates()
+	{
+		getIntervalModel().clearInitialStates();
+	}
 }

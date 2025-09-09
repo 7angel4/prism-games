@@ -32,8 +32,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import explicit.rewards.CSGRewards;
 import prism.ModelType;
 import prism.PlayerInfoOwner;
+import prism.PrismException;
 import strat.CSGStrategy;
 import strat.Strategy;
 
@@ -137,6 +139,46 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 
 	public default Strategy<?> getStrategy(List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, CSGStrategy.CSGStrategyType type) {
 		return new CSGStrategy(this, lstrat, no, yes, inf, type);
+	}
+
+
+	public default void jointToIndexes(int[] joint, BitSet indexes) {
+		indexes.clear();
+		for (int p = 0; p < getNumPlayers(); p++) {
+			if (joint[p] != -1) {
+				indexes.set(joint[p]);
+			} else {
+				indexes.set(getIdleForPlayer(p));
+			}
+		}
+	}
+
+	public default BitSet jointToIndexes(int[] joint) {
+		BitSet indexes = new BitSet();
+		jointToIndexes(joint, indexes);
+		return indexes;
+	}
+
+	public default void choiceToIndexes(int s, int t, BitSet indexes) {
+		jointToIndexes(getIndexes(s, t), indexes);
+	}
+
+	public default BitSet choiceToIndexes(int s, int t) {
+		BitSet indexes = new BitSet();
+		jointToIndexes(getIndexes(s, t), indexes);
+		return indexes;
+	}
+
+	public default BitSet extractCoalitionActionIndexes(BitSet indexes, BitSet coalitionActionIndexes) {
+		BitSet tmp = new BitSet();
+		extractCoalitionActionIndexes(tmp, indexes, coalitionActionIndexes);
+		return tmp;
+	}
+
+	public default void extractCoalitionActionIndexes(BitSet tmp, BitSet jointIndexes, BitSet coalitionActionIndexes) {
+		tmp.clear();
+		tmp.or(coalitionActionIndexes);
+		tmp.and(jointIndexes);
 	}
 
 }

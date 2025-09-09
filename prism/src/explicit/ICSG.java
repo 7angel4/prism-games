@@ -27,16 +27,14 @@
 package explicit;
 
 import common.Interval;
+import explicit.rewards.CSGRewards;
 import parser.State;
 import prism.Evaluator;
 import prism.ModelType;
 import prism.PlayerInfoOwner;
+import prism.PrismException;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public interface ICSG<Value> extends IMDP<Value>, PlayerInfoOwner
 {
@@ -106,8 +104,52 @@ public interface ICSG<Value> extends IMDP<Value>, PlayerInfoOwner
         }
     }
 
+
     public UncType getUncType();
 
     @Override
     CSG<Interval<Value>> getIntervalModel();
+
+    public default BitSet getConcurrentPlayers(int s) {
+        return getIntervalModel().getConcurrentPlayers(s);
+    }
+
+    public default BitSet[] getIndexes() {
+        return getIntervalModel().getIndexes();
+    }
+
+    public default int[] getIndexes(int s, int i) {
+        return getIntervalModel().getIndexes(s, i);
+    }
+
+    public default BitSet getIndexesForPlayer(int s, int p) {
+        return getIntervalModel().getIndexesForPlayer(s, p);
+    }
+
+    public default int[] getIdles() {
+        return getIntervalModel().getIdles();
+    }
+
+    public default int getIdleForPlayer(int p) {
+        return getIntervalModel().getIdleForPlayer(p);
+    }
+
+    public default Distribution<Interval<Value>> getChoice(int s, int i) {
+        return getIntervalModel().getChoice(s, i);
+    }
+
+    public default Iterator<Map.Entry<Integer, Interval<Value>>> getTransitionsIterator(int s, int i) {
+        return getIntervalModel().getTransitionsIterator(s, i);
+    }
+
+    public default Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int t, double val[]) {
+        return getIntervalModel().getDoubleTransitionsIterator(s, t, val);
+    }
+
+    public default Distribution<Double> getDoubleChoice(int s, int i, double val[]) {
+        return Distribution.ofDouble(getDoubleTransitionsIterator(s, i, val));
+    }
+
+    public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+                                       boolean min, double[][] val) throws PrismException;
 }

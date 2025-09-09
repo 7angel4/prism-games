@@ -83,6 +83,16 @@ public interface Model<Value> extends prism.Model<Value>
 	public boolean isInitialState(int i);
 
 	/**
+	 * Add a state to the list of initial states.
+	 */
+	public void addInitialState(int i);
+
+	/**
+	 * Empty the list of initial states.
+	 */
+	public void clearInitialStates();
+
+	/**
 	 * Get the number of states that are/were deadlocks.
 	 * (Such states may have been fixed at build-time by adding self-loops)
 	 */
