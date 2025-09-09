@@ -129,6 +129,18 @@ public class MDPDroppedChoicesCached<Value> extends MDPView<Value>
 	}
 
 	@Override
+	public void clearInitialStates()
+	{
+		model.clearInitialStates();
+	}
+
+	@Override
+	public void addInitialState(int i)
+	{
+		model.addInitialState(i);
+	}
+
+	@Override
 	public List<State> getStatesList()
 	{
 		return model.getStatesList();
