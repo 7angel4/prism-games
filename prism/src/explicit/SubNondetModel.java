@@ -145,6 +145,18 @@ public class SubNondetModel<Value> implements NondetModel<Value>, ActionListOwne
 	}
 
 	@Override
+	public void clearInitialStates()
+	{
+		initialStates.clear();
+	}
+
+	@Override
+	public void addInitialState(int i)
+	{
+		initialStates.set(translateState(i));
+	}
+
+	@Override
 	public int getNumDeadlockStates()
 	{
 		throw new UnsupportedOperationException();
