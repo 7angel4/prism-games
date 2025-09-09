@@ -181,9 +181,9 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 			for (int j = 0; j < numChoices; j++) {
 				Object action = mdp.getAction(i, j);
 				Distribution<Value> distr = new Distribution<>(eval);
-				Iterator<Map.Entry<Integer, T>> iter = mdp.getTransitionsIterator(i, j);
+				Iterator<Map.Entry<Integer, T>> iter = mdp.getTransitionsIterator(i, j);  // P(s,a)
 				while (iter.hasNext()) {
-					Map.Entry<Integer, T> e = iter.next();
+					Map.Entry<Integer, T> e = iter.next();  // s':P(i,j,s')
 					distr.set(e.getKey(), probMap.apply(e.getValue()));
 				}
 				if (!distr.isEmpty()) {

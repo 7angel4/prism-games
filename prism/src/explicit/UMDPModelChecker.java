@@ -298,11 +298,9 @@ public class UMDPModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeCumulativeRewards(UMDP<Double> umdp, MDPRewards<Double> mdpRewards, int k, MinMax minMax) throws PrismException
 	{
 		ModelCheckerResult res = null;
-		BitSet unknown;
 		int i, n, iters;
 		double soln[], soln2[], tmpsoln[];
 		long timer;
-		int strat[] = null;
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
@@ -327,7 +325,7 @@ public class UMDPModelChecker extends ProbModelChecker
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			umdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, null, false, strat);
+			umdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, null, false, null);
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -347,6 +345,58 @@ public class UMDPModelChecker extends ProbModelChecker
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
 
+		return res;
+	}
+
+
+	public ModelCheckerResult computeInstantaneousRewards(UMDP<Double> umdp, MDPRewards<Double> mdpRewards, int k, MinMax minMax) throws PrismException
+	{
+		ModelCheckerResult res = null;
+		int i, n, iters;
+		double soln[], soln2[], tmpsoln[];
+		long timer;
+
+		// Start bounded probabilistic reachability
+		timer = System.currentTimeMillis();
+		mainLog.println("\nStarting bounded probabilistic reachability...");
+
+		// Check for any zero lower probability bounds (not supported
+		// since this approach assumes the graph structure remains static)
+		umdp.checkLowerBoundsArePositive();
+
+		// Store num states
+		n = umdp.getNumStates();
+
+		// Create solution vector(s)
+		soln = new double[n];
+		soln2 = new double[n];
+		// Initialise solution vectors.
+		for (i = 0; i < n; i++)
+			soln[i] = mdpRewards.getStateReward(i);
+
+		// Start iterations
+		for (iters = 0; iters < k; iters++) {
+			// Matrix-vector multiply and min/max ops
+			umdp.mvMultUnc(soln, minMax, soln2, null, false, null);
+			// Swap vectors for next iter
+			tmpsoln = soln;
+			soln = soln2;
+			soln2 = tmpsoln;
+		}
+
+		// Finished bounded probabilistic reachability
+		timer = System.currentTimeMillis() - timer;
+		mainLog.print("Backwards transient instantaneous rewards computation");
+		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+
+		// Return results
+		res = new ModelCheckerResult();
+		res.soln = soln;
+		res.lastSoln = soln2;
+		res.accuracy = AccuracyFactory.boundedNumericalIterations();
+		res.numIters = iters;
+		res.timeTaken = timer / 1000.0;
+		res.timePre = 0.0;
 		return res;
 	}
 	

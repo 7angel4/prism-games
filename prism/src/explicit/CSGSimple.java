@@ -29,6 +29,7 @@ package explicit;
 
 import java.util.*;
 
+import prism.Evaluator;
 import prism.JointAction;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
@@ -439,11 +440,12 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 	@Override
 	public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]) {
-		return ((CSG<Double>) this).getTransitionsIterator(s, i);
+		return (Iterator<Map.Entry<Integer, Double>>) (Iterator<?>) getTransitionsIterator(s, i);
 	}
 
 	@Override
 	public Iterator<Map.Entry<Integer, Double>> getChosenTransitionsIterator(int s, int i) {
 		return getDoubleTransitionsIterator(s, i, null);
 	}
+
 }

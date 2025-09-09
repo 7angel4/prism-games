@@ -819,22 +819,57 @@ public class ProbModelChecker extends NonProbModelChecker
 		else if (coalitions.size() == 2) {
 			if (unbounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
+					switch (model.getModelType()) {
+						case CSG:
+							res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
+							break;
+						case ICSG:
+							res = ((UCSGModelChecker) this).computeRewReachEquilibria((ICSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
+							break;
+					}
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
+					switch (model.getModelType()) {
+						case CSG:
+							res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
+							break;
+						case ICSG:
+							res = ((UCSGModelChecker) this).computeProbReachEquilibria((ICSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
+							break;
+					}
 				}
 			}
 			else if (bounded.cardinality() == formulae.size()) {
 				if (rew) {
-					res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
+					switch (model.getModelType()) {
+						case CSG:
+							res = ((CSGModelChecker) this).computeRewBoundedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
+							break;
+						case ICSG:
+							res = ((UCSGModelChecker) this).computeRewBoundedEquilibria((ICSG<Double>) model, coalitions, rewards, exprs, bounds, eqType, crit, min);
+							break;
+					}
 				}
 				else {
-					res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG<Double>) model, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
+					switch (model.getModelType()) {
+						case CSG:
+							res = ((CSGModelChecker) this).computeProbBoundedEquilibria((CSG<Double>) model, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
+							break;
+						case ICSG:
+							res = ((UCSGModelChecker) this).computeProbBoundedEquilibria((ICSG<Double>) model, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
+							break;
+					}
 				}
 			}
 			else {
-				res = ((CSGModelChecker) this).computeMixedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
+				switch (model.getModelType()) {
+					case CSG:
+						res = ((CSGModelChecker) this).computeMixedEquilibria((CSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
+						break;
+					case ICSG:
+						res = ((UCSGModelChecker) this).computeMixedEquilibria((ICSG<Double>) model, coalitions, rewards, exprs, bounded, targets, remain, bounds, eqType, crit, min);
+						break;
+				}
 			}
 		}
 		else if (coalitions.size() > 2) {

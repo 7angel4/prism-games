@@ -281,7 +281,7 @@ public class LTLModelChecker extends PrismComponent
 	 * are put into the vector {@code labelBS}, which should be empty when this function is called.
 	 * <br>
 	 * This is for use when computing the probability of satisfaction;
-	 * use {@link #constructDFAForCosafetyRewardLTL()} for expected rewards.
+	 * use {@link #constructDFAForCosafetyRewardLTL} for expected rewards.
 	 * @param mc the underlying model checker (for recursively handling maximal state formulas)
 	 * @param model the model
 	 * @param expr the co-safe LTL formula
@@ -443,6 +443,11 @@ public class LTLModelChecker extends PrismComponent
 		return constructDAProductForLTLFormula(mc, model, expr, statesOfInterest, allowedAcceptance);
 	}
 
+	public <Value> LTLProduct<ICSG<Value>> constructProductICSG(ProbModelChecker mc, ICSG<Value> model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	{
+		return constructDAProductForLTLFormula(mc, model, expr, statesOfInterest, allowedAcceptance);
+	}
+
 	/**
 	 * Generate a deterministic automaton (DA) for the given LTL formula, having first extracted maximal state formulas
 	 * and model checked them with the passed in model and model checker (see {@link #constructDAForLTLFormula}.
@@ -573,6 +578,9 @@ public class LTLModelChecker extends PrismComponent
 			if (modelType == ModelType.CSG) {
 				((CSGSimple<Value>) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
 			}
+			if (modelType == ModelType.ICSG) {
+				((ICSGSimple<Value>) prodModel).copyPlayerInfo((PlayerInfoOwner) model);
+			}
 		}
 
 		// Add more player information for CSGs
@@ -580,6 +588,11 @@ public class LTLModelChecker extends PrismComponent
 			((CSGSimple<Value>) prodModel).setActions(((CSG<Value>) model).getActions());
 			((CSGSimple<Value>) prodModel).setIndexes(((CSG<Value>) model).getIndexes());
 			((CSGSimple<Value>) prodModel).setIdles(((CSG<Value>) model).getIdles());
+		} else if (modelType == ModelType.ICSG) {
+			// box the model to ICSG if necessary
+			((ICSGSimple<Value>) prodModel).setActions(((ICSG<Value>) model).getActions());
+			((ICSGSimple<Value>) prodModel).setIndexes(((ICSG<Value>) model).getIndexes());
+			((ICSGSimple<Value>) prodModel).setIdles(((ICSG<Value>) model).getIdles());
 		}
 
 		// Attach evaluator and variable info
@@ -727,16 +740,21 @@ public class LTLModelChecker extends PrismComponent
 				case CSG:
 					iter = ((CSG<Value>) model).getTransitionsIterator(s_1, j);
 					break;
+				case ICSG:
+					iterIntv = ((ICSG<Value>) model).getTransitionsIterator(s_1, j);
+					break;
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
 				Distribution<Value> prodDistr = null;
 				Distribution<Interval<Value>> prodDistrIntv = null;
 				if (modelType.nondeterministic()) {
-					if (modelType != ModelType.IMDP) {
+					if (modelType != ModelType.IMDP && modelType != ModelType.ICSG) {
 						prodDistr = new Distribution<>(model.getEvaluator());
-					} else {
+					} else if (modelType == ModelType.IMDP) {
 						prodDistrIntv = new Distribution<>(((IMDP<Value>) model).getIntervalEvaluator());
+					} else {
+						prodDistrIntv = new Distribution<>(((ICSG<Value>) model).getIntervalEvaluator());
 					}
 				}
 
@@ -774,6 +792,7 @@ public class LTLModelChecker extends PrismComponent
 								((IDTMCSimple<Value>) prodModel).setProbability(map_1, map_2, prob);
 								break;
 							case IMDP:
+							case ICSG:
 								prodDistrIntv.set(map_2, prob);
 								break;
 							default:
@@ -801,6 +820,9 @@ public class LTLModelChecker extends PrismComponent
 					int t_2 = ((CSGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, ((CSG) model).getAction(s_1, j));
 					((CSGSimple<Value>) prodModel).setIndexes(map_1, t_2, ((CSG<Value>) model).getIndexes(s_1, j));
 					break;
+				case ICSG:
+					int t2_2 = ((ICSGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistrIntv, ((ICSG) model).getAction(s_1, j));
+					((ICSGSimple<Value>) prodModel).setIndexes(map_1, t2_2, ((ICSG<Value>) model).getIndexes(s_1, j));
 				default:
 					break;
 				}

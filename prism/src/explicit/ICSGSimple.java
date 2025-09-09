@@ -27,11 +27,10 @@
 package explicit;
 
 import common.Interval;
+import explicit.rewards.CSGRewards;
+import explicit.rewards.MDPRewardsSimple;
 import parser.State;
-import prism.Evaluator;
-import prism.JointAction;
-import prism.PlayerInfo;
-import prism.PrismException;
+import prism.*;
 import strat.MDStrategy;
 
 import java.util.ArrayList;
@@ -46,12 +45,13 @@ import java.util.Map;
  */
 public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements NondetModelSimple<Value>, IntervalModelExplicit<Value>, ICSG<Value>
 {
+	public static final double EPS = 1e-6;  // TODO: ReachTuple uses 10e-6?
 	private Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
 
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
 	 */
-	public class ICSGCSGSimple extends CSGSimple<Interval<Value>>
+	public class ICSGCSGSimple extends CSGSimple<Interval<Value>> implements CSG<Interval<Value>>
 	{
 		public ICSGCSGSimple()
 		{
@@ -62,6 +62,14 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		{
 			super(icsg, permut);
 		}
+
+		@Override
+		public ModelType getModelType()
+		{
+			return ModelType.ICSG;
+		}
+
+
 		/**
 		 * Returns arg min/max_P { sum_j P(s,j)*vect[j] }
 		 */
@@ -98,9 +106,9 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				for (int i = 0; i < size; i++) order.add(i);
 				if (val != null) {
 					if (minMax.isMaxUnc()) {
-						order.sort((o1, o2) -> -Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+						order.sort((o1, o2) -> -java.lang.Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
 					} else {
-						order.sort((o1, o2) -> Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
+						order.sort((o1, o2) -> java.lang.Double.compare(val[indices.get(o1)], val[indices.get(o2)]));
 					}
 				}
 
@@ -126,11 +134,134 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		}
 
 		@Override
+		public Distribution<Double> getDoubleChoice(int s, int i, double val[]) {
+			return Distribution.ofDouble(this.getDoubleTransitionsIterator(s, i, val));
+		}
+
+		@Override
 		public Iterator<Map.Entry<Integer, Double>> getChosenTransitionsIterator(int s, int t) {
 			return chosenTransitions.getOrDefault(s, new HashMap<>()).getOrDefault(t, new HashMap<>()).entrySet().iterator();
 		}
+
+		public boolean isRobustNE(double[] eqVal, List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
+								  boolean min, double[][] val) throws PrismException {
+			if (strat == null) return false; // Already known not to be a robust NE
+			int numPlayers = strat.size();
+			assert numPlayers == 2; // Currently only for 2-player games
+			for (int p=0; p<numPlayers; p++) {
+				// Build IMDP for player p
+				CSGRewards<Double> rewards = csgRewards == null ? null : csgRewards.get(p);
+				DevGainIMDP devIMDP = new DevGainIMDP(this, p, strat, rewards, actionIndexes);
+				double devVal = devIMDP.computeOptimisticValue(min, val[p])[s];
+				if (devVal > eqVal[p] + EPS) return false; // Not a robust NE
+			}
+			return true;
+		}
+
+		// eqVal: ne profile -> values per player (2)
+		public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
+								   boolean min, double[][] val) throws PrismException {
+			if (strats == null) return eqVal; // No strategies provided, so cannot filter
+			for (int i = 0; i < eqVal.length; i++) {
+				if (!isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val)) {
+					eqVal[i] = null; // Not a robust NE
+					strats.set(i, null);
+				}
+			}
+			return eqVal;
+		}
 	}
 
+	 class DevGainIMDP extends IMDPSimple<Value> {
+		private MDPRewardsSimple<Double> rewards;
+		private Map<BitSet, Double> agentStrat, otherStrat;
+		private BitSet agentActions, otherActions;
+
+		// strat is player -> strategy
+		public DevGainIMDP(CSGSimple<Interval<Value>> csg, int agent, List<Map<BitSet, Double>> strat, CSGRewards<Double> csgRewards,
+						   BitSet[] actionIndexes) {
+			super(csg.getNumStates());
+			this.rewards = (csgRewards == null) ? null : new MDPRewardsSimple<>(csg.getNumStates());
+			this.agentStrat = strat.get(agent); // coalition-only action indexes -> prob
+			this.otherStrat = strat.get(1 - agent);
+			this.agentActions = actionIndexes[agent];
+			this.otherActions = actionIndexes[1 - agent];
+
+			// For each state
+			for (int s = 0; s < csg.getNumStates(); s++) {
+				// expected reward for this state using original strat
+				List<BitSet> agentIndexes = agentStrat.keySet().stream().toList();
+
+				// For each agent (deviator) action
+				for (int a = 0; a < agentIndexes.size(); a++) {
+					double expRewDev = 0.0;
+
+					// Map: snext -> Interval
+					Map<Integer, Interval<Double>> intervalMap = new HashMap<>();
+
+					// For each joint action in state s
+					int numChoices = csg.getNumChoices(s);
+					for (int choiceIdx = 0; choiceIdx < numChoices; choiceIdx++) {
+						BitSet jointIndexes = csg.choiceToIndexes(s, choiceIdx);
+						BitSet agentAct = csg.extractCoalitionActionIndexes(jointIndexes, agentActions);
+						BitSet otherAct = csg.extractCoalitionActionIndexes(jointIndexes, otherActions);
+						if (!agentAct.equals(agentIndexes.get(a))) continue; // Not same agent action
+
+						// Get probability under other players' strategy
+						double probOther = otherStrat.getOrDefault(otherAct, 0.0);
+						if (csgRewards != null) {
+							// Add expected reward for this action
+							expRewDev += probOther * csgRewards.getTransitionReward(s, choiceIdx);
+						}
+
+						// Get transition interval distribution
+						Distribution<Interval<Value>> distr = csg.getChoice(s, choiceIdx);
+						for (Map.Entry<Integer, Interval<Value>> e : distr) {
+							int snext = e.getKey();
+							Interval<Value> interval = e.getValue();
+							intervalMap.merge(snext,
+									new Interval<>(probOther * (Double) interval.getLower(), probOther * (Double) interval.getUpper()),
+									(oldInt, newInt) -> new Interval<>(oldInt.getLower() + newInt.getLower(), oldInt.getUpper() + newInt.getUpper()));
+						}
+					}
+
+					// Build distribution for IMDP
+					Distribution<Interval<Double>> imdpDistr = new Distribution<>(Evaluator.forDoubleInterval());
+					for (Map.Entry<Integer, Interval<Double>> e : intervalMap.entrySet()) {  // snext -> prob interval
+						imdpDistr.set(e.getKey(), e.getValue());
+					}
+					addChoice(s, (Distribution<Interval<Value>>) (Distribution<?>) imdpDistr);
+
+					// Build reward for this choice
+					if (csgRewards != null) {
+						double expRew = 0.0;
+						for (int choiceIdx = 0; choiceIdx < csg.getNumChoices(s); choiceIdx++) {
+							BitSet jointIndexes = csg.choiceToIndexes(s, choiceIdx);
+							BitSet agentAct = csg.extractCoalitionActionIndexes(jointIndexes, agentActions);
+							BitSet otherAct = csg.extractCoalitionActionIndexes(jointIndexes, otherActions);
+							double r = csgRewards.getTransitionReward(s, choiceIdx);
+							expRew += r * agentStrat.getOrDefault(agentAct, 0.0) * otherStrat.getOrDefault(otherAct, 0.0);
+						}
+						rewards.setTransitionReward(s, a, expRewDev - expRew);
+					}
+				}
+				assert getNumChoices(s) == agentIndexes.size();
+			}
+		}
+
+		public double[] computeOptimisticValue(boolean min, double[] val) {
+			MinMax minMax = min ? MinMax.min().setMinUnc(true) : MinMax.max().setMinUnc(false);
+			IMDP<Double> imdp = (IMDP<Double>) this;
+
+			double[] result = new double[imdp.getNumStates()];
+			if (this.rewards == null) {
+				imdp.mvMultUnc(val, minMax, result, null, false, null);
+			} else {
+				imdp.mvMultRewUnc(val, this.rewards, minMax, result, null, false, null);
+			}
+			return result;
+		}
+	}
 	/**
 	 * The ICSG, stored as a CSGSimple over Intervals.
 	 * Also stored in {@link ModelExplicitWrapper#model} as a ModelExplicit.
@@ -148,6 +279,18 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		this.csg = new ICSGCSGSimple();
 		this.model = (ModelExplicit<Value>) csg;
 		createDefaultEvaluatorForCSG();
+	}
+
+	@SuppressWarnings("unchecked")
+	public ICSGSimple(CSGSimple<Interval<Value>> csg)
+	{
+		this.csg = (ICSGCSGSimple) csg;
+		this.model = (ModelExplicit<Value>) csg;
+		createDefaultEvaluatorForCSG();
+	}
+
+	public static <T> ICSG<T> fromCSG(CSG<Interval<T>> csg) {
+		return new ICSGSimple<>((CSGSimple<Interval<T>>) csg);
 	}
 
 	/**
@@ -194,6 +337,11 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	private void createDefaultEvaluatorForCSG()
 	{
 		((ICSGSimple<Double>) this).setIntervalEvaluator(Evaluator.forDoubleInterval());
+	}
+
+	public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+									   boolean min, double[][] val) throws PrismException {
+		return csg.filterNE(eqVal, strats, csgRewards, coalitionIndexes, s, min, val);
 	}
 
 	// Mutators (for ModelSimple)
@@ -250,6 +398,23 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		csg.setActions(actions);
 	}
 
+	public void copyPlayerInfo(PlayerInfoOwner model) {
+		csg.copyPlayerInfo(model);
+	}
+
+	public void setIndexes(BitSet[] indexes) {
+		csg.setIndexes(indexes);
+	}
+
+	public void setIndexes(int s, int i, int[] indexes) {
+		csg.setIndexes(s, i, indexes);
+	}
+
+
+	public void setIdles(int[] idles) {
+		csg.setIdles(idles);
+	}
+
 	/**
 	 * Add a choice (uncertain distribution {@code udistr}) to state {@code s} (which must exist).
 	 * Returns the index of the (newly added) distribution.
@@ -283,7 +448,6 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	{
 		return csg.addActionLabelledChoice(s, distr, indexes);
 	}
-
 	/**
 	 * Set the action label for choice i in some state s.
 	 */
@@ -323,6 +487,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	{
 		return csg.getAction(s, i);
 	}
+
 
 	@Override
 	public boolean allSuccessorsInSet(int s, int i, BitSet set)

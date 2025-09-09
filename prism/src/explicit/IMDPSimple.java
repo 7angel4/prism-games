@@ -99,6 +99,13 @@ public class IMDPSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		createDefaultEvaluatorForMDP();
 	}
 
+	public IMDPSimple(MDP<Interval<Value>> mdp)
+	{
+		this.mdp = (MDPSimple<Interval<Value>>) mdp;
+		this.model = (ModelExplicit<Value>) mdp;
+		createDefaultEvaluatorForMDP();
+	}
+
 	/**
 	 * Add a default (double interval) evaluator to the MDP
 	 */
