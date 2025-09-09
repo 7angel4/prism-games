@@ -159,16 +159,33 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		}
 
 		// eqVal: ne profile -> values per player (2)
-		public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
+
+		/**
+		 * Filter out non-robust NEs from a list of candidate equilibria,
+		 * and returns whether any remain.
+		 * @param eqVal
+		 * @param strats
+		 * @param csgRewards
+		 * @param actionIndexes
+		 * @param s
+		 * @param min
+		 * @param val
+		 * @return
+		 * @throws PrismException
+		 */
+		public boolean filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
 								   boolean min, double[][] val) throws PrismException {
-			if (strats == null) return eqVal; // No strategies provided, so cannot filter
+			if (strats == null) return false; // No strategies provided, so cannot filter
+			boolean anyNE = false;
 			for (int i = 0; i < eqVal.length; i++) {
 				if (!isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val)) {
 					eqVal[i] = null; // Not a robust NE
 					strats.set(i, null);
+				} else {
+					anyNE = true;
 				}
 			}
-			return eqVal;
+			return anyNE;
 		}
 	}
 
@@ -289,10 +306,6 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		createDefaultEvaluatorForCSG();
 	}
 
-	public static <T> ICSG<T> fromCSG(CSG<Interval<T>> csg) {
-		return new ICSGSimple<>((CSGSimple<Interval<T>>) csg);
-	}
-
 	/**
 	 * Constructor: new ICSG with fixed number of states.
 	 */
@@ -339,8 +352,9 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		((ICSGSimple<Double>) this).setIntervalEvaluator(Evaluator.forDoubleInterval());
 	}
 
-	public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
-									   boolean min, double[][] val) throws PrismException {
+	@Override
+	public boolean filterNEforRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+								  boolean min, double[][] val) throws PrismException {
 		return csg.filterNE(eqVal, strats, csgRewards, coalitionIndexes, s, min, val);
 	}
 

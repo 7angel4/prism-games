@@ -153,16 +153,6 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 		}
 	}
 
-	public default BitSet jointToIndexes(int[] joint) {
-		BitSet indexes = new BitSet();
-		jointToIndexes(joint, indexes);
-		return indexes;
-	}
-
-	public default void choiceToIndexes(int s, int t, BitSet indexes) {
-		jointToIndexes(getIndexes(s, t), indexes);
-	}
-
 	public default BitSet choiceToIndexes(int s, int t) {
 		BitSet indexes = new BitSet();
 		jointToIndexes(getIndexes(s, t), indexes);

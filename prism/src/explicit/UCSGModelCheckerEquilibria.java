@@ -40,7 +40,6 @@ import strat.CSGStrategy.CSGStrategyType;
 
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.DoubleStream;
 
 public class UCSGModelCheckerEquilibria extends CSGModelChecker
 {
@@ -94,6 +93,7 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 	public static final int SWEQ = 3;
 	public static final int FAIR = 4;
 
+	// must turn on strategy generation for filtering equilibria for RNE
 	protected boolean genStrat = true;
 
 	
@@ -2240,6 +2240,7 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		}
 		return result;
 	}
+
 	
 	/**
 	 * Returns the equilibrium (array of values) and updates strategies for the two-player case.
@@ -2272,16 +2273,17 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 				break;
 			}
 			default : {
+				boolean hasRNE;
 				if (rew) {
 					equilibria = stepNashEquilibria(csg, rewards.get(0), rewards.get(1), mmap, strats, val, s, min);
-					equilibria = csg.filterNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
+					hasRNE = csg.filterNEforRNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
 				}
 				else {
 					equilibria = stepNashEquilibria(csg, null, null, mmap, strats, val, s, min);
-					equilibria = csg.filterNE(equilibria, strats, null, coalitionIndexes, s, min, val);
-//					if (strats != null) {
-//						System.out.println("Filtered equilibria: " + equilibria.length);
-//					}
+					hasRNE = csg.filterNEforRNE(equilibria, strats, null, coalitionIndexes, s, min, val);
+				}
+				if (!hasRNE) {
+					throw new PrismException("No Robust Nash equilibrium found for state " + s);
 				}
 				switch (crit) {
 					case FAIR : {

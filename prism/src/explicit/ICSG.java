@@ -28,8 +28,6 @@ package explicit;
 
 import common.Interval;
 import explicit.rewards.CSGRewards;
-import parser.State;
-import prism.Evaluator;
 import prism.ModelType;
 import prism.PlayerInfoOwner;
 import prism.PrismException;
@@ -150,6 +148,6 @@ public interface ICSG<Value> extends IMDP<Value>, PlayerInfoOwner
         return Distribution.ofDouble(getDoubleTransitionsIterator(s, i, val));
     }
 
-    public double[][] filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
-                                       boolean min, double[][] val) throws PrismException;
+    public boolean filterNEforRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+                                  boolean min, double[][] val) throws PrismException;
 }
