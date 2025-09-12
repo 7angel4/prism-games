@@ -1643,6 +1643,7 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 						}
 					}
 				}
+//				System.out.println("State " + s + " values: (" + val[0][s] + "," + val[1][s] + ")");
 				// loop over states
 			}
 			for (s = 0; s < csg.getNumStates(); s++) {

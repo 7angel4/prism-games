@@ -173,8 +173,26 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		 * @return
 		 * @throws PrismException
 		 */
-		public boolean filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
+		public double[] findRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
 								   boolean min, double[][] val) throws PrismException {
+			if (strats == null) return null; // No strategies provided, so cannot filter
+			double[] equilibrium = null;
+			for (int i = 0; i < eqVal.length; i++) {
+				if (isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val)) {
+					equilibrium = new double[eqVal[i].length + 1];
+					equilibrium[0] = 0.0;
+					for (int p = 0; p < eqVal[i].length; p++) {
+						equilibrium[p + 1] = eqVal[i][p];
+						equilibrium[0] += eqVal[i][p];
+					}
+					return equilibrium; // Return first found
+				}
+			}
+			return equilibrium;
+		}
+
+		public boolean filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
+								 boolean min, double[][] val) throws PrismException {
 			if (strats == null) return false; // No strategies provided, so cannot filter
 			boolean anyNE = false;
 			for (int i = 0; i < eqVal.length; i++) {
@@ -356,6 +374,12 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	public boolean filterNEforRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
 								  boolean min, double[][] val) throws PrismException {
 		return csg.filterNE(eqVal, strats, csgRewards, coalitionIndexes, s, min, val);
+	}
+
+	@Override
+	public double[] findRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+								   boolean min, double[][] val) throws PrismException {
+		return csg.findRNE(eqVal, strats, csgRewards, coalitionIndexes, s, min, val);
 	}
 
 	// Mutators (for ModelSimple)

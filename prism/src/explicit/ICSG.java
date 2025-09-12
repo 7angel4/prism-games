@@ -150,4 +150,7 @@ public interface ICSG<Value> extends IMDP<Value>, PlayerInfoOwner
 
     public boolean filterNEforRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
                                   boolean min, double[][] val) throws PrismException;
+
+    public double[] findRNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] coalitionIndexes, int s,
+                                  boolean min, double[][] val) throws PrismException;
 }
