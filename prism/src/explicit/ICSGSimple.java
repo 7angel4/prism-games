@@ -33,12 +33,10 @@ import parser.State;
 import prism.*;
 import strat.MDStrategy;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * Simple explicit-state representation of a (multi-player) interval concurrent stochastic game (ICSG).
@@ -47,6 +45,31 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 {
 	public static final double EPS = 1e-6;  // TODO: ReachTuple uses 10e-6?
 	private Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
+
+	/** Cache of deviation values: key = supports + quantised mixing, value = [devValP0, devValP1] */
+	private static final ConcurrentHashMap<String, double[]> devCache = new ConcurrentHashMap<>();
+
+	/** Cache of IMDP distributions for (s, act1, act2) independent of mixing weights */
+	private static final ConcurrentHashMap<String, Distribution<Interval<Double>>> imdpDistrCache = new ConcurrentHashMap<>();
+
+	/** Build a cache key from both supports and quantised mixing weights */
+	private String makeDevKey(List<Map<BitSet, Double>> strat) {
+		StringBuilder sb = new StringBuilder();
+		for (Map<BitSet, Double> m : strat) {
+			List<String> parts = new ArrayList<>();
+			for (Map.Entry<BitSet, Double> e : m.entrySet()) {
+				// Round to 3 decimal places for cache key
+				double q = Math.round(e.getValue() * 1000.0) / 1000.0;
+				parts.add(Arrays.toString(e.getKey().toLongArray()) + "=" + q);
+			}
+			Collections.sort(parts);
+			for (String p : parts) sb.append(p).append(";");
+			sb.append("|");
+		}
+		return sb.toString();
+	}
+
+
 
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
@@ -144,7 +167,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		}
 
 		public boolean isRobustNE(double[] eqVal, List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
-								  boolean min, double[][] val) throws PrismException {
+								  boolean min, double[][] val) {
 			if (strat == null) return false; // Already known not to be a robust NE
 			int numPlayers = strat.size();
 			assert numPlayers == 2; // Currently only for 2-player games
@@ -192,18 +215,35 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		}
 
 		public boolean filterNE(double[][] eqVal, List<List<Map<BitSet, Double>>> strats, List<CSGRewards<Double>> csgRewards, BitSet[] actionIndexes, int s,
-								 boolean min, double[][] val) throws PrismException {
-			if (strats == null) return false; // No strategies provided, so cannot filter
-			boolean anyNE = false;
+								 boolean min, double[][] val) {
+//			if (strats == null) return false; // No strategies provided, so cannot filter
+//			boolean anyNE = false;
+//			for (int i = 0; i < eqVal.length; i++) {
+//				if (!isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val)) {
+//					eqVal[i] = null; // Not a robust NE
+//					strats.set(i, null);
+//				} else {
+//					anyNE = true;
+//				}
+//			}
+//			return anyNE;
+			if (strats == null) return false;
+
+			// Parallel evaluation of robustness
+			List<Integer> rne = IntStream.range(0, eqVal.length).parallel()
+					.filter(i -> eqVal[i] != null && strats.get(i) != null &&
+							isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val))
+					.boxed()
+					.collect(Collectors.toList());
+
+			// Null out the losers
 			for (int i = 0; i < eqVal.length; i++) {
-				if (!isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val)) {
-					eqVal[i] = null; // Not a robust NE
+				if (!rne.contains(i)) {
+					eqVal[i] = null;
 					strats.set(i, null);
-				} else {
-					anyNE = true;
 				}
 			}
-			return anyNE;
+			return !rne.isEmpty();
 		}
 	}
 
@@ -269,18 +309,18 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 
 					// Build reward for this choice
 					if (csgRewards != null) {
-						double expRew = 0.0;
-						for (int choiceIdx = 0; choiceIdx < csg.getNumChoices(s); choiceIdx++) {
-							BitSet jointIndexes = csg.choiceToIndexes(s, choiceIdx);
-							BitSet agentAct = csg.extractCoalitionActionIndexes(jointIndexes, agentActions);
-							BitSet otherAct = csg.extractCoalitionActionIndexes(jointIndexes, otherActions);
-							double r = csgRewards.getTransitionReward(s, choiceIdx);
-							expRew += r * agentStrat.getOrDefault(agentAct, 0.0) * otherStrat.getOrDefault(otherAct, 0.0);
-						}
-						rewards.setTransitionReward(s, a, expRewDev - expRew);
+//						double expRew = 0.0;
+//						for (int choiceIdx = 0; choiceIdx < csg.getNumChoices(s); choiceIdx++) {
+//							BitSet jointIndexes = csg.choiceToIndexes(s, choiceIdx);
+//							BitSet agentAct = csg.extractCoalitionActionIndexes(jointIndexes, agentActions);
+//							BitSet otherAct = csg.extractCoalitionActionIndexes(jointIndexes, otherActions);
+//							double r = csgRewards.getTransitionReward(s, choiceIdx);
+//							expRew += r * agentStrat.getOrDefault(agentAct, 0.0) * otherStrat.getOrDefault(otherAct, 0.0);
+//						}
+						rewards.setTransitionReward(s, a, expRewDev);
 					}
 				}
-				assert getNumChoices(s) == agentIndexes.size();
+//				assert getNumChoices(s) == agentIndexes.size();
 			}
 		}
 
@@ -462,6 +502,8 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	{
 		return csg.addChoice(s, udistr);
 	}
+
+
 
 	/**
 	 * Add a choice (uncertain distribution {@code udistr}) labelled with {@code action} to state {@code s} (which must exist).

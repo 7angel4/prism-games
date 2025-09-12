@@ -2285,44 +2285,10 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 	 * @return
 	 * @throws PrismException
 	 */
-	public double[] stepEquilibriaTwoPlayer(ICSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats,
-			 								double[][] val, int s, int eqType, int crit, boolean rew, boolean min) throws PrismException {
-		double[][] equilibria;
-		double[] equilibrium;
-
-		switch (eqType) {
-			case CORR : {
-				if (rew) {
-					equilibrium = stepCorrelatedEquilibria(csg, rewards, mmap, strats, val, s, min, crit);
-				}
-				else
-					equilibrium = stepCorrelatedEquilibria(csg, null, mmap, strats, val, s, min, crit);
-				break;
-			}
-			default : {
-				if (rew) {
-					equilibria = stepNashEquilibria(csg, rewards.get(0), rewards.get(1), mmap, strats, val, s, min);
-					equilibrium = csg.findRNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
-				}
-				else {
-					equilibria = stepNashEquilibria(csg, null, null, mmap, strats, val, s, min);
-//					System.out.println("No. of Equilibria for state " + s + ": " + equilibria.length);
-					Arrays.sort(equilibria, this::cmpNEbySW);
-					equilibrium = csg.findRNE(equilibria, strats, null, coalitionIndexes, s, min, val);
-				}
-				if (equilibrium == null) {
-					throw new PrismException("No Robust Nash equilibrium found for state " + s);
-				}
-			}
-		}
-		return equilibrium;
-	}
-
 //	public double[] stepEquilibriaTwoPlayer(ICSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats,
-//											double[][] val, int s, int eqType, int crit, boolean rew, boolean min) throws PrismException {
+//			 								double[][] val, int s, int eqType, int crit, boolean rew, boolean min) throws PrismException {
 //		double[][] equilibria;
 //		double[] equilibrium;
-//		boolean hasRNE = false;
 //
 //		switch (eqType) {
 //			case CORR : {
@@ -2336,29 +2302,63 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 //			default : {
 //				if (rew) {
 //					equilibria = stepNashEquilibria(csg, rewards.get(0), rewards.get(1), mmap, strats, val, s, min);
-//					hasRNE = csg.filterNEforRNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
+//					equilibrium = csg.findRNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
 //				}
 //				else {
 //					equilibria = stepNashEquilibria(csg, null, null, mmap, strats, val, s, min);
 ////					System.out.println("No. of Equilibria for state " + s + ": " + equilibria.length);
-//					hasRNE = csg.filterNEforRNE(equilibria, strats, null, coalitionIndexes, s, min, val);
+//					Arrays.sort(equilibria, this::cmpNEbySW);
+//					equilibrium = csg.findRNE(equilibria, strats, null, coalitionIndexes, s, min, val);
 //				}
-//				if (!hasRNE) {
+//				if (equilibrium == null) {
 //					throw new PrismException("No Robust Nash equilibrium found for state " + s);
-//				}
-//				switch (crit) {
-//					case FAIR : {
-//						equilibrium = fair(equilibria, strats, min);
-//						break;
-//					}
-//					default : {
-//						equilibrium = swne(equilibria, strats, min);
-//					}
 //				}
 //			}
 //		}
 //		return equilibrium;
 //	}
+
+	public double[] stepEquilibriaTwoPlayer(ICSG<Double> csg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, List<List<Map<BitSet, Double>>> strats,
+											double[][] val, int s, int eqType, int crit, boolean rew, boolean min) throws PrismException {
+		double[][] equilibria;
+		double[] equilibrium;
+		boolean hasRNE = false;
+
+		switch (eqType) {
+			case CORR : {
+				if (rew) {
+					equilibrium = stepCorrelatedEquilibria(csg, rewards, mmap, strats, val, s, min, crit);
+				}
+				else
+					equilibrium = stepCorrelatedEquilibria(csg, null, mmap, strats, val, s, min, crit);
+				break;
+			}
+			default : {
+				if (rew) {
+					equilibria = stepNashEquilibria(csg, rewards.get(0), rewards.get(1), mmap, strats, val, s, min);
+					hasRNE = csg.filterNEforRNE(equilibria, strats, rewards, coalitionIndexes, s, min, val);
+				}
+				else {
+					equilibria = stepNashEquilibria(csg, null, null, mmap, strats, val, s, min);
+//					System.out.println("No. of Equilibria for state " + s + ": " + equilibria.length);
+					hasRNE = csg.filterNEforRNE(equilibria, strats, null, coalitionIndexes, s, min, val);
+				}
+				if (!hasRNE) {
+					throw new PrismException("No Robust Nash equilibrium found for state " + s);
+				}
+				switch (crit) {
+					case FAIR : {
+						equilibrium = fair(equilibria, strats, min);
+						break;
+					}
+					default : {
+						equilibrium = swne(equilibria, strats, min);
+					}
+				}
+			}
+		}
+		return equilibrium;
+	}
 	
 	/**
 	 * Computes Nash equilibria for a bimatrix game.
