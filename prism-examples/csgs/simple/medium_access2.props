@@ -1,7 +1,8 @@
-const int k; // time bound
+const int k1; // time bound
+const int k2; // time bound
 
 // each player wants to maximise the expected number of messages sent in k steps
-<<p1:p2>>max=? (R{"r1"}[C<=k] + R{"r2"}[C<=k])
+<<p1:p2>>max=? (R{"r1"}[C<=k1] + R{"r2"}[C<=k2])
 
 // each player wants to maximise the probability of sending a message
 <<p1:p2>>max=? (P[F s1=1] + P[F s2=1])

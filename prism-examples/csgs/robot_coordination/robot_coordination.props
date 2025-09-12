@@ -1,0 +1,30 @@
+const int k1; // step bound
+const int k2; // step bound
+
+// maximum probability robot 1 can guarantee to reach its goal without crashing
+<<robot1>>Pmax=? [ !"crash" U "goal1" ]
+
+// maximum probability robot 1 can guarantee to reach its goal without crashing within a deadline
+<<robot1>>Pmax=? [ !"crash" U<=k1 "goal1" ]
+
+// minimum expected time robot 1 can guarantee to reach its goal
+<<robot1>>R{"time1"}min=? [ F "goal1" ]
+
+// robots try to maximise the probability of reaching their goals without crashing
+<<robot1:robot2>>max=? (P[ !"crash" U "goal1" ] + P[ !"crash" U "goal2" ])
+
+// robots try to maximise the probability of reaching their goals without crashing within a bounded number of steps
+<<robot1:robot2>>max=? (P[ !"crash" U<=k1 "goal1"] + P[ !"crash" U<=k2 "goal2"])
+
+// robots try to maximise the probability of reaching their goals without crashing
+// where the first one only has a bounded number of steps to do so
+<<robot1:robot2>>max=? (P[!"crash" U<=k1 "goal1"] + P[!"crash" U "goal2"])
+
+// robots try to minimise the expected time to reach their goals
+<<robot1:robot2>>min=? (R{"time1"}[F "goal1" ] + R{"time2"}[F "goal2" ])
+
+// maximum probability the first robot can get to a state where the expected time for the second robot is at least 10 steps
+<<robot1>>Pmax=? [ F <<robot2>>R{"time1"}>=10 [ F "goal2" ] ]
+
+//maximum probability the robots can collaborate to reach a state where the sum of the expected time for the robots to reach the goal is at most 5
+<<robot1,robot2>>Pmin=?[ F <<robot1:robot2>>min<5 (R{"time1"}[F "goal1" ] + R{"time2"}[F "goal2" ])]
