@@ -78,6 +78,11 @@ public class Distribution<Value> implements FunctionalIterable<Entry<Integer, Va
 		this.map = new HashMap<>();
 	}
 
+	public Distribution(Evaluator<Value> eval, Map<Integer, Value> map) {
+		this.eval = eval;
+		this.map = new HashMap<>(map);
+	}
+
 	/**
 	 * Construct a distribution from an iterator over transitions
 	 * (with an Evaluator to match the type parameter Value).

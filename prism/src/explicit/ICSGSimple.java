@@ -35,6 +35,9 @@ import strat.MDStrategy;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -229,21 +232,21 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 //			return anyNE;
 			if (strats == null) return false;
 
-			// Parallel evaluation of robustness
-			List<Integer> rne = IntStream.range(0, eqVal.length).parallel()
-					.filter(i -> eqVal[i] != null && strats.get(i) != null &&
-							isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val))
-					.boxed()
-					.collect(Collectors.toList());
+			AtomicBoolean anyNE = new AtomicBoolean(false);
 
-			// Null out the losers
-			for (int i = 0; i < eqVal.length; i++) {
-				if (!rne.contains(i)) {
-					eqVal[i] = null;
-					strats.set(i, null);
+			IntStream.range(0, eqVal.length).parallel().forEach(i -> {
+				if (eqVal[i] != null && strats.get(i) != null) {
+					boolean robust = isRobustNE(eqVal[i], strats.get(i), csgRewards, actionIndexes, s, min, val);
+					if (!robust) {
+						eqVal[i] = null;
+						strats.set(i, null);
+					} else {
+						anyNE.set(true);
+					}
 				}
-			}
-			return !rne.isEmpty();
+			});
+
+			return anyNE.get();
 		}
 	}
 
@@ -251,6 +254,9 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		private MDPRewardsSimple<Double> rewards;
 		private Map<BitSet, Double> agentStrat, otherStrat;
 		private BitSet agentActions, otherActions;
+		private List<BitSet> agentIndexes;
+		private boolean buildFull = true;
+		public static final ConcurrentMap<Pair<List<BitSet>,Map<BitSet, Double>>, double[]> optimisticValCache = new ConcurrentHashMap<>();
 
 		// strat is player -> strategy
 		public DevGainIMDP(CSGSimple<Interval<Value>> csg, int agent, List<Map<BitSet, Double>> strat, CSGRewards<Double> csgRewards,
@@ -261,12 +267,17 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 			this.otherStrat = strat.get(1 - agent);
 			this.agentActions = actionIndexes[agent];
 			this.otherActions = actionIndexes[1 - agent];
+			this.agentIndexes = agentStrat.keySet().stream().toList();
+			if (optimisticValCache.containsKey(new Pair<>(agentIndexes, otherStrat))) {
+				buildFull = false;
+				return; // Already known values
+			}
+//			else {
+//				System.out.println("Building full DevGainIMDP for agent " + agent + " with " + agentIndexes.size() + " actions");
+//			}
 
 			// For each state
 			for (int s = 0; s < csg.getNumStates(); s++) {
-				// expected reward for this state using original strat
-				List<BitSet> agentIndexes = agentStrat.keySet().stream().toList();
-
 				// For each agent (deviator) action
 				for (int a = 0; a < agentIndexes.size(); a++) {
 					double expRewDev = 0.0;
@@ -301,22 +312,11 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 					}
 
 					// Build distribution for IMDP
-					Distribution<Interval<Double>> imdpDistr = new Distribution<>(Evaluator.forDoubleInterval());
-					for (Map.Entry<Integer, Interval<Double>> e : intervalMap.entrySet()) {  // snext -> prob interval
-						imdpDistr.set(e.getKey(), e.getValue());
-					}
+					Distribution<Interval<Double>> imdpDistr = new Distribution<>(Evaluator.forDoubleInterval(), intervalMap);
 					addChoice(s, (Distribution<Interval<Value>>) (Distribution<?>) imdpDistr);
 
 					// Build reward for this choice
 					if (csgRewards != null) {
-//						double expRew = 0.0;
-//						for (int choiceIdx = 0; choiceIdx < csg.getNumChoices(s); choiceIdx++) {
-//							BitSet jointIndexes = csg.choiceToIndexes(s, choiceIdx);
-//							BitSet agentAct = csg.extractCoalitionActionIndexes(jointIndexes, agentActions);
-//							BitSet otherAct = csg.extractCoalitionActionIndexes(jointIndexes, otherActions);
-//							double r = csgRewards.getTransitionReward(s, choiceIdx);
-//							expRew += r * agentStrat.getOrDefault(agentAct, 0.0) * otherStrat.getOrDefault(otherAct, 0.0);
-//						}
 						rewards.setTransitionReward(s, a, expRewDev);
 					}
 				}
@@ -325,15 +325,20 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 		}
 
 		public double[] computeOptimisticValue(boolean min, double[] val) {
-			MinMax minMax = min ? MinMax.min().setMinUnc(true) : MinMax.max().setMinUnc(false);
-			IMDP<Double> imdp = (IMDP<Double>) this;
-
-			double[] result = new double[imdp.getNumStates()];
-			if (this.rewards == null) {
-				imdp.mvMultUnc(val, minMax, result, null, false, null);
-			} else {
-				imdp.mvMultRewUnc(val, this.rewards, minMax, result, null, false, null);
+			if (!buildFull) {
+				// Use cached value
+//				System.out.println("Using cached optimistic value for DevGainIMDP");
+				return optimisticValCache.get(new Pair<>(agentIndexes, otherStrat));
 			}
+			MinMax minMax = min ? MinMax.min().setMinUnc(true) : MinMax.max().setMinUnc(false);
+
+			double[] result = new double[getNumStates()];
+			if (this.rewards == null) {
+				((IMDP<Double>) this).mvMultUnc(val, minMax, result, null, false, null);
+			} else {
+				((IMDP<Double>) this).mvMultRewUnc(val, this.rewards, minMax, result, null, false, null);
+			}
+			optimisticValCache.put(new Pair<>(agentIndexes, otherStrat), result);
 			return result;
 		}
 	}
