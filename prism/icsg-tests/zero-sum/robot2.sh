@@ -1,4 +1,4 @@
-RESULTS_FILE="results/robot2.csv"
+RESULTS_FILE="results/zero-sum/robot2.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -53,7 +53,7 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/icsgs/robot2" \
+  "logs/zero-sum/icsgs/robot2" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "k=0,q=0.1,eps=0.01"
@@ -61,7 +61,7 @@ run_experiments \
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/csgs/robot2" \
+  "logs/zero-sum/csgs/robot2" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "q=0.1"
