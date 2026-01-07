@@ -42,22 +42,3 @@ prism/\.settings/
 /prism-examples/csgs/simple/icsg-tests/*
 /prism/parsed-results/
 /prism/parsed-nz-results/
-
-
-# --- exceptions for artifact distribution (macOS prebuilt native libs) ---
-# allow cudd headers & libs (macOS)
-!cudd/include/
-!cudd/include/*
-!cudd/lib/
-!cudd/lib/libcudd.a
-!cudd/lib/libcudd.la
-
-# allow PRISM runtime artifacts
-!prism/bin/
-!prism/bin/*
-!prism/classes/
-!prism/classes/*
-!prism/lib/
-!prism/lib/*.dylib
-!prism/lib/*.jar
-!prism/lib/prism.jar
