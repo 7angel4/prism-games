@@ -38,7 +38,16 @@ prism/\.project
 # Eclipse project custom settings
 \.settings/
 prism/\.settings/
+
+# test output
 /prism-examples/csgs/simple/icsg-tests
 /prism-examples/csgs/simple/icsg-tests/*
 /prism/parsed-results/
 /prism/parsed-nz-results/
+
+/prism/log/icsgs/*
+/prism/log/csgs/*
+/prism/results/icsgs/*
+/prism/results/csgs/*
+
+
