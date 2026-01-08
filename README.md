@@ -65,7 +65,7 @@ for the *Jamming Radio Systems* case study, property 1:
 bin/prism ../prism-examples/csgs/jamming/jamming4_icsg.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6,eps=0.01
 ```
 
-The final part of the output should be `Result: 1.988182397946`.
+The final part of the output should be `Result: 0.798114889207`.
 
 All experiments in the paper follow the same pattern:
 ```
