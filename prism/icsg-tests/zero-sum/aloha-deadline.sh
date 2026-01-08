@@ -2,7 +2,7 @@
 D=8
 PROP_NO=4
 CASE_STUDY="aloha-deadline"
-BMAX_VALS=(2 3)
+BMAX_VALS=(2 3 4 5)
 
 RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"

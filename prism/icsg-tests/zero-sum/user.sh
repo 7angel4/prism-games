@@ -1,5 +1,7 @@
 PROP_NO=3
 CASE_STUDY="user"
+K_VALS=(3 4 5 6)
+
 RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
@@ -54,7 +56,7 @@ run_experiments() {
     echo "$K,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for K in 3; do
+  for K in "${K_VALS[@]}"; do
     extract_results "$K"
   done
 
