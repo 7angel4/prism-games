@@ -8,12 +8,6 @@ It provides an implementation of **Interval Concurrent Stochastic Games (ICSGs)*
 and robust verification algorithms, integrated into the **PRISM-games** model
 checker.
 
----
-
-## Link to Artifact
-
-https://github.com/7angel4/prism-games/tree/tacas-26
-
 This artifact corresponds to a development branch of PRISM-games that extends the
 tool with support for model checking **two-player ICSGs**, and includes scripts
 for reproducing the main experimental results reported in the TACAS 2026 paper.
