@@ -183,7 +183,7 @@ icsg-tests/scripts/zero-sum/aloha.sh
 Each case study evaluates multiple parameter values, which can be time-consuming and may cause memory issues on some machines. 
 For this reason, the provided scripts restrict parameter values to configurations that typically complete within **< 1 hour**.
 
-To run the **full set of parameter values**, **uncomment** the full parameter list defined at the top of the corresponding script.
+To run the **full set of parameter values**, **uncomment** the full parameter list (labelled `# full parameter set`) defined at the top of the corresponding script.
 
 **Example:** In `icsg-tests/scripts/zero-sum/aloha.sh`:
 1. **Comment out** the reduced parameter list:
