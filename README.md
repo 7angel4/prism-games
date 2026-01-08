@@ -53,42 +53,36 @@ bin/prism
 
 ---
 
-## Early Smoke Test (Example Commands)
+## Smoke Test
 
 - Assumes that you have compiled as above, and are in the `prism` subdirectory
 - **Expected time:** 1–2 minutes  
 
-### Zero-sum ICSG vs CSG
+This runs a simple instance of (zero-sum) interval CSG model checking,
+for the *Jamming Radio Systems* case study, property 1:
 
-**Case study:** Jamming Radio Systems (Property 1)
-
-ICSG:
 ```
 bin/prism ../prism-examples/csgs/jamming/jamming4_icsg.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6,eps=0.01
 ```
 
-CSG:
-```
-bin/prism ../prism-examples/csgs/jamming/jamming4.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6
-```
+The final part of the output should be `Result: 1.988182397946`.
 
----
-
-### Nonzero-sum ICSG vs CSG
-
-**Case study:** Aloha (Deadline)
-
-ICSG:
+All experiments in the paper follow the same pattern:
 ```
-bin/prism ../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9,eps=1/257
-```
-
-CSG:
-```
-bin/prism ../prism-examples/csgs/aloha/aloha_backoff3.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9
+bin/prism <model>.prism <properties>.props -prop <property_number> -const <parameters>
 ```
 
 ---
+
+## Reproducing the Main Experimental Results
+
+- Assumes that you have compiled as above, and are in the `prism` subdirectory
+
+All scripts and data for reproducing the experimental results in the paper are
+located in the directory:
+```
+icsg-tests/
+```
 
 ### Expected Outcome
 
@@ -100,30 +94,10 @@ For each command:
   1. the numerical value of the selected property, and  
   2. the verification time.
 
----
-
-### General Command Pattern
-
-All experiments in the paper follow the pattern:
-```
-bin/prism <model>.prism <properties>.props 
--prop <property_number> -const <parameters>
-```
-
----
-
-## Reproducing the Main Experimental Results
-
-All scripts and data for reproducing the experimental results in the paper are
-located in the directory:
-```
-prism/icsg-tests/
-```
-
 ### Directory Structure
 
 ```
-prism/icsg-tests
+icsg-tests
 ├─ scripts
 │  ├─ zero-sum
 │  └─ nonzero-sum
@@ -177,12 +151,12 @@ The following scripts run **all experiments** reported in the main text:
 
 - Zero-sum experiments (Table 1, Figure 2):
 ```
-prism/icsg-tests/scripts/zero-sum/run_all.sh
+icsg-tests/scripts/zero-sum/run_all.sh
 ```
 
 - Nonzero-sum experiments (Table 2, Figure 1):
 ```
-prism/icsg-tests/scripts/nonzero-sum/run_all.sh
+icsg-tests/scripts/nonzero-sum/run_all.sh
 ```
 
 ⚠️ **Note:** Running all experiments can take a **very long time** (hours to days, depending on hardware) and may trigger **Java out-of-memory** errors on machines with limited RAM. 
@@ -197,13 +171,13 @@ smoke tests or **individual case-study scripts**, rather than the full experimen
 Each case study has its own script in the corresponding directory, e.g.:
 
 ```
-prism/icsg-tests/scripts/zero-sum/aloha.sh
+icsg-tests/scripts/zero-sum/aloha.sh
 ```
 
 So to test the zero-sum Aloha case study in Table 1, 
 simply run the following command from the `prism-games/prism` directory:
 ```
-./icsg-tests/scripts/zero-sum/aloha.sh
+icsg-tests/scripts/zero-sum/aloha.sh
 ```
 
 Each case study evaluates multiple parameter values, which can be time-consuming and may cause memory issues on some machines. For this reason, the provided scripts restrict parameter values to configurations that typically complete within **< 1 hour**.
