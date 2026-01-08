@@ -1,6 +1,6 @@
 PROP_NO=6
 CASE_STUDY="robot3"
-LK_VALS=("4 8" "4 16" "8 8")
+LK_VALS=("4 8" "4 16") # ("4 8" "4 16" "8 8")
 
 RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
