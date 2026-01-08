@@ -1,4 +1,8 @@
-RESULTS_FILE="results/zero-sum/robot1.csv"
+PROP_NO=2
+CASE_STUDY="robot1"
+L_VALS=(4 8 12)
+
+RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -11,39 +15,45 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"l,k\",Actions_max/avg,Result,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"l,k\",Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
     local L="$1"
     local K="$2"
 
-    OUTPUT=$(
-      bin/prism \
-        "$PRISM_FILE" \
-        "$PROP_FILE" \
-        -prop 2 -const "$CONSTS",l="${L}",k="${K}" \
-      | tee "${LOG_FILE}_${L}"
-    )
+    while true; do
+      OUTPUT=$(
+        bin/prism \
+          "$PRISM_FILE" \
+          "$PROP_FILE" \
+          -prop $PROP_NO -const "$CONSTS",l="${L}",k="${K}" \
+        | tee "${LOG_FILE}_${L}"
+      )
 
-    # Extract values
-    MAX_AVG_ACTIONS=$(echo "$OUTPUT" \
-      | grep 'Max/avg (actions)' \
-      | sed -E 's/^.*Max\/avg \(actions\): //' \
-      | tr ';' '\n' \
-      | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-      | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
-      | head -1)
+      # Extract values
+      MAX_AVG_ACTIONS=$(echo "$OUTPUT" \
+        | grep 'Max/avg (actions)' \
+        | sed -E 's/^.*Max\/avg \(actions\): //' \
+        | tr ';' '\n' \
+        | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
+        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
+        | head -1)
 
-    VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-    VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
-    QUANT_TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
+      VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
+      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
+      QUANT_TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
-    if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$QUANT_TIME" ]]; then
-      echo "\"$L,$K\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,n/a,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
-    fi
+      if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$QUANT_TIME" ]]; then
+        break
+      else
+        sleep 1
+      fi
+    done
+
+    echo "\"$L,$K\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,n/a,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for L in 4 8 12; do
+  for L in "${L_VALS[@]}"; do
     extract_results "$L" "$L"  # K=L
   done
 
@@ -54,7 +64,7 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/zero-sum/icsgs/robot1" \
+  "logs/zero-sum/icsgs/$CASE_STUDY" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "q=0.1,eps=0.01"
@@ -62,7 +72,7 @@ run_experiments \
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/zero-sum/csgs/robot1" \
+  "logs/zero-sum/csgs/$CASE_STUDY" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "q=0.1"

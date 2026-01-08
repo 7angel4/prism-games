@@ -1,6 +1,8 @@
-PROP_NO=3
-CASE_STUDY="robot2"
-L_VALS=(4 8 12)
+
+PROP_NO=2
+CASE_STUDY="jamming2"
+CHANS_VALS=(4 6)
+SLOTS_VALS=(6 12)
 
 RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
@@ -15,18 +17,19 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "l,Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"chans,slots\",Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local L="$1"
+    local CHANS="$1"
+    local SLOTS="$2"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS",l="${L}" \
-        | tee "${LOG_FILE}_${L}"
+          -prop $PROP_NO -const "$CONSTS"chans="$CHANS",slots="$SLOTS" \
+        | tee "${LOG_FILE}_${CHANS}_${SLOTS}"
       )
 
       # Extract values
@@ -39,23 +42,24 @@ run_experiments() {
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
-      QUANT_TIME=$(echo "$OUTPUT" | grep 'Expected reachability took' | head -1 | sed -E 's/.*took ([0-9\.]+) seconds.*/\1/' | xargs printf "%.2f")
+      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
       QUAL_TIME=$(echo "$OUTPUT" | grep 'Precomputation took' | head -1 | sed -E 's/.*Precomputation took ([0-9\.]+).*/\1/' | xargs printf "%.2f")
+      QUANT_TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$QUANT_TIME" && -n "$QUAL_TIME" ]]; then
         break
       else
         sleep 1
       fi
-
     done
-
-    echo "$L,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
+    
+    echo "\"$CHANS,$SLOTS\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for L in "${L_VALS[@]}"; do
-    extract_results "$L"
+  for CHANS in "${CHANS_VALS[@]}"; do
+    for SLOTS in "${SLOTS_VALS[@]}"; do
+      extract_results "$CHANS" "$SLOTS"
+    done
   done
 
   # Add a blank line after the section
@@ -66,14 +70,14 @@ run_experiments() {
 run_experiments \
   "ICSG" \
   "logs/zero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "k=0,q=0.1,eps=0.01"
+  ../prism-examples/csgs/jamming/jamming4_icsg.prism \
+  ../prism-examples/csgs/jamming/jamming.props \
+  "eps=0.01,"
 
 # Run CSG section
 run_experiments \
   "CSG" \
   "logs/zero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.1"
+  ../prism-examples/csgs/jamming/jamming4.prism \
+  ../prism-examples/csgs/jamming/jamming.props \
+  ""

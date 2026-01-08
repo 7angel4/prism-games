@@ -1,6 +1,8 @@
-PROP_NO=3
-CASE_STUDY="robot2"
-L_VALS=(4 8 12)
+
+D=8
+PROP_NO=2
+CASE_STUDY="aloha"
+BMAX_VALS=(2 3 4 5)
 
 RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
@@ -15,18 +17,18 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "l,Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
+  echo "bmax,Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local L="$1"
+    local BMAX="$1"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS",l="${L}" \
-        | tee "${LOG_FILE}_${L}"
+          -prop $PROP_NO -const "$CONSTS",bcmax="${BMAX}" \
+        | tee "${LOG_FILE}_${BMAX}"
       )
 
       # Extract values
@@ -35,27 +37,26 @@ run_experiments() {
         | sed -E 's/^.*Max\/avg \(actions\): //' \
         | tr ';' '\n' \
         | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
+        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.5f,%.5f\n",a[1],a[2],a[3],a[4]}' \
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
-      QUANT_TIME=$(echo "$OUTPUT" | grep 'Expected reachability took' | head -1 | sed -E 's/.*took ([0-9\.]+) seconds.*/\1/' | xargs printf "%.2f")
+      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
       QUAL_TIME=$(echo "$OUTPUT" | grep 'Precomputation took' | head -1 | sed -E 's/.*Precomputation took ([0-9\.]+).*/\1/' | xargs printf "%.2f")
+      QUANT_TIME=$(echo "$OUTPUT" | grep 'Expected reachability took' | head -1 | sed -E 's/.*took ([0-9\.]+) seconds.*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$QUANT_TIME" && -n "$QUAL_TIME" ]]; then
         break
       else
         sleep 1
       fi
-
     done
-
-    echo "$L,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
+    
+    echo "$BMAX,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for L in "${L_VALS[@]}"; do
-    extract_results "$L"
+  for BMAX in "${BMAX_VALS[@]}"; do
+    extract_results "$BMAX"
   done
 
   # Add a blank line after the section
@@ -66,14 +67,14 @@ run_experiments() {
 run_experiments \
   "ICSG" \
   "logs/zero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "k=0,q=0.1,eps=0.01"
+  "../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9,eps=1/257"
 
 # Run CSG section
 run_experiments \
   "CSG" \
   "logs/zero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.1"
+  "../prism-examples/csgs/aloha/aloha_backoff3.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9"
