@@ -1,5 +1,5 @@
 
-D=0
+D=8
 PROP_NO=2
 CASE_STUDY="aloha"
 BMAX_VALS=(2 3 4 5)
