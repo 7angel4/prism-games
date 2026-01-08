@@ -1,6 +1,6 @@
 PROP_NO=3
 CASE_STUDY="user"
-K_VALS=(3 4) # (3 4 5 6)
+K_VALS=(3) # (3 4 5 6)
 
 RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
@@ -25,7 +25,7 @@ run_experiments() {
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS",k="${K}" \
+          -prop $PROP_NO -const "$CONSTS",K="${K}" \
         | tee "${LOG_FILE}_${K}"
       )
 
