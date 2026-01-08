@@ -175,6 +175,25 @@ Each of the `zero-sum/` and `nonzero-sum/` subdirectories contains scripts and
 results corresponding to the zero-sum and nonzero-sum experiments, respectively.
 Scripts are named after the corresponding case studies.
 
+
+#### Output File Naming Conventions
+
+Test result files follow the format:
+```
+<case_study_name>.csv
+```
+
+Test log files follow the format:
+
+```
+<case_study_name>_<param_vals>
+```
+
+* **`case_study_name`** matches the name of the script that generated the output.
+* **`param_vals`** lists the parameter value(s) tested in that run (separated by `_` for different parameters).
+  - For file naming, uncertainty parameter $\epsilon$ is encoded as integers by multiplying by 100 or 1000, depending on precision, e.g. `{0.01, 0.02, 0.025} → {100, 200, 25}`.
+
+
 ---
 
 ### Running All Experiments
