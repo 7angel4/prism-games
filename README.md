@@ -1,4 +1,4 @@
-# Artifact for “Robust Verification of Concurrent Stochastic Games”
+# Artifact for "Robust Verification of Concurrent Stochastic Games"
 
 This artifact accompanies the TACAS 2026 paper:
 
