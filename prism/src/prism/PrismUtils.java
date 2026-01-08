@@ -548,7 +548,7 @@ public class PrismUtils
 		return formatterDouble2dp.format(d);
 	}
 
-	private static DecimalFormat formatterDouble2dp = new DecimalFormat("#0.00", DecimalFormatSymbols.getInstance(Locale.UK));
+	private static DecimalFormat formatterDouble2dp = new DecimalFormat("#0.000000", DecimalFormatSymbols.getInstance(Locale.UK));
 
 	/**
 	 * Format a double, as would be done by printf's %.17g.
