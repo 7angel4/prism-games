@@ -31,7 +31,8 @@ run_experiments() {
       | sed -E 's/^.*Max\/avg \(actions\): //' \
       | tr ';' '\n' \
       | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-      | awk '!seen[$0]++ {split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}')
+      | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
+      | head -1)
 
     VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
     VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
