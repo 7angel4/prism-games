@@ -29,10 +29,6 @@ Execution times may vary across platforms.
 - No proprietary software is required.
 - Some nonzero-sum experiments rely on an SMT solver (e.g. **Yices**), which is included with PRISM-games and does not require separate installation.
 
-### Platforms Tested
-- **Original experiments:** macOS (arm64), OpenJDK 23  
-- **Artifact tested on:** TACAS AE VM (arm64, Linux, OpenJDK 21)  
-
 ---
 
 ## Build Instructions
@@ -235,3 +231,9 @@ to evaluate the complete parameter set. Note that the configuration `bmax=5` can
   - JVM warm-up and solver initialisation (the first run is typically the slowest),
   - available memory.
 - These variations do **not** affect correctness or the conclusions of the paper.
+
+---
+
+## Platforms Tested
+- *Original experiments:* macOS (arm64), OpenJDK 23  
+- *Artifact tested on:* **TACAS AE VM** (**arm64**, Linux - Ubuntu 25.04, OpenJDK 21)  
