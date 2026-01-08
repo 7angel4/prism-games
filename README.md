@@ -2,7 +2,7 @@
 
 This artifact accompanies the TACAS 2026 paper:
 
-> **Robust Verification of Concurrent Stochastic Games**
+> **Robust Verification of Concurrent Stochastic Games**. Angel He and David Parker
 
 It provides an implementation of **Interval Concurrent Stochastic Games (ICSGs)**
 and robust verification algorithms, integrated into the **PRISM-games** model
@@ -22,61 +22,54 @@ for reproducing the main experimental results reported in the TACAS 2026 paper.
 
 ## System Requirements
 
-### Operating Systems & Platforms Tested
-
-- **Original experiments:** macOS (ARM64), OpenJDK 23  
-- **Artifact tested on:** Linux (ARM64, TACAS Artifact Evaluation VM), OpenJDK 23  
-- **Also supported:** Linux (x86_64)
+### Operating System
+**macOS** or **Linux**, on either **Intel** or **Arm** hardware
 
 Execution times may vary across platforms.
 
 ### Software
-- **Java:** OpenJDK 23 (or compatible)
+- [for building] **Java** (version 9 or above), GNU **make** and a C/C++ compiler (e.g. **gcc**/**g++**)
 
 ### Hardware
 - **Minimum (smoke tests):** ~8 GB RAM  
 - **Recommended (full experiments):** ≥ 16 GB RAM 
 
-### Additional Requirements
+### Others
 - No proprietary software is required.
 - Some nonzero-sum experiments rely on an SMT solver (e.g. **Yices**), which is included with PRISM-games and does not require separate installation.
-- Native libraries are built automatically via `make`. On Linux, this requires a standard C/C++ toolchain (e.g. `gcc`, `make`, `autoconf`).
+
+### Platforms Tested
+- **Original experiments:** macOS (arm64), OpenJDK 23  
+- **Artifact tested on:** TACAS AE VM (arm64, Linux, OpenJDK 21)  
 
 ---
 
 ## Build Instructions
 
-1. Clone the artifact repository:
-```
-git clone https://github.com/7angel4/prism-games.git
-```
-2. Checkout the artifact branch:
-```
-cd prism-games
-git checkout tacas-26
-```
-3. Build PRISM-games:
+This assumes that you have unzipped this archive and entered this directory
+(e.g., `unzip prism-games-tacas-26.zip && cd prism-games-tacas-26`)
+
+1. Build PRISM-games:
 ```
 cd prism
 make
 ```
-4. (Recommended) Configure Java heap size:
+2. (Recommended) Configure Java heap size:
 ```
 export PRISM_JAVA_ARGS="-Xms4G -Xmx16G"
 ```
 
-The PRISM executable will be located at:
+3. Test the PRISM-games executable:
 ```
-prism-games/prism/bin/prism
+bin/prism
 ```
 
 ---
 
 ## Early Smoke Test (Example Commands)
 
+- Assumes that you have compiled as above, and are in the `prism` subdirectory
 - **Expected time:** 1–2 minutes  
-
-Run the following commands from the `prism-games/prism` directory.
 
 ### Zero-sum ICSG vs CSG
 
@@ -84,18 +77,12 @@ Run the following commands from the `prism-games/prism` directory.
 
 ICSG:
 ```
-bin/prism 
-../prism-examples/csgs/jamming/jamming4_icsg.prism 
-../prism-examples/csgs/jamming/jamming.props 
--prop 1 -const chans=4,slots=6,eps=0.01
+bin/prism ../prism-examples/csgs/jamming/jamming4_icsg.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6,eps=0.01
 ```
 
 CSG:
 ```
-bin/prism 
-../prism-examples/csgs/jamming/jamming4.prism 
-../prism-examples/csgs/jamming/jamming.props 
--prop 1 -const chans=4,slots=6
+bin/prism ../prism-examples/csgs/jamming/jamming4.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6
 ```
 
 ---
@@ -106,20 +93,12 @@ bin/prism
 
 ICSG:
 ```
-bin/prism 
-../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism 
-../prism-examples/csgs/aloha/aloha_backoff3.props 
--prop 7 -smtsolver yices 
--const bcmax=1,D=8,q=0.9,eps=1/257
+bin/prism ../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9,eps=1/257
 ```
 
 CSG:
 ```
-bin/prism 
-../prism-examples/csgs/aloha/aloha_backoff3.prism 
-../prism-examples/csgs/aloha/aloha_backoff3.props 
--prop 7 -smtsolver yices 
--const bcmax=1,D=8,q=0.9
+bin/prism ../prism-examples/csgs/aloha/aloha_backoff3.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9
 ```
 
 ---
