@@ -36,3 +36,5 @@
 // probability user 1 eventually sends a packet
 // and users 2 and 3 form a coalition to send two packets by a deadline
 <<usr1:usr2,usr3>>max=? (P[F (s1=3)] + P[F (s2=3 & s3=3 & t<=D)])
+
+<<usr1,usr2,usr3>>Pmax=?[F <<usr1:usr2,usr3>>max>=2 (P[F (s1=3 & t<=D)] + P[F (s2=3 & s3=3 & t<=D)]) ]
