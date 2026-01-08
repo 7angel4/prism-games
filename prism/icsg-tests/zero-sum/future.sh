@@ -15,7 +15,7 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "months,Actions_max/avg,Val_iters,Qual_verif_time,Quant_verif_time,Value" >> "$RESULTS_FILE"
+  echo "months,Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
   
   extract_results() {
     local MONTHS="$1"
@@ -40,19 +40,16 @@ run_experiments() {
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
       VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
-      EXP_TOT_REW=$(echo "$OUTPUT" | grep 'Expected total reward took' | sed -E 's/.*took ([0-9\.]+) seconds.*/\1/' | head -1)
-      QUAL_TIME=$(echo "$OUTPUT" | grep 'Precomputation took' | head -1 | sed -E 's/.*Precomputation took ([0-9\.]+).*/\1/')
-      QUANT_TIME=$(echo "$EXP_TOT_REW $QUAL_TIME" | tr -d '[:space:]' | awk -F'-' '{print $1-$2}' | xargs printf "%.2f")
-      QUAL_TIME=$(printf "%.2f" "$QUAL_TIME")
+      TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
-      if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$QUANT_TIME" && -n "$QUAL_TIME" ]]; then
+      if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
         break
       else
         sleep 1
       fi
     done
 
-    echo "$MONTHS,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$QUAL_TIME,$QUANT_TIME,$VALUE" >> "$RESULTS_FILE"
+    echo "$MONTHS,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
   for MONTHS in "${MONTHS_VALS[@]}"; do
