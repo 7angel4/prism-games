@@ -22,16 +22,25 @@ for reproducing the main experimental results reported in the TACAS 2026 paper.
 
 ## System Requirements
 
-### Operating System
-- **macOS (ARM64)** — used for the experiments reported in the paper  
-- **Linux (x86_64)** — supported, but execution times may differ
+### Operating Systems & Platforms Tested
+
+- **Original experiments:** macOS (ARM64), OpenJDK 23  
+- **Artifact tested on:** Linux (ARM64, TACAS Artifact Evaluation VM), OpenJDK 23  
+- **Also supported:** Linux (x86_64)
+
+Execution times may vary across platforms.
 
 ### Software
 - **Java:** OpenJDK 23 (or compatible)
 
 ### Hardware
-- Recommended RAM: **≥ 16 GB**
-- Minimum RAM for smoke test: **8 GB**
+- **Minimum (smoke tests):** ~8 GB RAM  
+- **Recommended (full experiments):** ≥ 16 GB RAM 
+
+### Additional Requirements
+- No proprietary software is required.
+- Some nonzero-sum experiments rely on an SMT solver (e.g. **Yices**), which is included with PRISM-games and does not require separate installation.
+- Native libraries are built automatically via `make`. On Linux, this requires a standard C/C++ toolchain (e.g. `gcc`, `make`, `autoconf`).
 
 ---
 
