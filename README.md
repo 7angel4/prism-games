@@ -2,7 +2,7 @@
 
 This artifact accompanies the TACAS 2026 paper:
 
-> **Robust Verification of Concurrent Stochastic Games**
+> **Robust Verification of Concurrent Stochastic Games**. Angel He and David Parker
 
 It provides an implementation of **Interval Concurrent Stochastic Games (ICSGs)**
 and robust verification algorithms, integrated into the **PRISM-games** model
@@ -23,11 +23,10 @@ for reproducing the main experimental results reported in the TACAS 2026 paper.
 ## System Requirements
 
 ### Operating System
-- **macOS (ARM64)** — used for the experiments reported in the paper  
-- **Linux (x86_64)** — supported, but execution times may differ
+- **macOS** or **Linux**, on either **Intel** or **Arm** hardware
 
 ### Software
-- **Java:** OpenJDK 23 (or compatible)
+- [for building] **Java** (version 9 or above), GNU **make** and a C/C++ compiler (e.g. **gcc**/**g++**)
 
 ### Hardware
 - Recommended RAM: **≥ 16 GB**
@@ -37,37 +36,30 @@ for reproducing the main experimental results reported in the TACAS 2026 paper.
 
 ## Build Instructions
 
-1. Clone the artifact repository:
-```
-git clone https://github.com/7angel4/prism-games.git
-```
-2. Checkout the artifact branch:
-```
-cd prism-games
-git checkout tacas-26
-```
-3. Build PRISM-games:
+This assumes that you have unzipped this archive and entered this directory
+(e.g., `unzip prism-games-tacas-26.zip && cd prism-games-tacas-26`)
+
+1. Build PRISM-games:
 ```
 cd prism
 make
 ```
-4. (Recommended) Configure Java heap size:
+2. (Recommended) Configure Java heap size:
 ```
 export PRISM_JAVA_ARGS="-Xms4G -Xmx16G"
 ```
 
-The PRISM executable will be located at:
+3. Test the PRISM-games executable:
 ```
-prism-games/prism/bin/prism
+bin/prism
 ```
 
 ---
 
 ## Early Smoke Test (Example Commands)
 
+- Assumes that you have compiled as above, and are in the `prism` subdirectory
 - **Expected time:** 1–2 minutes  
-
-Run the following commands from the `prism-games/prism` directory.
 
 ### Zero-sum ICSG vs CSG
 
@@ -75,18 +67,12 @@ Run the following commands from the `prism-games/prism` directory.
 
 ICSG:
 ```
-bin/prism 
-../prism-examples/csgs/jamming/jamming4_icsg.prism 
-../prism-examples/csgs/jamming/jamming.props 
--prop 1 -const chans=4,slots=6,eps=0.01
+bin/prism ../prism-examples/csgs/jamming/jamming4_icsg.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6,eps=0.01
 ```
 
 CSG:
 ```
-bin/prism 
-../prism-examples/csgs/jamming/jamming4.prism 
-../prism-examples/csgs/jamming/jamming.props 
--prop 1 -const chans=4,slots=6
+bin/prism ../prism-examples/csgs/jamming/jamming4.prism ../prism-examples/csgs/jamming/jamming.props -prop 1 -const chans=4,slots=6
 ```
 
 ---
@@ -97,20 +83,12 @@ bin/prism
 
 ICSG:
 ```
-bin/prism 
-../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism 
-../prism-examples/csgs/aloha/aloha_backoff3.props 
--prop 7 -smtsolver yices 
--const bcmax=1,D=8,q=0.9,eps=1/257
+bin/prism ../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9,eps=1/257
 ```
 
 CSG:
 ```
-bin/prism 
-../prism-examples/csgs/aloha/aloha_backoff3.prism 
-../prism-examples/csgs/aloha/aloha_backoff3.props 
--prop 7 -smtsolver yices 
--const bcmax=1,D=8,q=0.9
+bin/prism ../prism-examples/csgs/aloha/aloha_backoff3.prism ../prism-examples/csgs/aloha/aloha_backoff3.props -prop 7 -smtsolver yices -const bcmax=1,D=8,q=0.9
 ```
 
 ---
