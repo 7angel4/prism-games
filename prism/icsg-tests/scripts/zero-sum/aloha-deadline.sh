@@ -1,4 +1,3 @@
-
 D=8
 PROP_NO=4
 CASE_STUDY="aloha-deadline"
