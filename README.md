@@ -180,21 +180,23 @@ simply run the following command from the `prism-games/prism` directory:
 icsg-tests/scripts/zero-sum/aloha.sh
 ```
 
-Each case study evaluates multiple parameter values, which can be time-consuming and may cause memory issues on some machines. For this reason, the provided scripts restrict parameter values to configurations that typically complete within **< 1 hour**.
+Each case study evaluates multiple parameter values, which can be time-consuming and may cause memory issues on some machines. 
+For this reason, the provided scripts restrict parameter values to configurations that typically complete within **< 1 hour**.
 
-To run the **full set of parameter values**, modify the constants at the top of the corresponding script.
+To run the **full set of parameter values**, **uncomment** the full parameter list defined at the top of the corresponding script.
 
-**Example:** In `scripts/zero-sum/aloha.sh`, comment out:
-```
-BMAX_VALS=(2 3 4)
-```
-and uncomment:
-```
-BMAX_VALS=(2 3 4 5)
-```
-to evaluate the complete parameter set. Note that the configuration `bmax=5` can take up to ~1.5 hours to complete.
+**Example:** In `icsg-tests/scripts/zero-sum/aloha.sh`:
+1. **Comment out** the reduced parameter list:
+   ```
+   BMAX_VALS=(2 3 4)
+   ```
+2. **Uncomment** the full parameter list:
+   ```
+   BMAX_VALS=(2 3 4 5)
+   ```
 
----
+This enables evaluation of all parameter values. Note that the configuration `bmax=5` can take up to **~1.5 hours** to complete.
+
 
 ## Notes on Reproducibility
 
