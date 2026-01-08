@@ -1,8 +1,10 @@
-PROP_NO=1
-CASE_STUDY="future"
-MONTHS_VALS=(3 6)
 
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+PROP_NO=2
+CASE_STUDY="jamming2"
+CHANS_VALS=(4 6)
+SLOTS_VALS=(6 12)
+
+RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -15,19 +17,19 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "months,Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
-  
+  echo "\"chans,slots\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+
   extract_results() {
-    local MONTHS="$1"
+    local CHANS="$1"
+    local SLOTS="$2"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -smtsolver yices \
-          -const "$CONSTS",months="${MONTHS}" \
-        | tee "${LOG_FILE}_${MONTHS}"
+          -prop $PROP_NO -const "$CONSTS"chans="$CHANS",slots="$SLOTS" \
+        | tee "${LOG_FILE}_${CHANS}_${SLOTS}"
       )
 
       # Extract values
@@ -49,12 +51,14 @@ run_experiments() {
         sleep 1
       fi
     done
-
-    echo "$MONTHS,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    
+    echo "\"$CHANS,$SLOTS\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for MONTHS in "${MONTHS_VALS[@]}"; do
-    extract_results "$MONTHS"
+  for CHANS in "${CHANS_VALS[@]}"; do
+    for SLOTS in "${SLOTS_VALS[@]}"; do
+      extract_results "$CHANS" "$SLOTS"
+    done
   done
 
   # Add a blank line after the section
@@ -64,15 +68,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/investors/two_investors_nash_icsg.prism" \
-  "../prism-examples/csgs/investors/two_investors_nash.props" \
-  "eps=0.01,pbar=0.5"
+  "icsg-tests/logs/zero-sum/icsgs/$CASE_STUDY" \
+  ../prism-examples/csgs/jamming/jamming4_icsg.prism \
+  ../prism-examples/csgs/jamming/jamming.props \
+  "eps=0.01,"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/investors/two_investors_nash.prism" \
-  "../prism-examples/csgs/investors/two_investors_nash.props" \
-  "pbar=0.5"
+  "icsg-tests/logs/zero-sum/csgs/$CASE_STUDY" \
+  ../prism-examples/csgs/jamming/jamming4.prism \
+  ../prism-examples/csgs/jamming/jamming.props \
+  ""

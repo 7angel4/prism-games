@@ -1,10 +1,8 @@
+PROP_NO=1
+CASE_STUDY="future"
+MONTHS_VALS=(6 12 24 36 48)
 
-D=8
-PROP_NO=7
-CASE_STUDY="aloha-deadline"
-BMAX_VALS=(1 2 3)
-
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -17,20 +15,18 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"bmax,D\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
-
+  echo "months,Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  
   extract_results() {
-    local BMAX="$1"
-    local D="$2"
+    local MONTHS="$1"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -smtsolver yices \
-          -const "$CONSTS",bcmax="${BMAX}" \
-        | tee "${LOG_FILE}_${BMAX}"
+          -prop $PROP_NO -const "$CONSTS"months="${MONTHS}" \
+        | tee "${LOG_FILE}_${MONTHS}"
       )
 
       # Extract values
@@ -39,7 +35,7 @@ run_experiments() {
         | sed -E 's/^.*Max\/avg \(actions\): //' \
         | tr ';' '\n' \
         | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.5f,%.5f\n",a[1],a[2],a[3],a[4]}' \
+        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
@@ -52,12 +48,12 @@ run_experiments() {
         sleep 1
       fi
     done
-    
-    echo "\"$BMAX,$D\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+
+    echo "$MONTHS,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for BMAX in "${BMAX_VALS[@]}"; do
-    extract_results "$BMAX" "$D"
+  for MONTHS in "${MONTHS_VALS[@]}"; do
+    extract_results "$MONTHS"
   done
 
   # Add a blank line after the section
@@ -67,15 +63,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism" \
-  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
-  "D=$D,q=0.9,eps=1/257"
+  "icsg-tests/logs/zero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/investors/two_investors_icsg.prism" \
+  "../prism-examples/csgs/investors/two_investors.props" \
+  "eps=0.01,"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/aloha/aloha_backoff3.prism" \
-  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
-  "D=$D,q=0.9"
+  "icsg-tests/logs/zero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/investors/two_investors_csg.prism" \
+  "../prism-examples/csgs/investors/two_investors.props" \
+  ""

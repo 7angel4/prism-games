@@ -3,7 +3,7 @@ CASE_STUDY="robot1"
 L_VALS=(4 8 12)
 EPS_VALS=(0.01 0.02 0.025 0.03 0.04 0.049)
 
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -93,7 +93,7 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
+  "icsg-tests/logs/nonzero-sum/icsgs/$CASE_STUDY" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "q=0.25"
@@ -101,7 +101,7 @@ run_experiments \
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
+  "icsg-tests/logs/nonzero-sum/csgs/$CASE_STUDY" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
   "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
   "q=0.25"

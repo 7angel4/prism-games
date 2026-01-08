@@ -3,7 +3,7 @@ CASE_STUDY="intrusion"
 ROUNDS_VALS=(25 50 100 200)
 EPS_VALS=(0.01 0.05 0.10 0.19)
 
-RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -92,7 +92,7 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/zero-sum/icsgs/$CASE_STUDY" \
+  "icsg-tests/logs/zero-sum/icsgs/$CASE_STUDY" \
   "../prism-examples/csgs/ids/ids_scenarios_icsg.prism" \
   "../prism-examples/csgs/ids/ids.props" \
   "scenario=1,K=1"
@@ -100,7 +100,7 @@ run_experiments \
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/zero-sum/csgs/$CASE_STUDY" \
+  "icsg-tests/logs/zero-sum/csgs/$CASE_STUDY" \
   "../prism-examples/csgs/ids/ids_scenarios.prism" \
   "../prism-examples/csgs/ids/ids.props" \
   "scenario=1,K=1"

@@ -1,9 +1,10 @@
-PROP_NO=1
-CASE_STUDY="power1"
-EMAX=40
-POWMAX_VALS=(8 16)
+PROP_NO=2
+CASE_STUDY="medium2"
+EMAX_VALS=(10 15)
+K1=20
+K2=25
 
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -16,10 +17,10 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"emax,powmax\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"emax,k1,k2\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local POWMAX="$1"
+    local EMAX="$1"
 
     while true; do
       OUTPUT=$(
@@ -27,8 +28,8 @@ run_experiments() {
           "$PRISM_FILE" \
           "$PROP_FILE" \
           -prop $PROP_NO -smtsolver yices \
-          -const "$CONSTS",emax="${EMAX}",powmax="${POWMAX}" \
-        | tee "${LOG_FILE}_${EMAX}_${POWMAX}"
+          -const "$CONSTS",emax="${EMAX}",k1="${K1}",k2="${K2}" \
+        | tee "${LOG_FILE}_${EMAX}_${K1}_${K2}"
       )
 
       # Extract values
@@ -41,7 +42,7 @@ run_experiments() {
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep -o 'Value iteration converged after [0-9]\+ iterations' | grep -o '[0-9]\+' | head -1)
+      VAL_ITERS=$K1
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
@@ -51,11 +52,11 @@ run_experiments() {
       fi
     done
 
-    echo "\"$EMAX,$POWMAX\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    echo "\"$EMAX,$K1,$K2\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for POWMAX in "${POWMAX_VALS[@]}"; do
-    extract_results "$POWMAX"
+  for EMAX in "${EMAX_VALS[@]}"; do
+    extract_results "$EMAX"
   done
 
   # Add a blank line after the section
@@ -65,15 +66,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/power_control/power_control2_icsg.prism" \
-  "../prism-examples/csgs/power_control/power_control2.props" \
-  "k=1,fail=0.1,eps=0.01"
+  "icsg-tests/logs/nonzero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/simple/medium_access3_icsg.prism" \
+  "../prism-examples/csgs/simple/medium_access3.props" \
+  "eps=0.01,q1=0.95,q2=0.75,q3=0.5"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/power_control/power_control2.prism" \
-  "../prism-examples/csgs/power_control/power_control2.props" \
-  "k=1,fail=0.1"
+  "icsg-tests/logs/nonzero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/simple/medium_access3.prism" \
+  "../prism-examples/csgs/simple/medium_access3.props" \
+  "q1=0.95,q2=0.75,q3=0.5"

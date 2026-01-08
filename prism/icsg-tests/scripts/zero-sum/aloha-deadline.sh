@@ -1,11 +1,10 @@
-PROP_NO=4
-CASE_STUDY="power2"
-EMAX=80
-POWMAX=4
-K1_VALS=(15 20)
-K2=20
 
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+D=8
+PROP_NO=4
+CASE_STUDY="aloha-deadline"
+BMAX_VALS=(2 3 4 5)
+
+RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -18,19 +17,19 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"emax,powmax,k1,k2\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"bmax,D\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local K1="$1"
+    local BMAX="$1"
+    local D="$2"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -smtsolver yices \
-          -const "$CONSTS",emax="${EMAX}",powmax="${POWMAX}",k1="${K1}",k2="${K2}" \
-        | tee "${LOG_FILE}_${EMAX}_${POWMAX}_${K1}_${K2}"
+          -prop $PROP_NO -const "$CONSTS",bcmax="${BMAX}" \
+        | tee "${LOG_FILE}_${BMAX}"
       )
 
       # Extract values
@@ -39,11 +38,11 @@ run_experiments() {
         | sed -E 's/^.*Max\/avg \(actions\): //' \
         | tr ';' '\n' \
         | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
+        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.5f,%.5f\n",a[1],a[2],a[3],a[4]}' \
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep -o 'Value iteration converged after [0-9]\+ iterations' | grep -o '[0-9]\+' | head -1)
+      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
@@ -52,12 +51,12 @@ run_experiments() {
         sleep 1
       fi
     done
-
-    echo "\"$EMAX,$POWMAX,$K1,$K2\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    
+    echo "\"$BMAX,$D\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for K1 in "${K1_VALS[@]}"; do
-    extract_results "$K1"
+  for BMAX in "${BMAX_VALS[@]}"; do
+    extract_results "$BMAX" "$D"
   done
 
   # Add a blank line after the section
@@ -67,15 +66,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/power_control/power_control2_icsg.prism" \
-  "../prism-examples/csgs/power_control/power_control2.props" \
-  "fail=0.1,eps=0.01"
+  "icsg-tests/logs/zero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9,eps=1/257"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/power_control/power_control2.prism" \
-  "../prism-examples/csgs/power_control/power_control2.props" \
-  "fail=0.1"
+  "icsg-tests/logs/zero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9"

@@ -1,8 +1,8 @@
-PROP_NO=6
-CASE_STUDY="robot3"
-LK_VALS=("4 8" "4 16") # ("4 8" "4 16" "8 8")
+PROP_NO=3
+CASE_STUDY="user"
+K_VALS=(3 4) # (3 4 5 6)
 
-RESULTS_FILE="results/nonzero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -15,20 +15,18 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"l,k\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "K,Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local L="$1"
-    local K="$2"
+    local K="$1"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -smtsolver yices \
-          -const "$CONSTS",l="${L}",k="${K}" \
-        | tee "${LOG_FILE}_${L}_${K}"
+          -prop $PROP_NO -const "$CONSTS",K="${K}" \
+        | tee "${LOG_FILE}_${K}"
       )
 
       # Extract values
@@ -41,9 +39,10 @@ run_experiments() {
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep -o 'Value iteration converged after [0-9]\+ iterations' | grep -o '[0-9]\+' | head -1)
+      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
+      # Break loop only if all fields are non-empty
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
         break
       else
@@ -51,12 +50,11 @@ run_experiments() {
       fi
     done
 
-    echo "\"$L,$K\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    echo "$K,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for pair in "${LK_VALS[@]}"; do
-    read -r L K <<< "$pair"
-    extract_results "$L" "$K"
+  for K in "${K_VALS[@]}"; do
+    extract_results "$K"
   done
 
   # Add a blank line after the section
@@ -66,15 +64,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/nonzero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.25,eps=0.01"
+  "icsg-tests/logs/zero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/user-centric/user-centric-icsg.prism" \
+  "../prism-examples/csgs/user-centric/user-centric.props" \
+  "td=1,eps=0.01"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/nonzero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.25"
+  "icsg-tests/logs/zero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/user-centric/user-centric.prism" \
+  "../prism-examples/csgs/user-centric/user-centric.props" \
+  "td=1"

@@ -1,8 +1,9 @@
-PROP_NO=2
-CASE_STUDY="robot1"
-L_VALS=(4 8 12)
+PROP_NO=1
+CASE_STUDY="medium3"
+EMAX=4
+SMAX_VALS=(4 2)
 
-RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -15,19 +16,19 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"l,k\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"emax,smax\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local L="$1"
-    local K="$2"
+    local SMAX="$1"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS",l="${L}",k="${K}" \
-        | tee "${LOG_FILE}_${L}"
+          -prop $PROP_NO -smtsolver yices \
+          -const "$CONSTS",emax="${EMAX}",smax="${SMAX}" \
+        | tee "${LOG_FILE}_${EMAX}_${SMAX}"
       )
 
       # Extract values
@@ -40,7 +41,7 @@ run_experiments() {
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | head -2 | sed -E 's/.*after ([0-9]+).*/\1/' | tr '\n' ';' | sed 's/;$//')
+      VAL_ITERS=$(echo "$OUTPUT" | grep -o 'Value iteration converged after [0-9]\+ iterations' | grep -o '[0-9]\+' | head -1)
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
@@ -50,11 +51,11 @@ run_experiments() {
       fi
     done
 
-    echo "\"$L,$K\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    echo "\"$EMAX,$SMAX\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for L in "${L_VALS[@]}"; do
-    extract_results "$L" "$L"  # K=L
+  for SMAX in "${SMAX_VALS[@]}"; do
+    extract_results "$SMAX"
   done
 
   # Add a blank line after the section
@@ -64,15 +65,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/zero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2_icsg.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.1,eps=0.01"
+  "icsg-tests/logs/nonzero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/simple/medium_access_count3_icsg.prism" \
+  "../prism-examples/csgs/simple/medium_access_count3.props" \
+  "q1=0.95,q2=0.75,q3=0.5,eps=0.01,k=0"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/zero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.prism" \
-  "../prism-examples/csgs/robot_coordination/robot_coordination2.props" \
-  "q=0.1"
+  "icsg-tests/logs/nonzero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/simple/medium_access_count3.prism" \
+  "../prism-examples/csgs/simple/medium_access_count3.props" \
+  "q1=0.95,q2=0.75,q3=0.5,k=0"

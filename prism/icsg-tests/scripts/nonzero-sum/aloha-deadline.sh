@@ -1,8 +1,10 @@
-PROP_NO=3
-CASE_STUDY="user"
-K_VALS=(3 4) # (3 4 5 6)
 
-RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
+D=8
+PROP_NO=7
+CASE_STUDY="aloha-deadline"
+BMAX_VALS=(1 2 3)
+
+RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -15,18 +17,20 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "K,Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"bmax,D\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local K="$1"
+    local BMAX="$1"
+    local D="$2"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS",K="${K}" \
-        | tee "${LOG_FILE}_${K}"
+          -prop $PROP_NO -smtsolver yices \
+          -const "$CONSTS",bcmax="${BMAX}" \
+        | tee "${LOG_FILE}_${BMAX}"
       )
 
       # Extract values
@@ -35,26 +39,25 @@ run_experiments() {
         | sed -E 's/^.*Max\/avg \(actions\): //' \
         | tr ';' '\n' \
         | sed -E 's/^\(([^)]*)\)\/\(([^)]*)\)$/\1\/\2/' \
-        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.2f,%.2f\n",a[1],a[2],a[3],a[4]}' \
+        | awk '{split($0,a,/[,\/]/); printf "%s,%s/%.5f,%.5f\n",a[1],a[2],a[3],a[4]}' \
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
       VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
-      # Break loop only if all fields are non-empty
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
         break
       else
         sleep 1
       fi
     done
-
-    echo "$K,\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+    
+    echo "\"$BMAX,$D\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for K in "${K_VALS[@]}"; do
-    extract_results "$K"
+  for BMAX in "${BMAX_VALS[@]}"; do
+    extract_results "$BMAX" "$D"
   done
 
   # Add a blank line after the section
@@ -64,15 +67,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/zero-sum/icsgs/$CASE_STUDY" \
-  "../prism-examples/csgs/user-centric/user-centric-icsg.prism" \
-  "../prism-examples/csgs/user-centric/user-centric.props" \
-  "td=1,eps=0.01"
+  "icsg-tests/logs/nonzero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/aloha/aloha_backoff3_icsg.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9,eps=1/257"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/zero-sum/csgs/$CASE_STUDY" \
-  "../prism-examples/csgs/user-centric/user-centric.prism" \
-  "../prism-examples/csgs/user-centric/user-centric.props" \
-  "td=1"
+  "icsg-tests/logs/nonzero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.prism" \
+  "../prism-examples/csgs/aloha/aloha_backoff3.props" \
+  "D=$D,q=0.9"

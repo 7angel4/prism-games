@@ -1,10 +1,11 @@
+PROP_NO=4
+CASE_STUDY="power2"
+EMAX=80
+POWMAX=4
+K1_VALS=(15 20)
+K2=20
 
-PROP_NO=1
-CASE_STUDY="jamming1"
-CHANS_VALS=(4 6)
-SLOTS_VALS=(6 12)
-
-RESULTS_FILE="results/zero-sum/$CASE_STUDY.csv"
+RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"
 
 run_experiments() {
@@ -17,19 +18,19 @@ run_experiments() {
   # Write section heading
   echo "=== $SECTION_NAME ===" >> "$RESULTS_FILE"
   # Write CSV header
-  echo "\"chans,slots\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
+  echo "\"emax,powmax,k1,k2\",Actions_max/avg,Val_iters,Verif_time,Value" >> "$RESULTS_FILE"
 
   extract_results() {
-    local CHANS="$1"
-    local SLOTS="$2"
+    local K1="$1"
 
     while true; do
       OUTPUT=$(
         bin/prism \
           "$PRISM_FILE" \
           "$PROP_FILE" \
-          -prop $PROP_NO -const "$CONSTS"chans="$CHANS",slots="$SLOTS" \
-        | tee "${LOG_FILE}_${CHANS}_${SLOTS}"
+          -prop $PROP_NO -smtsolver yices \
+          -const "$CONSTS",emax="${EMAX}",powmax="${POWMAX}",k1="${K1}",k2="${K2}" \
+        | tee "${LOG_FILE}_${EMAX}_${POWMAX}_${K1}_${K2}"
       )
 
       # Extract values
@@ -42,7 +43,7 @@ run_experiments() {
         | head -1)
 
       VALUE=$(echo "$OUTPUT" | grep 'Result:' | sed -E 's/.*Result: ([0-9eE\.\+\-]+).*/\1/' | head -1 | xargs printf "%.2f")
-      VAL_ITERS=$(echo "$OUTPUT" | grep 'Value iteration converged after' | sed -E 's/.*after ([0-9]+).*/\1/' | head -1)
+      VAL_ITERS=$(echo "$OUTPUT" | grep -o 'Value iteration converged after [0-9]\+ iterations' | grep -o '[0-9]\+' | head -1)
       TIME=$(echo "$OUTPUT" | grep 'Time for model checking:' | head -1 | sed -E 's/.*Time for model checking: ([0-9\.]+).*/\1/' | xargs printf "%.2f")
 
       if [[ -n "$MAX_AVG_ACTIONS" && -n "$VALUE" && -n "$VAL_ITERS" && -n "$TIME" ]]; then
@@ -51,14 +52,12 @@ run_experiments() {
         sleep 1
       fi
     done
-    
-    echo "\"$CHANS,$SLOTS\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
+
+    echo "\"$EMAX,$POWMAX,$K1,$K2\",\"$MAX_AVG_ACTIONS\",$VAL_ITERS,$TIME,$VALUE" >> "$RESULTS_FILE"
   }
 
-  for CHANS in "${CHANS_VALS[@]}"; do
-    for SLOTS in "${SLOTS_VALS[@]}"; do
-      extract_results "$CHANS" "$SLOTS"
-    done
+  for K1 in "${K1_VALS[@]}"; do
+    extract_results "$K1"
   done
 
   # Add a blank line after the section
@@ -68,15 +67,15 @@ run_experiments() {
 # Run ICSG section
 run_experiments \
   "ICSG" \
-  "logs/zero-sum/icsgs/$CASE_STUDY" \
-  ../prism-examples/csgs/jamming/jamming4_icsg.prism \
-  ../prism-examples/csgs/jamming/jamming.props \
-  "eps=0.01,"
+  "icsg-tests/logs/nonzero-sum/icsgs/$CASE_STUDY" \
+  "../prism-examples/csgs/power_control/power_control2_icsg.prism" \
+  "../prism-examples/csgs/power_control/power_control2.props" \
+  "fail=0.1,eps=0.01"
 
 # Run CSG section
 run_experiments \
   "CSG" \
-  "logs/zero-sum/csgs/$CASE_STUDY" \
-  ../prism-examples/csgs/jamming/jamming4.prism \
-  ../prism-examples/csgs/jamming/jamming.props \
-  ""
+  "icsg-tests/logs/nonzero-sum/csgs/$CASE_STUDY" \
+  "../prism-examples/csgs/power_control/power_control2.prism" \
+  "../prism-examples/csgs/power_control/power_control2.props" \
+  "fail=0.1"
