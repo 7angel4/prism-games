@@ -1,6 +1,7 @@
 PROP_NO=3
 CASE_STUDY="user"
-K_VALS=(3 4) # (3 4 5 6)
+K_VALS=(3) 
+# K_VALS=(3 4)  # full parameter set 
 
 RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"

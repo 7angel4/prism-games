@@ -1,6 +1,7 @@
 PROP_NO=2
 CASE_STUDY="medium2"
-EMAX_VALS=(10 15)
+EMAX_VALS=(10)
+# EMAX_VALS=(10 15)  # full parameter set
 K1=20
 K2=25
 

@@ -210,10 +210,10 @@ prism/icsg-tests/scripts/zero-sum/run_all.sh
 prism/icsg-tests/scripts/nonzero-sum/run_all.sh
 ```
 
-⚠️ **Note:** Running all experiments can take a **very long time** (hours to
-days, depending on hardware).  
+⚠️ **Note:** Running all experiments can take a **very long time** (hours to days, depending on hardware) and may trigger **Java out-of-memory** errors on machines with limited RAM. 
 
-We therefore recommend running **individual case-study scripts** instead.
+For artifact evaluation, we strongly recommend running the provided
+smoke tests or **individual case-study scripts**, rather than the full experiment suite.
 
 ---
 
@@ -231,23 +231,19 @@ simply run the following command from the `prism-games/prism` directory:
 ./icsg-tests/scripts/zero-sum/aloha.sh
 ```
 
-Some case studies evaluate multiple parameter values and may still be
-time-consuming. To reduce runtime, you can limit the parameter ranges at the
-top of the script.
+Each case study evaluates multiple parameter values, which can be time-consuming and may cause memory issues on some machines. For this reason, the provided scripts restrict parameter values to configurations that typically complete within **< 1 hour**.
 
-**Example:** In
-```
-scripts/zero-sum/aloha.sh
-```
-change:
-```
-BMAX_VALS=(2 3 4 5)
-```
-to:
+To run the **full set of parameter values**, modify the constants at the top of the corresponding script.
+
+**Example:** In `scripts/zero-sum/aloha.sh`, comment out:
 ```
 BMAX_VALS=(2 3 4)
 ```
-since `bmax=5` can take up to ~1.5 hours to complete.
+and uncomment:
+```
+BMAX_VALS=(2 3 4 5)
+```
+to evaluate the complete parameter set. Note that the configuration `bmax=5` can take up to ~1.5 hours to complete.
 
 ---
 

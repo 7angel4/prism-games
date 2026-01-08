@@ -1,7 +1,8 @@
 D=8
 PROP_NO=2
 CASE_STUDY="aloha"
-BMAX_VALS=(2 3 4 5)  # (2 3 4)
+BMAX_VALS=(2 3 4)
+# BMAX_VALS=(2 3 4 5)  # full parameter set
 
 RESULTS_FILE="icsg-tests/results/zero-sum/$CASE_STUDY.csv"
 rm -f "$RESULTS_FILE"

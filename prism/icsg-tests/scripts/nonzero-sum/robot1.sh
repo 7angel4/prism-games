@@ -1,6 +1,7 @@
 PROP_NO=5
 CASE_STUDY="robot1"
-L_VALS=(4 8 12)
+L_VALS=(4 8) 
+# L_VALS=(4 8 12)  # full parameter set
 EPS_VALS=(0.01 0.02 0.025 0.03 0.04 0.049)
 
 RESULTS_FILE="icsg-tests/results/nonzero-sum/$CASE_STUDY.csv"
