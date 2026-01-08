@@ -5,12 +5,9 @@ This artifact accompanies the TACAS 2026 paper:
 > **Robust Verification of Concurrent Stochastic Games**. Angel He and David Parker
 
 It provides an implementation of **Interval Concurrent Stochastic Games (ICSGs)**
-and robust verification algorithms, integrated into the **PRISM-games** model
-checker.
-
-This artifact corresponds to a development branch of PRISM-games that extends the
-tool with support for model checking **two-player ICSGs**, and includes scripts
-for reproducing the main experimental results reported in the TACAS 2026 paper.
+and robust verification algorithms, integrated into an extension of the **PRISM-games** model
+checker, and includes scripts for reproducing the main experimental results
+reported in the TACAS 2026 paper.
 
 ---
 
