@@ -124,8 +124,32 @@ public enum ModelType
 		{
 			return DTMC;
 		}
-	}
-	,
+	},
+	L1CSG("L1 concurrent stochastic game") {
+		@Override
+		public boolean multiplePlayers()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean concurrent()
+		{
+			return true;
+		}
+
+		@Override
+		public boolean uncertain()
+		{
+			return true;
+		}
+
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
+	},
 	UCSG("interval concurrent stochastic game") {
 		@Override
 		public boolean multiplePlayers()
@@ -337,6 +361,19 @@ public enum ModelType
 
 		@Override
 		public boolean intervals()
+		{
+			return true;
+		}
+	},
+	L1MDP("uncertain Markov decision process") {
+		@Override
+		public ModelType removeNondeterminism()
+		{
+			return DTMC;
+		}
+
+		@Override
+		public boolean uncertain()
 		{
 			return true;
 		}
