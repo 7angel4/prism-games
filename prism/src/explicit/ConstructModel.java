@@ -72,7 +72,6 @@ public class ConstructModel extends PrismComponent
 
 	/** How to resolve uncertain composition. */
 	public enum CompositionType {
-		INTERVAL_PRODUCT,
 		SMART,
 		L1
 	}
@@ -160,6 +159,7 @@ public class ConstructModel extends PrismComponent
 		IPOMDPSimple<Value> ipomdp = null;
 		ICSGSimple<Value> icsg = null;
 		L1MDPSimple<Value> l1mdp = null;
+		L1CSGSimple<Value> l1csg = null;
 		LTSSimple<Value> lts = null;
 
 		Distribution<Value> distr = null;
@@ -234,6 +234,9 @@ public class ConstructModel extends PrismComponent
 					break;
 				case L1MDP:
 					modelSimple = l1mdp = new L1MDPSimple<>();
+					break;
+				case L1CSG:
+					modelSimple = l1csg = new L1CSGSimple<>();
 					break;
 				case LTS:
 					modelSimple = lts = new LTSSimple<>();
@@ -348,6 +351,7 @@ public class ConstructModel extends PrismComponent
 							case SMG:
 							case CSG:
 							case L1MDP:
+							case L1CSG:
 								distr.add(dest, modelGen.getTransitionProbability(i, j));
 								break;
 							case IMDP:
@@ -407,6 +411,12 @@ public class ConstructModel extends PrismComponent
 						}
 					} else if (modelType == ModelType.CSG) {
 						csg.addActionLabelledChoice(src, distr, modelGen.getTransitionIndexes(i));
+					} else if (modelType == ModelType.L1CSG) {
+						double radius = 0.0;
+						if (modelGen instanceof L1RadiusProvider) {
+							radius = ((L1RadiusProvider) modelGen).getChoiceL1Radius(src, i);
+						}
+						l1csg.addActionLabelledChoice(src, distr, radius, modelGen.getTransitionIndexes(i));
 					} else if (modelType == ModelType.SMG) {
 						if (distinguishActions) {
 							smg.addActionLabelledChoice(src, distr, modelGen.getTransitionAction(i, 0));
@@ -458,10 +468,12 @@ public class ConstructModel extends PrismComponent
 			csg.addIdleIndexes();
 		} else if (modelType == ModelType.ICSG) {
 			icsg.addIdleIndexes();
+		} else if (modelType == ModelType.L1CSG) {
+			l1csg.addIdleIndexes();
 		}
 
 		if (!justReach && findDeadlocks) {
-			if (modelType != ModelType.CSG && modelType != ModelType.ICSG) {
+			if (modelType != ModelType.CSG && modelType != ModelType.ICSG && modelType != ModelType.L1CSG) {
 				modelSimple.findDeadlocks(fixDeadlocks);
 			} else {
 				modelSimple.findDeadlocks(false);
@@ -470,9 +482,13 @@ public class ConstructModel extends PrismComponent
 						for (Integer s : modelSimple.getDeadlockStates()) {
 							csg.fixDeadlock(s);
 						}
-					} else {
+					} else if (modelType == ModelType.ICSG) {
 						for (Integer s : modelSimple.getDeadlockStates()) {
 							icsg.fixDeadlock(s);
+						}
+					} else { // modelType == ModelType.L1CSG
+						for (Integer s : modelSimple.getDeadlockStates()) {
+							l1csg.fixDeadlock(s);
 						}
 					}
 				}
@@ -541,6 +557,9 @@ public class ConstructModel extends PrismComponent
 					break;
 				case ICSG:
 					model = sortStates ? new ICSGSimple<>(icsg, permut) : icsg;
+					break;
+				case L1CSG:
+					model = sortStates ? new L1CSGSimple<>(l1csg, permut) : l1csg;
 					break;
 				case LTS:
 					model = sortStates ? new LTSSimple<>(lts, permut) : lts;

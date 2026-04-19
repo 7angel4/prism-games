@@ -824,7 +824,8 @@ public class ProbModelChecker extends NonProbModelChecker
 							res = ((CSGModelChecker) this).computeRewReachEquilibria((CSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
 							break;
 						case ICSG:
-							res = ((UCSGModelChecker) this).computeRewReachEquilibria((ICSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
+						case L1CSG:
+							res = ((UCSGModelChecker) this).computeRewReachEquilibria((UCSG<Double>) model, coalitions, rewards, targets, eqType, crit, min);
 							break;
 					}
 				}
@@ -834,7 +835,8 @@ public class ProbModelChecker extends NonProbModelChecker
 							res = ((CSGModelChecker) this).computeProbReachEquilibria((CSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
 							break;
 						case ICSG:
-							res = ((UCSGModelChecker) this).computeProbReachEquilibria((ICSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
+						case L1CSG:
+							res = ((UCSGModelChecker) this).computeProbReachEquilibria((UCSG<Double>) model, coalitions, targets, remain, eqType, crit, min);
 							break;
 					}
 				}

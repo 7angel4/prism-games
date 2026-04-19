@@ -1,0 +1,190 @@
+    private void copyCommonMetadata(Object src, Object dst) {
+        // Optional best-effort copies. Missing methods are ignored.
+        invokeOptional(dst, "setActions", new Class<?>[]{List.class}, getOptional(src, "getActions"));
+        invokeOptional(dst, "setPlayerNames", new Class<?>[]{List.class}, getOptional(src, "getPlayerNames"));
+
+        Object labelsObj = getOptional(src, "getLabelToStatesMap");
+        if (labelsObj instanceof Map<?, ?> labels) {
+            for (Map.Entry<?, ?> e : labels.entrySet()) {
+                String label = String.valueOf(e.getKey());
+                BitSet bs = (BitSet) e.getValue();
+                invokeOptional(dst, "addLabel", new Class<?>[]{String.class, BitSet.class}, label, bs);
+            }
+        }
+
+        Object idx = getOptional(src, "getIndexes");
+        if (idx != null) {
+            invokeOptional(dst, "setIndexes", new Class<?>[]{BitSet[].class}, idx);
+        }
+
+        Object idles = getOptional(src, "getIdles");
+        if (idles != null) {
+            invokeOptional(dst, "setIdles", new Class<?>[]{int[].class}, idles);
+        } else {
+            invokeNoArgOptional(dst, "addIdleIndexes");
+        }
+    }
+
+    private Object getOptional(Object obj, String methodName) {
+        try {
+            Method m = obj.getClass().getMethod(methodName);
+            return m.invoke(obj);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+            return null;
+        }
+    }
+
+    private Object invokeOptional(Object dst, String methodName, Class<?>[] sig, Object... args) {
+        try {
+            Method m = dst.getClass().getMethod(methodName, sig);
+            return m.invoke(dst, args);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+            return null;
+        }
+    }
+
+    private void invokeNoArgOptional(Object dst, String methodName) {
+        try {
+            Method m = dst.getClass().getMethod(methodName);
+            m.invoke(dst);
+        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException ignored) {
+        }
+    }
+
+    private int countTotalSlots(NondetModel template) {
+            int total = 0;
+            for (int s = 0; s < template.getNumStates(); s++) {
+                total += template.getNumChoices(s);
+            }
+            return Math.max(total, 1);
+        }
+
+public static void main(String[] args) {
+        try {
+            final String prismFilePath =
+                    "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
+
+            final int D = 8;
+            final int runs = 10;
+            final int evalEpisodes = 2000;
+            final int horizon = D;
+            final double epsilon = 0.05;
+            final double delta = 0.01;
+            final double rMax = 1.0;
+
+            PrismLog log = new PrismPrintStreamLog(System.out);
+            Prism prism = new Prism(log);
+            prism.initialise();
+            prism.getSimulator();
+
+            System.out.println("Loading CSGSimple model...");
+            ModulesFile modulesFile = prism.parseModelFile(new File(prismFilePath), ModelType.CSGSimple);
+            prism.loadPRISMModel(modulesFile);
+
+            Values consts = new Values();
+            consts.addValue("D", D);
+            consts.addValue("q", 0.9);
+            consts.addValue("bcmax", 1);
+
+            prism.setPRISMModelConstants(consts, false);
+            prism.setEngine(Prism.EXPLICIT);
+            prism.buildModel();
+
+            explicit.Model<?> built = prism.getBuiltModelExplicit();
+            if (!(built instanceof CSGSimple<?>)) {
+                throw new RuntimeException("Built model is not an explicit CSGSimple: " +
+                        (built == null ? "null" : built.getClass().getName()));
+            }
+
+            CSGSimple<Double> trueGame = (CSGSimple<Double>) built;
+            System.out.println("\n=== TRUE GAME ===");
+            System.out.println(trueGame.infoStringTable());
+
+            Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
+            ex.setValues(consts);
+            ex.error_tolerance = delta;
+            ex.errorOnNonConvergence = false;
+            ex.maxVIIters = 20000;
+            ex.max_episode_length = horizon;
+
+            PACLearner learner = new PACLearner(prism, ex);
+
+            // Two coalitions: <<usr1 : usr2,usr3>>
+            List<String> playerNames = getPlayerNames(trueGame);
+            List<Coalition> coalitions = Arrays.asList(
+                    new Coalition(Collections.singletonList(playerNames.get(0))),
+                    new Coalition(Arrays.asList(playerNames.get(1), playerNames.get(2)))
+            );
+
+            // Build the two reachability targets from labels in the PRISM model.
+            // Add these labels to the model if they do not already exist:
+            //   label "g1" = s1 = 3;
+            //   label "g2" = s2 = 3 & s3 = 3;
+            BitSet g1 = extractLabelBitSet(trueGame, "g1");
+            BitSet g2 = extractLabelBitSet(trueGame, "g2");
+
+            if (g1.isEmpty()) {
+                throw new PrismException("Could not find any target states for label \"g1\".");
+            }
+            if (g2.isEmpty()) {
+                throw new PrismException("Could not find any target states for label \"g2\".");
+            }
+
+            BitSet[] targets = new BitSet[] { g1, g2 };
+
+            // For bounded reachability, the remain sets can be all states.
+            BitSet[] remain = new BitSet[2];
+            BitSet allStates = new BitSet(trueGame.getNumStates());
+            allStates.set(0, trueGame.getNumStates());
+            remain[0] = (BitSet) allStates.clone();
+            remain[1] = (BitSet) allStates.clone();
+
+            int[] bounds = new int[] { D, D };
+
+            int eqType = 0;
+            int crit = 0;
+            boolean min = true;
+
+            for (int run = 1; run <= runs; run++) {
+                System.out.println("\n=== Run " + run + " / " + runs + " ===");
+
+                PACLearner.PacResult pac = learner.runPacLoop(
+                        trueGame,
+                        PACLearner.ObjectiveKind.PROB_REACH_BOUNDED,   // add this enum value
+                        coalitions,
+                        null,
+                        targets,
+                        remain,
+                        bounds,
+                        eqType,
+                        crit,
+                        min,
+                        5,
+                        epsilon,
+                        delta,
+                        rMax,
+                        horizon
+                );
+
+                L1CSGSimple<Double> empirical = learner.getEstimate();
+
+                Result empiricalResult = learner.checkPropertyOnModel(empirical, true, false);
+                Result trueResult = learner.checkPropertyOnModel(trueGame, true, false);
+
+                double empiricalValue = toDouble(empiricalResult.getResult());
+                double trueValue = toDouble(trueResult.getResult());
+
+                System.out.printf("episodes: %d%n", pac.episodes);
+                System.out.printf("terminatedByAllKnown: %s%n", pac.terminatedByAllKnown);
+                System.out.printf("certificateNoExactNE: %s%n", pac.certificateNoExactNE);
+                System.out.printf("empirical robust value: %.6f%n", empiricalValue);
+                System.out.printf("true robust value:      %.6f%n", trueValue);
+                System.out.printf("gap:                    %.6f%n", empiricalValue - trueValue);
+            }
+
+            System.out.println("\nSMOKE TEST PASSED");
+        } catch (Throwable t) {
+            t.printStackTrace();
+            System.exit(1);
+        }
+    }

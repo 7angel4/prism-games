@@ -455,7 +455,7 @@ public class LTLModelChecker extends PrismComponent
 	 * @return the product with the DA
 	 * @throws PrismException
 	 */
-	public <Value> LTLProduct<ICSG<Value>> constructProductICSG(ProbModelChecker mc, ICSG<Value> model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
+	public <Value> LTLProduct<UCSG<Value>> constructProductUCSG(ProbModelChecker mc, UCSG<Value> model, Expression expr, BitSet statesOfInterest, AcceptanceType... allowedAcceptance) throws PrismException
 	{
 		return constructDAProductForLTLFormula(mc, model, expr, statesOfInterest, allowedAcceptance);
 	}
@@ -601,6 +601,10 @@ public class LTLModelChecker extends PrismComponent
 			((ICSGSimple<Value>) prodModel).setActions(((ICSG<Value>) model).getActions());
 			((ICSGSimple<Value>) prodModel).setIndexes(((ICSG<Value>) model).getIndexes());
 			((ICSGSimple<Value>) prodModel).setIdles(((ICSG<Value>) model).getIdles());
+		} else if (modelType == ModelType.L1CSG) {
+			((L1CSGSimple<Value>) prodModel).setActions(((L1CSG<Value>) model).getActions());
+			((L1CSGSimple<Value>) prodModel).setIndexes(((L1CSG<Value>) model).getIndexes());
+			((L1CSGSimple<Value>) prodModel).setIdles(((L1CSG<Value>) model).getIdles());
 		}
 
 		// Attach evaluator and variable info
@@ -751,6 +755,8 @@ public class LTLModelChecker extends PrismComponent
 				case ICSG:
 					iterIntv = ((ICSG<Value>) model).getIntervalTransitionsIterator(s_1, j);
 					break;
+				case L1CSG:
+					iter = ((L1CSG<Value>) model).getTransitionsIterator(s_1, j);
 				default:
 					throw new PrismNotSupportedException("Product construction not implemented for " + modelType + "s");
 				}
@@ -829,6 +835,10 @@ public class LTLModelChecker extends PrismComponent
 				case ICSG:
 					int it_2 = ((ICSGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistrIntv, ((ICSG) model).getAction(s_1, j));
 					((ICSGSimple<Value>) prodModel).setIndexes(map_1, it_2, ((ICSG<Value>) model).getIndexes(s_1, j));
+					break;
+				case L1CSG:
+					int lt_2 = ((L1CSGSimple<Value>) prodModel).addActionLabelledChoice(map_1, prodDistr, ((L1CSG) model).getAction(s_1, j));
+					((L1CSGSimple<Value>) prodModel).setIndexes(map_1, lt_2, ((L1CSG<Value>) model).getIndexes(s_1, j));
 					break;
 				default:
 					break;

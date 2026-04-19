@@ -162,6 +162,7 @@ public class RewardsSimple<Value> extends RewardsExplicit<Value>
 		return transRewards.getValue(s, i);
 	}
 
+
 	@Override
 	public RewardsSimple<Value> liftFromModel(Product<?> product)
 	{

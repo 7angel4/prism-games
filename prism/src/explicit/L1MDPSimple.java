@@ -40,6 +40,17 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
         this.setVarList(other.getVarList());
     }
 
+    public L1MDPSimple(L1CSGSimple<Value> other) {
+        mdp = new MDPSimple<>(other);
+        radii.clear();
+        for (int s = 0; s < getNumStates(); s++) {
+            radii.add(new ArrayList<>());
+            for (int c = 0; c < getNumChoices(s); s++) {
+                radii.get(s).add(((L1CSG<Value>) other).getRadius(s, c));
+            }
+        }
+    }
+
     private static List<List<Double>> permuteRadii(List<List<Double>> oldRadii, int[] permut) {
         List<List<Double>> newRadii = new ArrayList<>(oldRadii.size());
         for (int i = 0; i < oldRadii.size(); i++) {
@@ -103,16 +114,6 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
         mdp.addStates(numToAdd);
         numStates += numToAdd;
         for (int i = 0; i < numToAdd; i++) {
-            radii.add(new ArrayList<>());
-        }
-    }
-
-    @Override
-    public void initialise(int numStates) {
-        mdp.initialise(numStates);
-        super.initialise(numStates);
-        radii.clear();
-        for (int i = 0; i < numStates; i++) {
             radii.add(new ArrayList<>());
         }
     }

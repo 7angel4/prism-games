@@ -99,7 +99,7 @@ public class ConstructRewards extends PrismComponent
 		if (model.getModelType() == ModelType.CSG) {
 			return buildCSGRewardStructure((CSG<Value>) model, rewardGen, r);
 		} else if (model.getModelType() == ModelType.ICSG) {
-			return  buildCSGRewardStructure(((ICSG) model).getIntervalModel(), rewardGen, r);
+			return  buildCSGRewardStructure(((ICSG) model).getCSGModel(), rewardGen, r);
 		}
 
 

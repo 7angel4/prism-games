@@ -63,8 +63,7 @@ public class Distribution<Value> implements FunctionalIterable<Entry<Integer, Va
 	 * evaluator, e.g., with {@link #Distribution(Evaluator)}.
 	 */
 	@Deprecated
-	public Distribution()
-	{
+	public Distribution() {
 		this((Evaluator<Value>) Evaluator.forDouble());
 	}
 

@@ -37,8 +37,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -55,24 +53,11 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	/** Cache of IMDP distributions for (s, act1, act2) independent of mixing weights */
 	private static final ConcurrentHashMap<String, Distribution<Interval<Double>>> imdpDistrCache = new ConcurrentHashMap<>();
 
-	/** Build a cache key from both supports and quantised mixing weights */
-	private String makeDevKey(List<Map<BitSet, Double>> strat) {
-		StringBuilder sb = new StringBuilder();
-		for (Map<BitSet, Double> m : strat) {
-			List<String> parts = new ArrayList<>();
-			for (Map.Entry<BitSet, Double> e : m.entrySet()) {
-				// Round to 3 decimal places for cache key
-				double q = Math.round(e.getValue() * 1000.0) / 1000.0;
-				parts.add(Arrays.toString(e.getKey().toLongArray()) + "=" + q);
-			}
-			Collections.sort(parts);
-			for (String p : parts) sb.append(p).append(";");
-			sb.append("|");
-		}
-		return sb.toString();
+
+	@Override
+	public CSG<Interval<Value>> getIntervalModel() {
+		return csg;
 	}
-
-
 
 	/**
 	 * An interval CSGSimple, specifically stored inside an ICSG.
@@ -107,7 +92,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 				List<Integer> indices = new ArrayList<>();
 				List<Double> lowers = new ArrayList<>();
 				List<Double> uppers = new ArrayList<>();
-				Iterator<Map.Entry<Integer, Interval<Double>>> iter = ((ICSGSimple<Double>) ICSGSimple.this).getIntervalModel().getTransitionsIterator(s, t);
+				Iterator<Map.Entry<Integer, Interval<Double>>> iter = ((ICSGSimple<Double>) ICSGSimple.this).getCSGModel().getTransitionsIterator(s, t);
 				while (iter.hasNext()) {
 					Map.Entry<Integer, Interval<Double>> e = iter.next();
 					indices.add(e.getKey());
@@ -320,10 +305,10 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 									expRewDev += probOther * csgRewards.getTransitionReward(state, choiceIdx);
 								}
 
-								Distribution<Interval<Value>> distr = csg.getChoice(state, choiceIdx);
-								for (Map.Entry<Integer, Interval<Value>> e : distr) {
+								Distribution<?> distr = getChoice(state, choiceIdx);
+								for (Map.Entry<Integer, ?> e : distr) {
 									int snext = e.getKey();
-									Interval<Value> interval = e.getValue();
+									Interval<Value> interval = (Interval<Value>) e.getValue();
 									intervalMap.merge(snext,
 											new Interval<>(probOther * (Double) interval.getLower(),
 													probOther * (Double) interval.getUpper()),
@@ -685,7 +670,7 @@ public class ICSGSimple<Value> extends ModelExplicitWrapper<Value> implements No
 	}
 
 	@Override
-	public CSG<Interval<Value>> getIntervalModel()
+	public CSG<Interval<Value>> getCSGModel()
 	{
 		return csg;
 	}

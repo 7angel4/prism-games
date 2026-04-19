@@ -307,6 +307,16 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 	}
 
 	/**
+	 * Set distribution for state s choice c
+	 * @param s
+	 * @param c
+	 * @param distr
+	 */
+	public void setTrans(int s, int c, Distribution<Value> distr) {
+		trans.get(s).set(c, distr);
+	}
+
+	/**
 	 * Add a choice (distribution {@code distr}) labelled with {@code action} to state {@code s} (which must exist).
 	 * Action/distribution is only actually added if it does not already exists for state {@code s}.
 	 * (Assuming {@code allowDupes} flag is not enabled.)

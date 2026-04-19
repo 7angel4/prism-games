@@ -259,9 +259,10 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 		// If there are no constants to define, go ahead and initialise;
 		// Otherwise, setSomeUndefinedConstants needs to be called when the values are available
 		mfConstants = modulesFile.getConstantValues();
-		if (mfConstants != null) {
-			initialise();
+		if (mfConstants == null) {
+			mfConstants = new Values();
 		}
+		initialise();
 
 		// Create evaluate context for re-use
 		ec = new EvaluateContextState(mfConstants, new State(modulesFile.getNumVars()));

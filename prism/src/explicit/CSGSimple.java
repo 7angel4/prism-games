@@ -28,6 +28,7 @@
 package explicit;
 
 import java.util.*;
+import java.util.function.Function;
 
 import prism.JointAction;
 import prism.PlayerInfo;
@@ -41,8 +42,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	/** List of player action indices for each state/choice,
 	 * stored as an array giving the (1-indexed) index for the action
 	 * performed by each player in this transition, and -1 indicates that the player idles. */
-	protected List<List<int[]>> transIndexes;
-	
+	// state -> choice -> each player's action index
+	protected List<List<int[]>> transIndexes = new ArrayList<List<int[]>>();
+
 	/** Indices of actions owned by each player,
 	 * i.e., a BitSet of (1-indexed) action indices for each player. */
 	protected BitSet[] indexes;
@@ -53,18 +55,11 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	/**
 	 * Player information (coalition part not used for now)
 	 */
-	protected PlayerInfo playerInfo;
+	protected PlayerInfo playerInfo = new PlayerInfo();
 
 	// Constructors
-
-	/**
-	 * Constructor: empty CSG.
-	 */
-	public CSGSimple()
-	{
+	public CSGSimple() {
 		super();
-		transIndexes = new ArrayList<List<int[]>>();
-		playerInfo = new PlayerInfo();
 	}
 
 	/**
@@ -72,10 +67,8 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	 * i.e. in which state index i becomes index permut[i].
 	 * Player and coalition info is also copied across.
 	 */
-	public CSGSimple(CSGSimple<Value> csg, int[] permut)
-	{
+	public CSGSimple(CSGSimple<Value> csg, int[] permut) {
 		super(csg, permut);
-		transIndexes = new ArrayList<List<int[]>>();
 		for (int s = 0; s < csg.getNumStates(); s++) {
 			transIndexes.add(s, null);
 		}
@@ -85,14 +78,42 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		indexes = csg.getIndexes();
 		playerInfo = new PlayerInfo(csg.playerInfo);
 		idles = csg.getIdles();
-		/*
-		idle = actions.size() + 1;
-		for (int p = 0; p < indexes.length; p++) {
-			indexes[p].set(idle);
-			idle++;
-		}
-		*/
 	}
+
+	public CSGSimple(CSG<Value> template) {
+		super(template);
+		copyGameInfo(template);
+	}
+
+	public CSGSimple(CSG<Value> template, Function<? super Value, ? extends Value> probMap) {
+		super(template, probMap);
+		copyGameInfo(template);
+	}
+
+	public CSGSimple(CSG<Value> template, List<List<Distribution<Value>>> trans) {
+		super(template);
+		copyGameInfo(template);
+		for (int s = 0; s < getNumStates(); s++) {
+			for (int c = 0; c < getNumChoices(); c++) {
+				setTrans(s, c, trans.get(s).get(c));
+			}
+		}
+	}
+
+
+
+	private void copyGameInfo(CSG<Value> template) {
+		for (int s = 0; s < template.getNumStates(); s++) {
+			transIndexes.add(s, null);
+		}
+		for (int s = 0; s < template.getNumStates(); s++) {
+			transIndexes.set(s, template.getTransIndexes(s));
+		}
+		indexes = template.getIndexes();
+		playerInfo = new PlayerInfo(template.getPlayerInfo());
+		idles = template.getIdles();
+	}
+
 
 	// Mutators
 
@@ -326,7 +347,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	}
 
 	// Local accessors / utility methods
-	
+
 	/**
 	 * Get the list of player action indices for all states/choices
 	 */
@@ -338,6 +359,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	/**
 	 * Get the list of player action indices for the choices of state {@code s}
 	 */
+	@Override
 	public List<int[]> getTransIndexes(int s)
 	{
 		return transIndexes.get(s);

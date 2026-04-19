@@ -640,19 +640,24 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 			ceVarMap.put(jidx, utilities.keySet().size() - 1);
 			for (c = 0; c < numCoalitions; c++) {
 				v = 0.0;
-				for (int d : csg.getChoice(s, t).getSupport()) {
+				for (Iterator<Map.Entry<Integer, Double>> it =
+					 csg.getDoubleTransitionsIterator(s, t, val[c]); it.hasNext(); )
+				{
+					Map.Entry<Integer, Double> e = it.next();
+					int d = e.getKey();
+					double prob = e.getValue();
+
 					if (!Double.isNaN(val[c][d])) {
-						v += csg.getChoice(s, t).get(d) * val[c][d];
-					}
-					else {
+						v += prob * val[c][d];
+					} else {
 						mainLog.println("val[c][d]: " + val[c][d]);
 						mainLog.println("\n## state " + s);
 						mainLog.println("-- strategies " + strategies);
 						mainLog.println("-- actions " + actions);
 						mainLog.println("-- utilities " + utilities);
 						throw new PrismException("Error in building game for state " + s);
-					} 
-				} 
+					}
+				}
 				if (rewards != null) {
 					if (rewards.get(c) != null)
 						v += rewards.get(c).getTransitionReward(s, t);		

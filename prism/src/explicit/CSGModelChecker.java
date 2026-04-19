@@ -1803,11 +1803,6 @@ public class CSGModelChecker extends ProbModelChecker
 	}
 
 
-	protected Distribution<Double> getDoubleChoice(CSG<?> csg, int s, int t) {
-		return ((CSG<Double>) csg).getChoice(s, t);
-	}
-
-
 
 	/**
 	 * Build info needed for the matrix game to solve a CSG state s.

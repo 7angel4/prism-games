@@ -86,6 +86,8 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 	 * i.e., a BitSet of (1-indexed) action indices for each player.
 	 */
 	public BitSet[] getIndexes();
+
+	public List<int[]> getTransIndexes(int s);
 	
 	/**
 	 * Get the indices of the actions representing "idle" for each player.
@@ -106,7 +108,7 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 	// Temp:
 
 	// TODO: Move to MDP interface?
-	public Distribution<Value> getChoice(int s, int i);
+	public Distribution<?> getChoice(int s, int i);
 
 	public Iterator<Map.Entry<Integer, Double>> getDoubleTransitionsIterator(int s, int i, double val[]);
 
@@ -140,6 +142,8 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 	public default Strategy<?> getStrategy(List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, CSGStrategy.CSGStrategyType type) {
 		return new CSGStrategy(this, lstrat, no, yes, inf, type);
 	}
+
+	public void setTrans(int s, int c, Distribution<Value> distr);
 
 
 	public default void jointToIndexes(int[] joint, BitSet indexes) {

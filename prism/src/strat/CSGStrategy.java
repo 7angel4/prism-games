@@ -91,6 +91,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		this.type = type;
 	}
 
+	public Map<BitSet, Double> getChoiceDistribution(int coalition, int memory, int state) {
+		return csgchoices.get(coalition).get(memory).get(state);
+	}
+
 	@Override
 	public CSG<Value> getModel()
 	{
