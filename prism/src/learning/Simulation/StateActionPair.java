@@ -15,6 +15,7 @@ public class StateActionPair
         this.action_hash = action.hashCode();
     }
 
+
     public int getState() {
         return this.s;
     }

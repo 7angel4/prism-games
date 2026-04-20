@@ -6,6 +6,7 @@ import explicit.Distribution;
 import prism.PrismException;
 import simulator.RandomNumberGenerator;
 import strat.CSGStrategy;
+import strat.Strategy;
 
 import java.util.*;
 
@@ -92,16 +93,19 @@ public class CSGSampler {
 
     protected EpisodeTrace sampleTrajectory(
             CSGSimple<Double> trueGame,
-            CSGStrategy<Double> strategy,
+            Strategy<Double> strategy,
             List<List<Long>> slotCounts,
             List<List<Map<Integer, Long>>> transitionCounts,
             int horizon,
             BitSet target,
             boolean stopOnTarget
     ) throws PrismException {
+
         EpisodeTrace trace = new EpisodeTrace();
 
         int s = trueGame.getFirstInitialState();
+        trace.setInitialState(s);
+
         int step = 0;
 
         while (step < horizon) {
@@ -109,20 +113,14 @@ public class CSGSampler {
                 break;
             }
 
-            BitSet jointAct = sampleJointAction(strategy, s, step);
-            if (jointAct == null) {
-                break; // strategy undefined at this state
-            }
-
-            int c = findChoiceIndex(trueGame, s, jointAct);
+            int c = sampleChoiceIndex(strategy, s);
             if (c < 0) {
-                throw new PrismException("Could not match sampled joint action to a choice at state " + s);
+                break;
             }
 
             int sp = sampleSuccessor(trueGame, s, c);
 
             trace.add(s, c, sp);
-
             updateCount(s, c, sp, slotCounts, transitionCounts);
 
             s = sp;
@@ -130,6 +128,42 @@ public class CSGSampler {
         }
 
         return trace;
+    }
+
+    private int sampleChoiceIndex(Strategy<Double> strategy, int s) throws PrismException {
+        Object act = strategy.getChoiceAction(s, -1);
+
+        if (act == Strategy.UNDEFINED) {
+            return -1;
+        }
+
+        // deterministic case: act is Integer index
+        if (act instanceof Integer) {
+            return (Integer) act;
+        }
+
+        // randomized case: distribution over indices
+        // PRISM typically uses DistributionOver<Object>
+        if (act instanceof Distribution<?>) {
+            Distribution<?> dist = (Distribution<?>) act;
+
+            double r = rng.randomUnifDouble();
+            double cum = 0.0;
+            int last = -1;
+
+            for (Object key : dist.getSupport()) {
+                int idx = (Integer) key;
+                double p = (Double) dist.get(idx);
+                cum += p;
+                last = idx;
+                if (r <= cum) {
+                    return idx;
+                }
+            }
+            return last;
+        }
+
+        throw new PrismException("Unsupported strategy action type: " + act.getClass());
     }
 
 
@@ -140,19 +174,6 @@ public class CSGSampler {
         slotCounts.get(s).set(c, pairOrig + 1L);
         long tripleOrig = transitionCounts.get(s).get(c).getOrDefault(succ, 0L);
         transitionCounts.get(s).get(c).putIfAbsent(succ, tripleOrig + 1L);
-    }
-
-    private BitSet sampleJointAction(CSGStrategy<Double> strategy, int s, int step) throws PrismException {
-        BitSet joint = new BitSet();
-        for (int p = 0; p < NUM_COALITIONS; p++) {
-            Map<BitSet, Double> dist = strategy.getChoiceDistribution(p, 0, s);
-            BitSet act = sampleFromDistribution(dist);
-            if (act == null) {
-                return null;
-            }
-            joint.or(act);
-        }
-        return joint;
     }
 
     private BitSet sampleFromDistribution(Map<BitSet, Double> dist) throws PrismException {
