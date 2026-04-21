@@ -10,6 +10,7 @@ import prism.Evaluator;
 import prism.Prism;
 import prism.PrismException;
 import strat.CSGStrategy;
+import strat.Strategy;
 
 import java.util.*;
 
@@ -133,7 +134,7 @@ public class PACLearner {
         while (true) {
             episode++;
 
-            updatedL1Transitions(deltaContain);
+            updateL1Transitions(deltaContain);
 
             double deltaT = computeDeltaT(rMax, horizon);
             SolveOutcome robustSol = robustSolveL1CSG(objectiveKind, coalitions, exprs, rewards, targets, remain, bounds, eqType, crit, min);
@@ -150,7 +151,7 @@ public class PACLearner {
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
             updateExplorationRewards();
-            CSGStrategy<Double> exploreStrat = solveExplorationRMDP(horizon, objectiveKind);
+            Strategy<Double> exploreStrat = solveExplorationRMDP(horizon, objectiveKind);
 
             sampler.sampleTrajectory(
                     trueGame,
@@ -248,12 +249,13 @@ public class PACLearner {
         explorationTarget = new BitSet(empiricalGame.getNumStates());
     }
 
-    private void updatedL1Transitions(double deltaContain) throws PrismException {
+    private void updateL1Transitions(double deltaContain) throws PrismException {
         int numStates = empiricalGame.getNumStates();
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
                 if (saCount == 0L) {
+                    maxRadius = L1CSGSimple.INIT_RADIUS;
                     continue;
                 }
 
@@ -338,7 +340,8 @@ public class PACLearner {
         return new SolveOutcome(true, strategy, value);
     }
 
-    private CSGStrategy<Double> solveExplorationRMDP(int horizon, ObjectiveKind objectiveType) throws PrismException {
+    // Can treat as an MDP strategy due to centralised play
+    private Strategy<Double> solveExplorationRMDP(int horizon, ObjectiveKind objectiveType) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
@@ -354,16 +357,9 @@ public class PACLearner {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
 
-        return (CSGStrategy<Double>) res.strat;
+        return (Strategy<Double>) res.strat;
     }
 
-    private void updateCount(int s, int c, int succ) {
-        long n = slotCounts.get(s).get(c);
-        slotCounts.get(s).set(c, n + 1L);
-
-        long m = transitionCounts.get(s).get(c).getOrDefault(succ, 0L);
-        transitionCounts.get(s).get(c).put(succ, m + 1L);
-    }
 
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {

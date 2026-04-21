@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
  */
 public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
 {
+    public static final double INIT_RADIUS = 1.0;
     /** L1 radius per state/choice. */
     protected List<List<Double>> radii = new ArrayList<>();
 
@@ -95,7 +96,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             int numChoices = other.getNumChoices(s);
             List<Double> row = new ArrayList<>(numChoices);
             for (int c = 0; c < numChoices; c++) {
-                row.add(1.0);
+                row.add(INIT_RADIUS);
             }
             radii.add(row);
         }
@@ -444,7 +445,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     public void setRadius(int s, int c, double r) {
         List<Double> rs = radii.get(s);
         while (rs.size() <= c) {
-            rs.add(0.0);
+            rs.add(INIT_RADIUS);
         }
         rs.set(c, r);
     }
@@ -519,12 +520,12 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
      */
     @Override
     public int addActionLabelledChoice(int s, Distribution<Value> distr, Object action) {
-        return this.addActionLabelledChoice(s,  distr, 0.0, action);
+        return this.addActionLabelledChoice(s,  distr, INIT_RADIUS, action);
     }
 
     @Override
     public int addActionLabelledChoice(int s, Distribution<Value> distr, int[] indexes) {
-        return this.addActionLabelledChoice(s,  distr, 0.0, indexes);
+        return this.addActionLabelledChoice(s,  distr, INIT_RADIUS, indexes);
     }
 
     @Override

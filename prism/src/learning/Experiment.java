@@ -32,7 +32,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class Experiment
 {
     public enum Model {
@@ -159,17 +158,15 @@ public class Experiment
                         "eps", 1.0 / 257.0,
                         "bcmax", 1
                 );
+                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
 
-                this.pacEps = 1.0 / 257.0;
                 this.pacDelta = 0.05;
-                this.rMax = 1.0;
+                this.rMax = objectiveKind == PACLearner.ObjectiveKind.PROB_REACH ? 1.0 : 10.0;
                 this.horizon = 8;
 
                 this.eqType = 0;
                 this.crit = 0;
                 this.min = false;
-
-                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
             }
         }
         return this;
