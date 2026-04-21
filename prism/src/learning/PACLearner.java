@@ -65,7 +65,6 @@ public class PACLearner {
     }
 
     private final Prism prism;
-    private final Experiment experiment;
     private final CSGSampler sampler;
 
     private final List<List<Long>> slotCounts = new ArrayList<>();
@@ -79,9 +78,8 @@ public class PACLearner {
     private MDPRewardsSimple<Double> explorationRewards;
     private BitSet explorationTarget;
 
-    public PACLearner(Prism prism, Experiment ex, int seed) {
+    public PACLearner(Prism prism, int seed) {
         this.prism = prism;
-        this.experiment = ex;
         this.sampler = new CSGSampler(seed);
     }
 
@@ -390,7 +388,7 @@ public class PACLearner {
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, ex, 41);
+        PACLearner learner = new PACLearner(prism, 41);
         PacResult res = learner.runPacLoop(spec);
 
         System.out.println("certificateNoExactNE=" + res.certificateNoExactNE);
