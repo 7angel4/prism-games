@@ -35,7 +35,8 @@ import java.util.List;
 public class Experiment
 {
     public enum Model {
-        TEST_CSG
+        TEST_CSG,
+        ROBOT_COORD
     }
 
     public static final class PacRunSpec {
@@ -112,7 +113,6 @@ public class Experiment
     public Values parameterValues = new Values();
     public String solverString = "";
 
-    public double pacEps = 1.0 / 257.0;
     public double pacDelta = 0.05;
     public double rMax = 1.0;
     public int horizon = 8;
@@ -147,6 +147,27 @@ public class Experiment
 
         switch (model) {
             case TEST_CSG -> {
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
+                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
+                this.propertyIndex = 7;
+
+                parameterValues = new Values();
+                addParameters(
+                        "D", 8,
+                        "q", 0.9,
+                        "bcmax", 1
+                );
+                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
+
+                this.pacDelta = 0.05;
+                this.rMax = objectiveKind == PACLearner.ObjectiveKind.PROB_REACH ? 1.0 : 10.0;
+                this.horizon = 8;
+
+                this.eqType = 0;
+                this.crit = 0;
+                this.min = false;
+            }
+            case ROBOT_COORD -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.props";
                 this.propertyIndex = 7;
