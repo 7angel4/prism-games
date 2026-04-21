@@ -45,7 +45,7 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
         radii.clear();
         for (int s = 0; s < getNumStates(); s++) {
             radii.add(new ArrayList<>());
-            for (int c = 0; c < getNumChoices(s); s++) {
+            for (int c = 0; c < getNumChoices(s); c++) {
                 radii.get(s).add(((L1CSG<Value>) other).getRadius(s, c));
             }
         }
@@ -116,6 +116,11 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
         for (int i = 0; i < numToAdd; i++) {
             radii.add(new ArrayList<>());
         }
+    }
+
+    @Override
+    public int getNumStates() {
+        return mdp.getNumStates();
     }
 
     @Override

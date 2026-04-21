@@ -149,7 +149,7 @@ public class PACLearner {
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
             updateExplorationRewards();
-            Strategy<Double> exploreStrat = solveExplorationRMDP(horizon, objectiveKind);
+            Strategy<Double> exploreStrat = solveExplorationRMDP(horizon);
 
             sampler.sampleTrajectory(
                     trueGame,
@@ -290,7 +290,6 @@ public class PACLearner {
         for (int s = 0; s < explorationRMDP.getNumStates(); s++) {
             for (int c = 0; c < explorationRMDP.getNumChoices(s); c++) {
                 explorationRewards.setTransitionReward(s, c, known.get(s).get(c) ? 0.0 : 1.0);
-                explorationTarget.set(s);
             }
         }
     }
@@ -339,22 +338,15 @@ public class PACLearner {
     }
 
     // Can treat as an MDP strategy due to centralised play
-    private Strategy<Double> solveExplorationRMDP(int horizon, ObjectiveKind objectiveType) throws PrismException {
+    private Strategy<Double> solveExplorationRMDP(int horizon) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
 
-        ModelCheckerResult res;
-        if (objectiveType == ObjectiveKind.PROB_REACH_BOUNDED || objectiveType == ObjectiveKind.REW_BOUNDED) {
-            res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
-        } else {
-            res = mc.computeReachRewards(explorationRMDP, explorationRewards, explorationTarget, MinMax.max().setMinUnc(true));
-        }
-
+        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
-
         return (Strategy<Double>) res.strat;
     }
 

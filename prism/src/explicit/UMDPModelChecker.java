@@ -26,6 +26,7 @@
 
 package explicit;
 
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.PrimitiveIterator;
 
@@ -320,12 +321,26 @@ public class UMDPModelChecker extends ProbModelChecker
 		for (i = 0; i < n; i++)
 			soln[i] = soln2[i] = 0.0;
 
+		// One choice vector per step (0..k-1)
+		int[][] stepStrat = new int[k][umdp.getNumStates()];
+		for (i = 0; i < k; i++) {
+			Arrays.fill(stepStrat[i], -1);
+		}
+
 		// Start iterations
 		iters = 0;
+		int[] currStrat = new int[n];
 		while (iters < k) {
 			iters++;
 			// Matrix-vector multiply and min/max ops
-			umdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, null, false, null);
+			// Compute one step of the DP and fill currStrat with the best choice per state
+			umdp.mvMultRewUnc(soln, mdpRewards, minMax, soln2, null, false, currStrat);
+			// Store this policy for the corresponding elapsed-step memory
+			int memoryIndex = k - iters; // 0 at the start, k-1 at the final step
+			for (i = 0; i < n; i++) {
+				stepStrat[memoryIndex][i] = currStrat[i];
+			}
+
 			// Swap vectors for next iter
 			tmpsoln = soln;
 			soln = soln2;
@@ -337,6 +352,14 @@ public class UMDPModelChecker extends ProbModelChecker
 		mainLog.print("Expected cumulative reward");
 		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 
+		// Build finite-memory deterministic strategy
+		FMDStrategyStep<Double> fmdStrat = new FMDStrategyStep<>(umdp, k);
+		for (int s = 0; s < n; s++) {
+			for (int m = 0; m < k; m++) {
+				fmdStrat.setStepChoice(s, m, stepStrat[m][s]);
+			}
+		}
+
 		// Return results
 		res = new ModelCheckerResult();
 		res.soln = soln;
@@ -344,6 +367,7 @@ public class UMDPModelChecker extends ProbModelChecker
 		res.accuracy = AccuracyFactory.boundedNumericalIterations();
 		res.numIters = iters;
 		res.timeTaken = timer / 1000.0;
+		res.strat = fmdStrat;
 
 		return res;
 	}

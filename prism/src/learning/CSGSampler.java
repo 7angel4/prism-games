@@ -73,25 +73,8 @@ public class CSGSampler {
         throw new IllegalStateException("Empty transition distribution at state " + s + ", choice " + choiceIdx);
     }
 
-    // match a sampled joint action back to a choice idnex
-    private int findChoiceIndex(CSGSimple<Double> model, int s, BitSet jointAct) {
-        for (int c = 0; c < model.getNumChoices(s); c++) {
-            int[] idxs = model.getIndexes(s, c);
-            BitSet candidate = new BitSet();
-            for (int p = 0; p < idxs.length; p++) {
-                int a = idxs[p];
-                if (a > 0) candidate.set(a);
-                else candidate.set(model.getIdleForPlayer(p));
-            }
-            if (candidate.equals(jointAct)) {
-                return c;
-            }
-        }
-        return -1;
-    }
 
-
-    protected EpisodeTrace sampleTrajectory(
+    protected void sampleTrajectory(
             CSGSimple<Double> trueGame,
             Strategy<Double> strategy,
             List<List<Long>> slotCounts,
@@ -106,16 +89,34 @@ public class CSGSampler {
         int s = trueGame.getFirstInitialState();
         trace.setInitialState(s);
 
+        int m;
+        try {
+            m = strategy.getInitialMemory(s);
+        } catch (UnsupportedOperationException e) {
+            m = -1;
+        }
+
         int step = 0;
+        Set<Integer> visited = new HashSet<>();
 
         while (step < horizon) {
             if (stopOnTarget && target != null && target.get(s)) {
                 break;
             }
 
-            int c = sampleChoiceIndex(strategy, s);
+            if (!visited.add(s)) {
+                break; // loop detected
+            }
+
+            int c;
+            try {
+                c = strategy.getChoiceIndex(s, m);
+            } catch (UnsupportedOperationException e) {
+                throw new PrismException("Strategy does not support getChoiceIndex at state " + s);
+            }
+
             if (c < 0) {
-                break;
+                break; // undefined action
             }
 
             int sp = sampleSuccessor(trueGame, s, c);
@@ -123,86 +124,24 @@ public class CSGSampler {
             trace.add(s, c, sp);
             updateCount(s, c, sp, slotCounts, transitionCounts);
 
+            try {
+                m = strategy.getUpdatedMemory(m, c, sp);
+            } catch (UnsupportedOperationException e) {
+                m = -1; // fallback for memoryless strategies
+            }
+
             s = sp;
             step++;
         }
-
-        return trace;
+//        return trace;
     }
-
-    private int sampleChoiceIndex(Strategy<Double> strategy, int s) throws PrismException {
-        Object act = strategy.getChoiceAction(s, -1);
-
-        if (act == Strategy.UNDEFINED) {
-            return -1;
-        }
-
-        // deterministic case: act is Integer index
-        if (act instanceof Integer) {
-            return (Integer) act;
-        }
-
-        // randomized case: distribution over indices
-        // PRISM typically uses DistributionOver<Object>
-        if (act instanceof Distribution<?>) {
-            Distribution<?> dist = (Distribution<?>) act;
-
-            double r = rng.randomUnifDouble();
-            double cum = 0.0;
-            int last = -1;
-
-            for (Object key : dist.getSupport()) {
-                int idx = (Integer) key;
-                double p = (Double) dist.get(idx);
-                cum += p;
-                last = idx;
-                if (r <= cum) {
-                    return idx;
-                }
-            }
-            return last;
-        }
-
-        throw new PrismException("Unsupported strategy action type: " + act.getClass());
-    }
-
 
     protected void updateCount(int s, int c, int succ,
-                             List<List<Long>> slotCounts,
-                             List<List<Map<Integer, Long>>> transitionCounts) {
-        long pairOrig = slotCounts.get(s).size() > c ? slotCounts.get(s).get(c) : 0L;
+                               List<List<Long>> slotCounts,
+                               List<List<Map<Integer, Long>>> transitionCounts) {
+        long pairOrig = slotCounts.get(s).get(c);
         slotCounts.get(s).set(c, pairOrig + 1L);
         long tripleOrig = transitionCounts.get(s).get(c).getOrDefault(succ, 0L);
-        transitionCounts.get(s).get(c).putIfAbsent(succ, tripleOrig + 1L);
-    }
-
-    private BitSet sampleFromDistribution(Map<BitSet, Double> dist) throws PrismException {
-        if (dist == null || dist.isEmpty()) {
-            return null;
-        }
-
-        double total = 0.0;
-        for (double p : dist.values()) {
-            if (p > 0.0) total += p;
-        }
-        if (total <= 0.0) {
-            return null;
-        }
-
-        double r = rng.randomUnifDouble() * total;
-        double cum = 0.0;
-        BitSet last = null;
-
-        for (Map.Entry<BitSet, Double> e : dist.entrySet()) {
-            double p = e.getValue();
-            if (p <= 0.0) continue;
-            cum += p;
-            last = e.getKey();
-            if (r <= cum) {
-                return (BitSet) e.getKey().clone();
-            }
-        }
-
-        return last == null ? null : (BitSet) last.clone();
+        transitionCounts.get(s).get(c).put(succ, tripleOrig + 1L);
     }
 }
