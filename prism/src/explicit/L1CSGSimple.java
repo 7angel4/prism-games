@@ -67,7 +67,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
 //                addActionLabelledChoice(s, distr, 0.0, profile);
 //            }
 //        }
-
+        copyPlayerInfo(template);
         // Radii mirror the choice structure
         initialiseRadiiFrom(template);
 
@@ -614,8 +614,8 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
                 p[to] += delta;
                 budget -= delta;
 
-                if (p[from] <= EPS) high--;
-                if (p[to] >= 1.0 - EPS) low++;
+                if (p[from] <= EPS) low++;
+                if (p[to] >= 1.0 - EPS) high--;
             }
         } else {
             // Move mass from low-value states to high-value states.
@@ -643,7 +643,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
                 budget -= delta;
 
                 if (p[from] <= EPS) low++;
-                if (p[to] >= 1.0 - EPS) high++;
+                if (p[to] >= 1.0 - EPS) high--;
             }
         }
 

@@ -3,16 +3,16 @@ package learning;
 import explicit.*;
 import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
-import learning.Simulation.TransitionTriple;
 import parser.ast.Coalition;
 import parser.ast.ExpressionTemporal;
-import prism.*;
+import explicit.MinMax;
+import prism.Evaluator;
+import prism.Prism;
+import prism.PrismException;
 import strat.CSGStrategy;
-import strat.Strategy;
 
 import java.util.*;
 
-@SuppressWarnings({"unchecked", "rawtypes"})
 public class PACLearner {
 
     public enum ObjectiveKind {
@@ -41,23 +41,13 @@ public class PACLearner {
                          int episodes,
                          double robustValue,
                          double deltaT,
-                         final CSGStrategy<Double> robustStrategy) {
+                         CSGStrategy<Double> robustStrategy) {
             this.certificateNoExactNE = certificateNoExactNE;
             this.terminatedByAllKnown = terminatedByAllKnown;
             this.episodes = episodes;
             this.robustValue = robustValue;
             this.deltaT = deltaT;
             this.robustStrategy = robustStrategy;
-        }
-    }
-
-    // TODO: Replace with actual trajectory type
-    private static final class EpisodeTrace {
-        final List<TransitionTriple> steps = new ArrayList<>();
-        int initialState = -1;
-
-        void add(int s, String a, int sp) {
-            steps.add(new TransitionTriple(s, a, sp));
         }
     }
 
@@ -73,19 +63,20 @@ public class PACLearner {
         }
     }
 
-    private Prism prism;
-    private Experiment experiment;
+    private final Prism prism;
+    private final Experiment experiment;
+    private final CSGSampler sampler;
 
     private final List<List<Long>> slotCounts = new ArrayList<>();
     private final List<List<Map<Integer, Long>>> transitionCounts = new ArrayList<>();
     private final List<List<Boolean>> known = new ArrayList<>();
+
     private L1CSGSimple<Double> empiricalGame;
     private L1MDPSimple<Double> explorationRMDP;
     private long nMin;
     private double maxRadius = 0.0;
     private MDPRewardsSimple<Double> explorationRewards;
     private BitSet explorationTarget;
-    private CSGSampler sampler;
 
     public PACLearner(Prism prism, Experiment ex, int seed) {
         this.prism = prism;
@@ -93,8 +84,94 @@ public class PACLearner {
         this.sampler = new CSGSampler(seed);
     }
 
-    private void checkValidInput(CSGSimple<Double> trueGame, List<Coalition> coalitions, BitSet[] targets,
-                                 double epsilon, double delta, int horizon) throws PrismException {
+    public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
+        return runPacLoop(
+                spec.trueGame,
+                spec.objectiveKind,
+                spec.coalitions,
+                spec.exprs,
+                spec.rewards,
+                spec.targets,
+                spec.remain,
+                spec.bounds,
+                spec.eqType,
+                spec.crit,
+                spec.min,
+                spec.eps,
+                spec.delta,
+                spec.rMax,
+                spec.horizon
+        );
+    }
+
+    public PacResult runPacLoop(
+            CSGSimple<Double> trueGame,
+            ObjectiveKind objectiveKind,
+            List<Coalition> coalitions,
+            List<ExpressionTemporal> exprs,
+            List<CSGRewards<Double>> rewards,
+            BitSet[] targets,
+            BitSet[] remain,
+            int[] bounds,
+            int eqType,
+            int crit,
+            boolean min,
+            double eps,
+            double delta,
+            double rMax,
+            int horizon
+    ) throws PrismException {
+
+        checkValidInput(trueGame, coalitions, targets, eps, delta, horizon);
+
+        final double deltaContain = delta / 2.0;
+        int episode = 0;
+
+        computeNmin(trueGame.getNumStates(), trueGame.getActions().size(), deltaContain, rMax, horizon, eps);
+        initialiseRun(trueGame);
+
+        while (true) {
+            episode++;
+
+            updatedL1Transitions(deltaContain);
+
+            double deltaT = computeDeltaT(rMax, horizon);
+            SolveOutcome robustSol = robustSolveL1CSG(objectiveKind, coalitions, exprs, rewards, targets, remain, bounds, eqType, crit, min);
+
+            boolean allKnown = allSlotsKnown();
+
+            if (!robustSol.found && deltaT <= eps / STOP_THRESH_FACTOR) {
+                return new PacResult(true, false, episode, robustSol.value, deltaT, robustSol.strategy);
+            }
+
+            if (robustSol.found && (deltaT <= eps / STOP_THRESH_FACTOR || allKnown)) {
+                return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
+            }
+
+            explorationRMDP = new L1MDPSimple<>(empiricalGame);
+            updateExplorationRewards();
+            CSGStrategy<Double> exploreStrat = solveExplorationRMDP(horizon, objectiveKind);
+
+            sampler.sampleTrajectory(
+                    trueGame,
+                    exploreStrat,
+                    slotCounts,
+                    transitionCounts,
+                    horizon,
+                    explorationTarget,
+                    true
+            );
+
+            updateKnown();
+        }
+    }
+
+    private void checkValidInput(CSGSimple<Double> trueGame,
+                                 List<Coalition> coalitions,
+                                 BitSet[] targets,
+                                 double epsilon,
+                                 double delta,
+                                 int horizon) throws PrismException {
         if (trueGame == null) {
             throw new PrismException("trueGame is null");
         }
@@ -115,68 +192,21 @@ public class PACLearner {
         }
     }
 
-    public PacResult runPacLoop(
-            CSGSimple<Double> trueGame,
-            ObjectiveKind objectiveKind,
-            List<Coalition> coalitions,
-            List<ExpressionTemporal> exprs,
-            List<CSGRewards<Double>> rewards,
-            BitSet[] targets,
-            BitSet[] remain,
-            int[] bounds, int eqType, int crit, boolean min,
-            double eps, double delta, double rMax, int horizon
-    ) throws PrismException {
-
-        checkValidInput(trueGame, coalitions, targets, eps, delta, horizon);
-        final double deltaContain = delta / 2.0;
-        int episode = 0;
-        computeNmin(trueGame.getNumStates(), trueGame.getActions().size(), deltaContain, rMax, horizon, eps);
-        initialiseRun(trueGame); // empiricalGame constructed
-        // `remain` should be the entire state space
-//        if ((objectiveKind == ObjectiveKind.PROB_REACH || objectiveKind == ObjectiveKind.ZERO_SUM_PROB_REACH)
-//                && remain == null) {
-//            remain = defaultRemainSets(trueGame, targets);
-//        }
-
-        while (true) {
-            episode++;
-            updatedL1Transitions(deltaContain);
-            double deltaT = computeDeltaT(rMax, horizon);
-            SolveOutcome robustSol = robustSolveL1CSG(objectiveKind, coalitions, exprs, rewards, targets,
-                    remain, bounds, eqType, crit, min);
-            boolean allKnown = allSlotsKnown();
-            if (!robustSol.found && deltaT <= eps / STOP_THRESH_FACTOR) {
-                return new PacResult(true, false, episode, robustSol.value, deltaT, robustSol.strategy);
-            }
-            if (robustSol.found && (deltaT <= eps / STOP_THRESH_FACTOR || allKnown)) {
-                return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
-            }
-
-            explorationRMDP = new L1MDPSimple(empiricalGame);
-            updateExplorationRewards();
-            Strategy<Double> exploreStrat = solveExplorationRMDP(horizon, objectiveKind);
-
-            sampler.sampleTrajectory(trueGame, exploreStrat, slotCounts, transitionCounts,
-                    horizon, explorationTarget, true);
-            updateKnown();
-        }
+    private void computeNmin(int numStates, int numChoices, double deltaContain, double rMax, int horizon, double eps) {
+        double c = -16.0 * rMax * rMax * Math.pow(horizon, 4.0) / (eps * eps);
+        double inner = Math.sqrt(deltaContain / ((Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
+        double n = c * lambertW(inner);
+        nMin = Math.max(1L, Math.round(n));
     }
 
     private double lambertW(double x) {
+        if (x <= 0.0) {
+            return 0.0;
+        }
         return Math.log(x) - Math.log(Math.log(x));
     }
 
-    private void computeNmin(int numStates, int numChoices, double deltaContain, double rMax, int horizon, double eps) {
-        double c = -16 * rMax * rMax * Math.pow(horizon, 4.0) / (eps * eps);
-        double x = Math.sqrt(deltaContain / ((Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
-        double n = c * lambertW(x);
-        nMin = (Double.isNaN(n) || Double.isInfinite(n) || n < 1.0) ? 1L : Math.round(n);
-    }
     private void initialiseRun(CSGSimple<Double> template) {
-        slotCounts.clear();
-        transitionCounts.clear();
-        known.clear();
-
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
@@ -191,21 +221,24 @@ public class PACLearner {
             for (int c = 0; c < numChoices; c++) {
                 known.get(s).add(false);
                 slotCounts.get(s).add(0L);
+                transitionCounts.get(s).add(new HashMap<>());
 
+                Iterator<Integer> successors = template.getSuccessorsIterator(s, c);
                 List<Integer> succs = new ArrayList<>();
-                Iterator<Integer> it = template.getSuccessorsIterator(s, c);
-                while (it.hasNext()) {
-                    int succ = it.next();
+                while (successors.hasNext()) {
+                    int succ = successors.next();
                     succs.add(succ);
+                    transitionCounts.get(s).get(c).put(succ, 0L);
                 }
 
-                Map<Integer, Long> succCounts = new HashMap<>();
-                for (int succ : succs) {
-                    succCounts.put(succ, 0L);
+                Distribution<Double> uniform = new Distribution<>(Evaluator.forDouble());
+                if (!succs.isEmpty()) {
+                    double p = 1.0 / succs.size();
+                    for (int succ : succs) {
+                        uniform.add(succ, p);
+                    }
                 }
-                transitionCounts.get(s).add(succCounts);
-
-                trans.get(s).add(getUniformDistr(succs));
+                trans.get(s).add(uniform);
             }
         }
 
@@ -215,40 +248,35 @@ public class PACLearner {
         explorationTarget = new BitSet(empiricalGame.getNumStates());
     }
 
-    private Distribution<Double> getUniformDistr(List<Integer> successors) {
-        Distribution<Double> uniform = new Distribution<>(Evaluator.forDouble());
-        if (successors.isEmpty()) {
-            return uniform;
-        }
-
-        double p = 1.0 / successors.size();
-        for (int succ : successors) {
-            uniform.add(succ, p);
-        }
-        return uniform;
-    }
-
-    private void updatedL1Transitions(double deltaContain) {
+    private void updatedL1Transitions(double deltaContain) throws PrismException {
         int numStates = empiricalGame.getNumStates();
-        for (int s=0; s < numStates; s++) {
-            for (int c=0; c < empiricalGame.getNumChoices(s); c++) {
+        for (int s = 0; s < numStates; s++) {
+            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
-                if (saCount == 0L)  // keep radius 1 around uniform distr
+                if (saCount == 0L) {
                     continue;
-                double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount+1));
+                }
+
+                double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
                 double radius = weissmanRadius(saCount, deltaSlot);
-                if (radius > maxRadius) maxRadius = radius;
+
+                if (radius > maxRadius) {
+                    maxRadius = radius;
+                }
+
                 empiricalGame.setRadius(s, c, radius);
-                int sFinal = s, cFinal = c;
+
+                int sFinal = s;
+                int cFinal = c;
+
                 empiricalGame.getSuccessorsIterator(s, c).forEachRemaining(succ -> {
-                    double pHat = transitionCounts.get(sFinal).get(cFinal).getOrDefault(succ, 0L) / saCount;
+                    double pHat = transitionCounts.get(sFinal).get(cFinal).getOrDefault(succ, 0L) / (double) saCount;
                     pHat = Math.max(TRANS_PROB_LB, pHat);
                     empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
                 });
             }
         }
     }
-
 
     private double weissmanRadius(double saCount, double deltaSlot) {
         return Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
@@ -262,24 +290,17 @@ public class PACLearner {
         for (int s = 0; s < explorationRMDP.getNumStates(); s++) {
             for (int c = 0; c < explorationRMDP.getNumChoices(s); c++) {
                 explorationRewards.setTransitionReward(s, c, known.get(s).get(c) ? 0.0 : 1.0);
-//                explorationTarget.set(s);
+                explorationTarget.set(s);
             }
         }
     }
 
-
-    private SolveOutcome robustSolveL1CSG(
-            ObjectiveKind objectiveKind,
-            List<Coalition> coalitions,
-            List<ExpressionTemporal> exprs,
-            List<CSGRewards<Double>> rewards,
-            BitSet[] targets,
-            BitSet[] remain,
-            int[] bounds,
-            int eqType,
-            int crit,
-            boolean min
-    ) throws PrismException {
+    private SolveOutcome robustSolveL1CSG(ObjectiveKind objectiveKind,
+                                          List<Coalition> coalitions,
+                                          List<ExpressionTemporal> exprs,
+                                          List<CSGRewards<Double>> rewards,
+                                          BitSet[] targets, BitSet[] remain, int[] bounds,
+                                          int eqType, int crit, boolean min) throws PrismException {
 
         UCSGModelChecker mc = new UCSGModelChecker(this.prism);
         mc.setGenStrat(true);
@@ -299,7 +320,7 @@ public class PACLearner {
                     res = mc.computeProbBoundedEquilibria(empiricalGame, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
                     break;
                 case REW_BOUNDED:
-                    res = mc.computeRewBoundedEquilibria(empiricalGame, coalitions, rewards, null, bounds, eqType, crit, min);
+                    res = mc.computeRewBoundedEquilibria(empiricalGame, coalitions, rewards, exprs, bounds, eqType, crit, min);
                     break;
                 default:
                     throw new PrismException("Unsupported objective kind: " + objectiveKind);
@@ -308,43 +329,45 @@ public class PACLearner {
             return new SolveOutcome(false, null, Double.NaN);
         }
 
-        if (res == null || res.soln == null) {
-            return new SolveOutcome(false, null, Double.NaN);
-        }
-
         double value = res.soln[empiricalGame.getFirstInitialState()];
-        CSGStrategy<Double> strategy = (res.strat == null) ? null : (CSGStrategy<Double>) res.strat;
-        return new SolveOutcome(strategy != null, strategy, value);
+        CSGStrategy<Double> strategy = (res == null) ? null : (CSGStrategy<Double>) res.strat;
+        System.out.println("Robust solve: value=" + value + ", deltaT=" + computeDeltaT(1.0, 1) + ", allKnown=" + allSlotsKnown());
+        if (Double.isNaN(value)) {
+            throw new PrismException("Equilibrium solve did not return a usable value");
+        }
+        return new SolveOutcome(true, strategy, value);
     }
 
-    private Strategy<Double> solveExplorationRMDP(int horizon, ObjectiveKind objectiveType) throws PrismException {
+    private CSGStrategy<Double> solveExplorationRMDP(int horizon, ObjectiveKind objectiveType) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
-//        mc.setErrorOnNonConverge(experiment.errorOnNonConvergence);
 
         ModelCheckerResult res;
-        if (objectiveType != ObjectiveKind.PROB_REACH_BOUNDED && objectiveType != ObjectiveKind.REW_BOUNDED) {
-            res = mc.computeReachRewards(explorationRMDP, explorationRewards, explorationTarget, MinMax.max().setMinUnc(true));
-        } else {
+        if (objectiveType == ObjectiveKind.PROB_REACH_BOUNDED || objectiveType == ObjectiveKind.REW_BOUNDED) {
             res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
+        } else {
+            res = mc.computeReachRewards(explorationRMDP, explorationRewards, explorationTarget, MinMax.max().setMinUnc(true));
         }
 
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
 
-        return (Strategy<Double>) res.strat;
+        return (CSGStrategy<Double>) res.strat;
     }
 
-    private void updateCount(int s, int i) {
-        long n = slotCounts.get(s).get(i);
-        slotCounts.get(s).set(i, n+1);
+    private void updateCount(int s, int c, int succ) {
+        long n = slotCounts.get(s).get(c);
+        slotCounts.get(s).set(c, n + 1L);
+
+        long m = transitionCounts.get(s).get(c).getOrDefault(succ, 0L);
+        transitionCounts.get(s).get(c).put(succ, m + 1L);
     }
 
     private void updateKnown() {
-        for (int s=0; s < empiricalGame.getNumStates(); s++) {
-            for (int c=0; c < empiricalGame.getNumChoices(); c++) {
+        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
+            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 known.get(s).set(c, slotCounts.get(s).get(c) >= nMin);
             }
         }
@@ -361,63 +384,24 @@ public class PACLearner {
         return true;
     }
 
-
     public static void main(String[] args) throws Exception {
         Prism prism = new Prism();
         prism.initialise();
         prism.useNative();
 
-        try {
-            Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
-            Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
+        Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
+        ex.setSolverString("yices");
 
-            System.out.println("Loaded PAC run spec:");
-            System.out.println("  objectiveKind = " + spec.objectiveKind);
-            System.out.println("  coalitions    = " + spec.coalitions);
-            System.out.println("  horizon       = " + spec.horizon);
-            System.out.println("  eps           = " + spec.eps);
-            System.out.println("  delta         = " + spec.delta);
-            System.out.println("  rMax          = " + spec.rMax);
-            System.out.println("  min           = " + spec.min);
-            System.out.println("  eqType        = " + spec.eqType);
-            System.out.println("  crit          = " + spec.crit);
-            System.out.println("  exprs         = " + spec.exprs.size());
-            for (int i = 0; i < spec.exprs.size(); i++) {
-                System.out.println("    [" + i + "] " + spec.exprs.get(i));
-                System.out.println("        target size = " + spec.targets[i].cardinality());
-                System.out.println("        bound       = " + spec.bounds[i]);
-            }
+        Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-            PACLearner learner = new PACLearner(prism, ex, 41);
+        PACLearner learner = new PACLearner(prism, ex, 41);
+        PacResult res = learner.runPacLoop(spec);
 
-            PACLearner.PacResult res = learner.runPacLoop(
-                    spec.trueGame,
-                    spec.objectiveKind,
-                    spec.coalitions,
-                    spec.exprs,
-                    spec.rewards,
-                    spec.targets,
-                    spec.remain,
-                    spec.bounds,
-                    spec.eqType,
-                    spec.crit,
-                    spec.min,
-                    spec.eps,
-                    spec.delta,
-                    spec.rMax,
-                    spec.horizon
-            );
-
-            System.out.println("\nPAC result:");
-            System.out.println("  certificateNoExactNE = " + res.certificateNoExactNE);
-            System.out.println("  terminatedByAllKnown = " + res.terminatedByAllKnown);
-            System.out.println("  episodes             = " + res.episodes);
-            System.out.println("  robustValue          = " + res.robustValue);
-            System.out.println("  deltaT               = " + res.deltaT);
-            System.out.println("  robustStrategy       = " + (res.robustStrategy != null));
-
-        } finally {
-            prism.closeDown();
-        }
+        System.out.println("certificateNoExactNE=" + res.certificateNoExactNE);
+        System.out.println("terminatedByAllKnown=" + res.terminatedByAllKnown);
+        System.out.println("episodes=" + res.episodes);
+        System.out.println("robustValue=" + res.robustValue);
+        System.out.println("deltaT=" + res.deltaT);
+        System.out.println("hasStrategy=" + (res.robustStrategy != null));
     }
 }

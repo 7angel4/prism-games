@@ -572,119 +572,178 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		}
 		return eqstrat;
 	}
-	
+
 	/**
-	 * Build info needed for the utility table to solve a CSG state s. 
-	 * 
-	 * @param ucsg The CSG
-	 * @param rewards List of rewards
-	 * @param mmap Index map
-	 * @param val Current values for each state
-	 * @param s State index
-	 * @param min Whether minimising/maximising
-	 * @throws PrismException
+	 * Returns a stride large enough to encode (player, action) pairs uniquely
+	 * inside a BitSet. This avoids collisions when two players pick the same
+	 * action label.
 	 */
-	public void buildStepGame(UCSG<Double> ucsg, List<CSGRewards<Double>> rewards, List<Map<Integer, BitSet>> mmap, double[][] val, int s, boolean min) throws PrismException {
-		Map<BitSet, Integer> imap = new HashMap<BitSet, Integer>();
+	private int coalitionEncodingStride(UCSG<Double> ucsg)
+	{
+		int max = 0;
+
+		for (int p = 0; p < ucsg.getNumPlayers(); p++) {
+			BitSet bs = ucsg.getIndexes()[p];
+			if (bs != null) {
+				for (int bit = bs.nextSetBit(0); bit >= 0; bit = bs.nextSetBit(bit + 1)) {
+					max = Math.max(max, bit);
+				}
+			}
+			max = Math.max(max, ucsg.getIdleForPlayer(p));
+		}
+
+		return max + 1;
+	}
+
+	/**
+	 * Encode a coalition's joint action profile as a BitSet with player-specific
+	 * offsets, so identical action labels chosen by different players remain distinct.
+	 */
+	private BitSet encodeCoalitionProfile(UCSG<Double> ucsg, int[] joint, BitSet coalitionPlayers)
+	{
+		BitSet profile = new BitSet();
+		int stride = coalitionEncodingStride(ucsg);
+
+		for (int p = coalitionPlayers.nextSetBit(0); p >= 0; p = coalitionPlayers.nextSetBit(p + 1)) {
+			int a = joint[p];
+			if (a < 0) {
+				a = ucsg.getIdleForPlayer(p);
+			}
+			profile.set(p * stride + a);
+		}
+
+		return profile;
+	}
+
+	/**
+	 * Check that every player in the coalition chooses an action allowed by that coalition.
+	 */
+	private boolean coalitionChoiceIsValid(UCSG<Double> ucsg, int[] joint, BitSet coalitionPlayers, BitSet allowedActions)
+	{
+		for (int p = coalitionPlayers.nextSetBit(0); p >= 0; p = coalitionPlayers.nextSetBit(p + 1)) {
+			int a = joint[p];
+			if (a < 0) {
+				a = ucsg.getIdleForPlayer(p);
+			}
+			if (!allowedActions.get(a)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * Human-readable label for a coalition profile.
+	 */
+	private String coalitionProfileLabel(UCSG<Double> ucsg, int[] joint, BitSet coalitionPlayers)
+	{
+		StringBuilder act = new StringBuilder();
+
+		for (int p = coalitionPlayers.nextSetBit(0); p >= 0; p = coalitionPlayers.nextSetBit(p + 1)) {
+			int a = joint[p];
+			if (a < 0) {
+				a = ucsg.getIdleForPlayer(p);
+			}
+
+			String playerName = ucsg.getPlayerName(p);
+			String actionName;
+			if (a > 0 && a - 1 < ucsg.getActions().size()) {
+				actionName = (String) ucsg.getActions().get(a - 1);
+			} else {
+				actionName = "idle(" + a + ")";
+			}
+
+			act.append("[").append(playerName).append(":").append(actionName).append("]");
+		}
+
+		return act.toString();
+	}
+
+	public void buildStepGame(UCSG<Double> ucsg,
+							  List<CSGRewards<Double>> rewards,
+							  List<Map<Integer, BitSet>> mmap,
+							  double[][] val,
+							  int s,
+							  boolean min) throws PrismException
+	{
+		Map<BitSet, Integer> imap = new HashMap<>();
 		BitSet jidx;
-		BitSet indexes = new BitSet();
-		BitSet tmp = new BitSet();
-		String act;
-		double v;
-		int c, i, p, t;
 		int[] joint;
-		int[] idle = new int[numPlayers];
+
 		ceVarMap.clear();
 		actions.clear();
 		psupports.clear();
 		strategies.clear();
 		utilities.clear();
 		varIndex = 0;
-		Arrays.fill(idle, -1);
-		for (c = 0; c < numCoalitions; c++) {
+
+		for (int c = 0; c < numCoalitions; c++) {
 			actions.add(c, new ArrayList<String>());
 			psupports.add(c, new BitSet());
 			strategies.add(c, new ArrayList<Integer>());
 		}
-		for (t = 0; t < ucsg.getNumChoices(s); t++) {
-			jidx = new BitSet();
+
+		for (int t = 0; t < ucsg.getNumChoices(s); t++) {
 			joint = ucsg.getIndexes(s, t);
-			indexes.clear();
-			for (p = 0; p < numPlayers; p++) {
-				if (joint[p] != -1)
-					indexes.set(joint[p]);
-				else 
-					indexes.set(ucsg.getIdleForPlayer(p));
-			}
-			for (c = 0; c < numCoalitions; c++) {
-				v = 0.0;
-				tmp.clear();
-				tmp.or(actionIndexes[c]);
-				tmp.and(indexes);
-				if (tmp.cardinality() != coalitionIndexes[c].cardinality()) {
-					throw new PrismException("Error in coalition");					
+			jidx = new BitSet();
+
+			double[] totalVal = new double[val[0].length];
+			for (int col = 0; col < val[0].length; col++) {
+				double sum = 0.0;
+				for (int row = 0; row < val.length; row++) {
+					sum += val[row][col];
 				}
-				else {
-					if(!imap.keySet().contains(tmp)) {
-						act = "";
-						strategies.get(c).add(varIndex);
-						psupports.get(c).set(varIndex);
-				    	if (mmap != null) 
-				    		mmap.get(c).put(strategies.get(c).size() - 1, (BitSet) tmp.clone());
-						for (i = tmp.nextSetBit(0); i >= 0; i = tmp.nextSetBit(i + 1)) {
-							act += "[" + ucsg.getActions().get(i - 1) + "]";
-						}
-						actions.get(c).add(act);
-						jidx.set(varIndex);
-						imap.put((BitSet) tmp.clone(), varIndex);
-						varIndex++;
-					}
-					else {
-						jidx.set(imap.get(tmp));
-					}
-				}	
+				totalVal[col] = sum;
 			}
-			utilities.put(jidx, new ArrayList<Double>());
-			ceVarMap.put(jidx, utilities.keySet().size() - 1);
-			for (c = 0; c < numCoalitions; c++) {
-				v = 0.0;
-				for (int d : ucsg.getChoice(s, t).getSupport()) {
-					if (!Double.isNaN(val[c][d])) {
-						double[] totalVal = new double[val[0].length];
-						for (int col = 0; col < val[0].length; col++) {
-							double sum = 0.0;
-							for (int row = 0; row < val.length; row++) {
-								sum += val[row][col];
-							}
-							totalVal[col] = sum;
-						}
-						v += ucsg.getDoubleChoice(s, t, totalVal).get(d) * val[c][d]; // nature minimises total utility
+
+			for (int c = 0; c < numCoalitions; c++) {
+				BitSet profile = encodeCoalitionProfile(ucsg, joint, coalitionIndexes[c]);
+
+				Integer idx = imap.get(profile);
+				if (idx == null) {
+					idx = varIndex++;
+					imap.put((BitSet) profile.clone(), idx);
+
+					strategies.get(c).add(idx);
+					psupports.get(c).set(idx);
+
+					if (mmap != null) {
+						mmap.get(c).put(strategies.get(c).size() - 1, (BitSet) profile.clone());
 					}
-					else {
+
+					actions.get(c).add(coalitionProfileLabel(ucsg, joint, coalitionIndexes[c]));
+				}
+
+				jidx.set(idx);
+			}
+
+			utilities.put((BitSet) jidx.clone(), new ArrayList<Double>());
+			ceVarMap.put((BitSet) jidx.clone(), utilities.size() - 1);
+
+			for (int c = 0; c < numCoalitions; c++) {
+				double v = 0.0;
+
+				for (int d : ucsg.getChoice(s, t).getSupport()) {
+					if (Double.isNaN(val[c][d])) {
 						mainLog.println("val[c][d]: " + val[c][d]);
 						mainLog.println("\n## state " + s);
 						mainLog.println("-- strategies " + strategies);
 						mainLog.println("-- actions " + actions);
 						mainLog.println("-- utilities " + utilities);
 						throw new PrismException("Error in building game for state " + s);
-					} 
-				} 
-				if (rewards != null) {
-					if (rewards.get(c) != null)
-						v += rewards.get(c).getTransitionReward(s, t);		
+					}
+
+					v += ucsg.getDoubleChoice(s, t, totalVal).get(d) * val[c][d];
 				}
+
+				if (rewards != null && rewards.get(c) != null) {
+					v += rewards.get(c).getTransitionReward(s, t);
+				}
+
 				v = Precision.round(v, 12, BigDecimal.ROUND_HALF_EVEN);
-				utilities.get(jidx).add(c, (min)? -1.0 * v : v); // might have to add min (v, 1.0) due to assertions for probabilistic
+				utilities.get(jidx).add(c, min ? -1.0 * v : v);
 			}
-		}	
-		//System.out.println("-- imap " + imap);
-		//if (s == ucsg.getFirstInitialState()) {
-			//System.out.println("\n## state " + s);
-			//System.out.println("-- strategies " + strategies);
-			//System.out.println("-- actions " + actions);
-			//System.out.println("-- utilities " + utilities);
-			//System.out.println("-- mmap " + mmap);
-		//}
+		}
 	}
 	
 	/**
