@@ -147,17 +147,12 @@ public class Experiment
 
         switch (model) {
             case TEST_CSG -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.props";
                 this.propertyIndex = 7;
 
                 parameterValues = new Values();
-                addParameters(
-                        "D", 8,
-                        "q", 0.9,
-                        "eps", 1.0 / 257.0,
-                        "bcmax", 1
-                );
+                addParameters("l", 4, "q", 0.25);
                 this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
 
                 this.pacDelta = 0.05;
@@ -293,26 +288,8 @@ public class Experiment
             remain = buildRemain(trueGame);
         }
 
-        return new PacRunSpec(
-                prism,
-                pf,
-                prop,
-                trueGame,
-                objectiveKind,
-                coalitions,
-                exprs,
-                rewards,
-                targets,
-                remain,
-                bounds,
-                eqType,
-                crit,
-                min,
-                pacEps,
-                pacDelta,
-                rMax,
-                horizon,
-                solverString
+        return new PacRunSpec(prism, pf, prop, trueGame, objectiveKind, coalitions, exprs, rewards, targets, remain, bounds,
+                eqType, crit, min, 2, pacDelta, rMax, horizon, solverString
         );
     }
 

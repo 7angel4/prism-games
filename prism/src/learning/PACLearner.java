@@ -62,6 +62,15 @@ public class PACLearner {
             this.strategy = strategy;
             this.value = value;
         }
+
+        @Override
+        public String toString() {
+            return "SolveOutcome{" +
+                    "found=" + found +
+//                    ", strategy=" + strategy +
+                    ", value=" + value +
+                    '}';
+        }
     }
 
     private final Prism prism;
@@ -85,21 +94,8 @@ public class PACLearner {
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
         return runPacLoop(
-                spec.trueGame,
-                spec.objectiveKind,
-                spec.coalitions,
-                spec.exprs,
-                spec.rewards,
-                spec.targets,
-                spec.remain,
-                spec.bounds,
-                spec.eqType,
-                spec.crit,
-                spec.min,
-                spec.eps,
-                spec.delta,
-                spec.rMax,
-                spec.horizon
+                spec.trueGame, spec.objectiveKind, spec.coalitions, spec.exprs, spec.rewards, spec.targets, spec.remain,
+                spec.bounds, spec.eqType, spec.crit, spec.min, spec.eps, spec.delta, spec.rMax, spec.horizon
         );
     }
 
@@ -151,17 +147,13 @@ public class PACLearner {
             updateExplorationRewards();
             Strategy<Double> exploreStrat = solveExplorationRMDP(horizon);
 
-            sampler.sampleTrajectory(
-                    trueGame,
-                    exploreStrat,
-                    slotCounts,
-                    transitionCounts,
-                    horizon,
-                    explorationTarget,
-                    true
-            );
+            sampler.sampleTrajectory(trueGame, exploreStrat, slotCounts, transitionCounts, horizon, explorationTarget, true);
 
             updateKnown();
+
+            System.out.println("Episode " + episode + ":");
+            System.out.println("    " + robustSol);
+            System.out.println("    " + "deltaT=" + deltaT + ", allKnown=" + allKnown);
         }
     }
 
@@ -304,6 +296,7 @@ public class PACLearner {
         UCSGModelChecker mc = new UCSGModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
+        mc.setVerbosity(0);
         mc.setTermCritParam(1e-4);
 
         ModelCheckerResult res;
@@ -330,7 +323,6 @@ public class PACLearner {
 
         double value = res.soln[empiricalGame.getFirstInitialState()];
         CSGStrategy<Double> strategy = (res == null) ? null : (CSGStrategy<Double>) res.strat;
-        System.out.println("Robust solve: value=" + value + ", deltaT=" + computeDeltaT(1.0, 1) + ", allKnown=" + allSlotsKnown());
         if (Double.isNaN(value)) {
             throw new PrismException("Equilibrium solve did not return a usable value");
         }
@@ -342,7 +334,7 @@ public class PACLearner {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
-
+        mc.setVerbosity(0);
         ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");

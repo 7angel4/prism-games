@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
  */
 public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
 {
-    public static final double INIT_RADIUS = 1.0;
+    public static final double INIT_RADIUS = 2.0;
     /** L1 radius per state/choice. */
     protected List<List<Double>> radii = new ArrayList<>();
 
