@@ -80,22 +80,38 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		idles = csg.getIdles();
 	}
 
-	public CSGSimple(CSG<Value> template) {
-		super(template);
-		copyGameInfo(template);
-	}
 
-	public CSGSimple(CSG<Value> template, Function<? super Value, ? extends Value> probMap) {
-		super(template, probMap);
-		copyGameInfo(template);
-	}
-
-	public CSGSimple(CSG<Value> template, List<List<Distribution<Value>>> trans) {
-		super(template);
-		copyGameInfo(template);
+	public CSGSimple(CSGSimple<Value> template, List<List<Distribution<Value>>> trans) {
+		super(template.getNumStates());
+		copyFrom(template);
+		setEvaluator(eval);
+		int numStates = getNumStates();
 		for (int s = 0; s < getNumStates(); s++) {
 			for (int c = 0; c < getNumChoices(); c++) {
 				setTrans(s, c, trans.get(s).get(c));
+			}
+		}
+
+		copyGameInfo(template);
+		setPlayerNames(template.getPlayerNames());
+
+		for (int i = 0; i < numStates; i++) {
+			int numChoices = template.getNumChoices(i);
+			for (int j = 0; j < numChoices; j++) {
+				Object action = template.getAction(i, j);
+				Distribution<Value> distr = new Distribution<>(eval);
+				Iterator<Map.Entry<Integer, Value>> iter = template.getTransitionsIterator(i, j);
+				while (iter.hasNext()) {
+					Map.Entry<Integer, Value> e = iter.next();
+					distr.set(e.getKey(), e.getValue());
+				}
+				if (!distr.isEmpty()) {
+					if (action != null) {
+						super.addActionLabelledChoice(i, distr, action);
+					} else {
+						addChoice(i, distr);
+					}
+				}
 			}
 		}
 	}
@@ -174,6 +190,12 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		}
 		transIndexes.get(s).add(i, indexes);
 		return i;
+	}
+
+	public int addActionLabelledChoice(int s, Distribution<Value> distr, Object action, PlayerInfoOwner playerInfoOwner)
+	{
+		copyPlayerInfo(playerInfoOwner);
+		return addActionLabelledChoice(s, distr, action);
 	}
 
 	/**

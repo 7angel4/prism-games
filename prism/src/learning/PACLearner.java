@@ -367,35 +367,57 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
+        try {
+            Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
+            Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, ex, 41);
+            System.out.println("Loaded PAC run spec:");
+            System.out.println("  objectiveKind = " + spec.objectiveKind);
+            System.out.println("  coalitions    = " + spec.coalitions);
+            System.out.println("  horizon       = " + spec.horizon);
+            System.out.println("  eps           = " + spec.eps);
+            System.out.println("  delta         = " + spec.delta);
+            System.out.println("  rMax          = " + spec.rMax);
+            System.out.println("  min           = " + spec.min);
+            System.out.println("  eqType        = " + spec.eqType);
+            System.out.println("  crit          = " + spec.crit);
+            System.out.println("  exprs         = " + spec.exprs.size());
+            for (int i = 0; i < spec.exprs.size(); i++) {
+                System.out.println("    [" + i + "] " + spec.exprs.get(i));
+                System.out.println("        target size = " + spec.targets[i].cardinality());
+                System.out.println("        bound       = " + spec.bounds[i]);
+            }
 
-        Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
+            PACLearner learner = new PACLearner(prism, ex, 41);
 
-        PACLearner.PacResult res = learner.runPacLoop(
-                spec.trueGame,
-                spec.objectiveKind,
-                spec.coalitions,
-                spec.exprs,
-                spec.rewards,
-                spec.targets,
-                spec.remain,
-                spec.bounds,
-                spec.eqType,
-                spec.crit,
-                spec.min,
-                spec.eps,
-                spec.delta,
-                spec.rMax,
-                spec.horizon
-        );
+            PACLearner.PacResult res = learner.runPacLoop(
+                    spec.trueGame,
+                    spec.objectiveKind,
+                    spec.coalitions,
+                    spec.exprs,
+                    spec.rewards,
+                    spec.targets,
+                    spec.remain,
+                    spec.bounds,
+                    spec.eqType,
+                    spec.crit,
+                    spec.min,
+                    spec.eps,
+                    spec.delta,
+                    spec.rMax,
+                    spec.horizon
+            );
 
-        System.out.println("certificateNoExactNE=" + res.certificateNoExactNE);
-        System.out.println("terminatedByAllKnown=" + res.terminatedByAllKnown);
-        System.out.println("episodes=" + res.episodes);
-        System.out.println("robustValue=" + res.robustValue);
-        System.out.println("deltaT=" + res.deltaT);
-        System.out.println("robustStrategy=" + (res.robustStrategy != null));
+            System.out.println("\nPAC result:");
+            System.out.println("  certificateNoExactNE = " + res.certificateNoExactNE);
+            System.out.println("  terminatedByAllKnown = " + res.terminatedByAllKnown);
+            System.out.println("  episodes             = " + res.episodes);
+            System.out.println("  robustValue          = " + res.robustValue);
+            System.out.println("  deltaT               = " + res.deltaT);
+            System.out.println("  robustStrategy       = " + (res.robustStrategy != null));
+
+        } finally {
+            prism.closeDown();
+        }
     }
 }

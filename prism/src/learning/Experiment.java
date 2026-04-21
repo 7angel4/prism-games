@@ -4,20 +4,35 @@ import explicit.CSGSimple;
 import explicit.rewards.CSGRewards;
 import parser.Values;
 import parser.ast.Coalition;
+import parser.ast.Expression;
+import parser.ast.ExpressionMultiNash;
+import parser.ast.ExpressionMultiNashProb;
+import parser.ast.ExpressionMultiNashReward;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionQuant;
+import parser.ast.ExpressionReward;
+import parser.ast.ExpressionStrategy;
 import parser.ast.ExpressionTemporal;
+import parser.ast.ExpressionUnaryOp;
 import parser.ast.ModulesFile;
+import parser.ast.Property;
 import parser.ast.PropertiesFile;
+import prism.IntegerBound;
 import prism.Prism;
 import prism.PrismException;
 import prism.PrismLangException;
+import prism.Result;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+@SuppressWarnings({"unchecked", "rawtypes"})
 public class Experiment {
 
     public enum Model {
@@ -114,7 +129,6 @@ public class Experiment {
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
                 this.propertyIndex = 7;
 
-                // model constants from the command line
                 parameterValues = new Values();
                 addParameters(
                         "D", 8,
@@ -123,19 +137,16 @@ public class Experiment {
                         "bcmax", 1
                 );
 
-                // PAC-learning settings
-                this.pacEps = 1.0 / 257.0;   // PAC accuracy, not the model constant "eps"
+                this.pacEps = 1.0 / 257.0;
                 this.pacDelta = 0.05;
                 this.rMax = 1.0;
-                this.horizon = 8;            // D = 8 for the bounded reachability part
+                this.horizon = 8;
 
-                // for your current solver call
                 this.eqType = 0;
                 this.crit = 0;
-                this.min = true;
+                this.min = false;
 
-                // property 7 is bounded probabilistic reachability nested inside a coalition query
-                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH_BOUNDED;
+                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
             }
         }
         return this;
@@ -151,7 +162,9 @@ public class Experiment {
         }
     }
 
-    public PacRunSpec buildPacRunSpec(Prism prism) throws PrismException, PrismLangException, FileNotFoundException {
+    public PacRunSpec buildPacRunSpec(Prism prism)
+            throws PrismException, PrismLangException, FileNotFoundException {
+
         File mfFile = Prism.resolveFile(modelFile);
         File pfFile = Prism.resolveFile(propertiesFile);
 
@@ -161,25 +174,100 @@ public class Experiment {
 
         PropertiesFile pf = prism.parsePropertiesFile(mf, pfFile);
 
-        // Build the explicit CSG so PACLearner can use it directly
+        int idx = propertyIndex - 1;
+        if (idx < 0 || idx >= pf.getNumProperties()) {
+            throw new PrismException("Property index out of range: " + propertyIndex);
+        }
+
+        Property prop = pf.getPropertyObject(idx);
+        Expression top = prop.getExpression();
+
+        ExpressionStrategy stratExpr = findFirstStrategyExpression(top);
+        if (stratExpr == null) {
+            throw new PrismException("Could not find a strategy expression inside property " + propertyIndex);
+        }
+
+        List<Coalition> coalitions = stratExpr.getCoalitions() == null
+                ? Collections.emptyList()
+                : new ArrayList<>(stratExpr.getCoalitions());
+
+        Expression inner = stripParentheses(stratExpr.getOperand(0));
+        if (!(inner instanceof ExpressionMultiNash multiNash)) {
+            throw new PrismException("Expected an ExpressionMultiNash inside the strategy expression, got: " + inner.getClass().getSimpleName());
+        }
+
         prism.buildModelIfRequired();
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
-        List<Coalition> coalitions = buildCoalitions();
         List<ExpressionTemporal> exprs = new ArrayList<>();
         List<CSGRewards<Double>> rewards = new ArrayList<>();
 
-        // For property 7 you are doing bounded reachability.
-        // If your current PAC learner uses one bound per expr, keep a single entry.
-        int[] bounds = new int[] { horizon };
+        List<ExpressionQuant> formulae = multiNash.getOperands();
 
-        BitSet[] targets = buildTargets(trueGame);
-        BitSet[] remain = buildRemain(trueGame);
+        BitSet[] targets = new BitSet[formulae.size()];
+        BitSet[] remain = new BitSet[formulae.size()];
+        int[] bounds = new int[formulae.size()];
+        Arrays.fill(bounds, -1);
+
+        boolean hasBoundedUntil = false;
+        boolean hasRewards = false;
+
+        for (int p = 0; p < formulae.size(); p++) {
+            ExpressionQuant q = formulae.get(p);
+
+            if (q instanceof ExpressionMultiNashProb probQ) {
+                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+                if (!(path instanceof ExpressionTemporal temporal)) {
+                    throw new PrismException("Expected a temporal path formula, got: " + path.getClass().getSimpleName());
+                }
+
+                exprs.add(temporal);
+
+                switch (temporal.getOperator()) {
+                    case ExpressionTemporal.P_F -> {
+                        // Unbounded reachability: target is the operand of F
+                        targets[p] = evaluateStateFormulaToBitSet(prism, pf, temporal.getOperand2());
+                    }
+                    case ExpressionTemporal.P_U -> {
+                        // Until: target is operand2, remain is operand1 unless it is true
+                        targets[p] = evaluateStateFormulaToBitSet(prism, pf, temporal.getOperand2());
+
+                        if (temporal.hasBounds()) {
+                            IntegerBound b = IntegerBound.fromExpressionTemporal(temporal, pf.getConstantValues(), true);
+                            if (!b.hasUpperBound()) {
+                                throw new PrismException("Only upper-bounded until is supported here.");
+                            }
+                            bounds[p] = b.getHighestInteger();
+                            hasBoundedUntil = true;
+                        }
+                    }
+                    default -> throw new PrismException("Unsupported temporal operator inside multi-objective property: " + temporal.getOperatorSymbol());
+                }
+            } else if (q instanceof ExpressionMultiNashReward rewQ) {
+                hasRewards = true;
+                throw new PrismException("Reward multi-objective properties are not wired into this test harness yet.");
+            } else {
+                throw new PrismException("Unsupported multi-objective component: " + q.getClass().getSimpleName());
+            }
+        }
+
+        PACLearner.ObjectiveKind kind;
+        if (hasRewards) {
+            kind = hasBoundedUntil ? PACLearner.ObjectiveKind.REW_BOUNDED : PACLearner.ObjectiveKind.REW_REACH;
+        } else {
+            kind = hasBoundedUntil ? PACLearner.ObjectiveKind.PROB_REACH_BOUNDED : PACLearner.ObjectiveKind.PROB_REACH;
+        }
+
+        // For pure reachability properties, PRISM typically uses remain = null.
+        // If you have a genuine until-guard, keep the remain array.
+        remain = buildRemain(trueGame);
+
+        boolean min = false;
 
         return new PacRunSpec(
                 trueGame,
-                objectiveKind,
+                kind,
                 coalitions,
                 exprs,
                 rewards,
@@ -196,26 +284,69 @@ public class Experiment {
         );
     }
 
-    private List<Coalition> buildCoalitions() {
-        List<Coalition> coalitions = new ArrayList<>();
-        coalitions.add(new Coalition(Arrays.asList("usr1")));
-        coalitions.add(new Coalition(Arrays.asList("usr2", "usr3")));
-        return coalitions;
+    private ExpressionStrategy findFirstStrategyExpression(Expression expr) {
+        if (expr == null) {
+            return null;
+        }
+
+        if (expr instanceof ExpressionStrategy s) {
+            return s;
+        }
+
+        if (expr instanceof ExpressionProb p) {
+            return findFirstStrategyExpression(p.getExpression());
+        }
+
+        if (expr instanceof ExpressionReward r) {
+            return findFirstStrategyExpression(r.getExpression());
+        }
+
+        if (expr instanceof ExpressionTemporal t) {
+            ExpressionStrategy found = findFirstStrategyExpression(t.getOperand1());
+            if (found != null) {
+                return found;
+            }
+            return findFirstStrategyExpression(t.getOperand2());
+        }
+
+        if (expr instanceof ExpressionUnaryOp u) {
+            return findFirstStrategyExpression(u.getOperand());
+        }
+
+        return null;
     }
 
-    private BitSet[] buildTargets(CSGSimple<Double> trueGame) {
-        int n = trueGame.getNumStates();
-        BitSet[] targets = new BitSet[2];
-        targets[0] = new BitSet(n);
-        targets[1] = new BitSet(n);
+    private Expression stripParentheses(Expression expr) {
+        Expression current = expr;
+        while (current instanceof ExpressionUnaryOp u && Expression.isParenth(current)) {
+            current = u.getOperand();
+        }
+        return current;
+    }
 
-        // TODO: fill these by checking state valuations after building the model.
-        // For property 7, these are the two bounded reachability target sets.
-        //
-        // targets[0] = { states satisfying s1=3 & t<=D }
-        // targets[1] = { states satisfying s2=3 & s3=3 & t<=D }
+    private BitSet evaluateStateFormulaToBitSet(Prism prism, PropertiesFile pf, Expression stateFormula)
+            throws PrismException, PrismLangException {
 
-        return targets;
+        Result res = prism.modelCheck(pf, stateFormula);
+        Object raw = res.getResult();
+
+        if (raw instanceof explicit.StateValues sv) {
+            return (BitSet) sv.getBitSet().clone();
+        }
+
+        if (raw instanceof BitSet bs) {
+            return (BitSet) bs.clone();
+        }
+
+        if (raw instanceof Boolean b) {
+            BitSet bs = new BitSet();
+            if (b) {
+                bs.set(0, 1);
+            }
+            return bs;
+        }
+
+        throw new PrismException("Cannot extract a BitSet from model-checking result type: " + raw.getClass().getName());
     }
 
     private BitSet[] buildRemain(CSGSimple<Double> trueGame) {

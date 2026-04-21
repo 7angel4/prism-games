@@ -54,19 +54,19 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
      * with nominal probabilities reset to a uniform distribution on
      * the original support.
      */
-    public L1CSGSimple(CSG<Value> template, List<List<Distribution<Value>>> trans)
+    public L1CSGSimple(CSGSimple<Value> template, List<List<Distribution<Value>>> trans)
     {
         super(template, trans);
         // Copy choice structure, but not exact probabilities
-        for (int s = 0; s < template.getNumStates(); s++) {
-            for (int c = 0; c < template.getNumChoices(s); c++) {
-                int[] profile = template.getIndexes(s, c);
-                profile = padJointActionProfile(profile, template.getNumPlayers());
-                // super should've used probMap, so the new probs are already set
-                Distribution<Value> distr = this.getChoice(s, c);
-                addActionLabelledChoice(s, distr, 0.0, profile);
-            }
-        }
+//        for (int s = 0; s < template.getNumStates(); s++) {
+//            for (int c = 0; c < template.getNumChoices(s); c++) {
+//                int[] profile = template.getIndexes(s, c);
+//                profile = padJointActionProfile(profile, template.getNumPlayers());
+//                // super should've used probMap, so the new probs are already set
+//                Distribution<Value> distr = this.getChoice(s, c);
+//                addActionLabelledChoice(s, distr, 0.0, profile);
+//            }
+//        }
 
         // Radii mirror the choice structure
         initialiseRadiiFrom(template);
@@ -77,6 +77,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
 
         this.chosenTransitions.clear();
     }
+
 
 //    @Override
 //    public void setCentre(int s, int i, Distribution<Value> distr) {
@@ -492,7 +493,10 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     public int addActionLabelledChoice(int s, Distribution<Value> distr, double radius, Object action)
     {
         int i = super.addActionLabelledChoice(s, distr, action);
-        if (i != -1) radii.get(s).add(radius);
+        if (i != -1) {
+            if (radii.size() <= s) radii.add(new ArrayList<>());
+            radii.get(s).add(radius);
+        }
         return i;
     }
 
@@ -502,7 +506,10 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     public int addActionLabelledChoice(int s, Distribution<Value> distr, double radius, int[] indexes)
     {
         int i = super.addActionLabelledChoice(s, distr, indexes);
-        if (i != -1) radii.get(s).add(radius);
+        if (i != -1) {
+            if (radii.size() <= s) radii.add(new ArrayList<>());
+            radii.get(s).add(radius);
+        }
         return i;
     }
 

@@ -188,7 +188,7 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 				}
 				if (!distr.isEmpty()) {
 					if (action != null) {
-						addActionLabelledChoice(i, distr, action);
+						((MDPSimple) this).addActionLabelledChoice(i, distr, action);
 					} else {
 						addChoice(i, distr);
 					}
@@ -196,6 +196,7 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 			}
 		}
 	}
+
 
 	// Mutators (for ModelSimple)
 
@@ -313,6 +314,9 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 	 * @param distr
 	 */
 	public void setTrans(int s, int c, Distribution<Value> distr) {
+		if (trans.size() < s) {
+			addStates(s - trans.size() + 1);
+		}
 		trans.get(s).set(c, distr);
 	}
 
