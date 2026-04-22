@@ -321,6 +321,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		setValIterDir(other.getValIterDir());
 		setSolnMethod(other.getSolnMethod());
 		setErrorOnNonConverge(other.geterrorOnNonConverge());
+		setSilentPrecomputations(other.silentPrecomputations);
 	}
 
 	/**

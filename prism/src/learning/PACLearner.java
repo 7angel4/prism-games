@@ -18,11 +18,7 @@ import parser.ast.ExpressionUnaryOp;
 import parser.ast.ModulesFile;
 import parser.ast.Property;
 import parser.ast.PropertiesFile;
-import prism.Evaluator;
-import prism.IntegerBound;
-import prism.Prism;
-import prism.PrismException;
-import prism.PrismLangException;
+import prism.*;
 import strat.CSGStrategy;
 import strat.Strategy;
 
@@ -160,6 +156,7 @@ public class PACLearner {
 
             updateKnown();
 
+            System.out.println("\n---------------------------------------");
             System.out.println("Episode " + episode + ":");
             System.out.println("    " + robustSol);
             System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
@@ -292,6 +289,7 @@ public class PACLearner {
     }
 
     private SolveOutcome robustSolveL1CSG(PropertiesFile propertiesFile, Property property) throws PrismException {
+        prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, "Yices");
         StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
         if (!(mc instanceof UCSGModelChecker)) {
             throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
@@ -299,6 +297,7 @@ public class PACLearner {
         UCSGModelChecker ucsgMc = (UCSGModelChecker) mc;
         ucsgMc.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         ucsgMc.setGenStrat(true);
+        ucsgMc.setSilentPrecomputations(true);
         // defaults
 //        ucsgMc.setPrecomp(true);
 //        ucsgMc.setPrecomp(true);
@@ -344,6 +343,7 @@ public class PACLearner {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
+        mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
         ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
         if (res == null || res.strat == null) {

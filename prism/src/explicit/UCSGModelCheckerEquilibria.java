@@ -114,8 +114,8 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		gradient = new HashMap<Integer, HashMap<Integer, ArrayList<Pair<BitSet, Double>>>>();
 		payoffs = new ArrayList<Integer>();
 		mdpmc = new UMDPModelChecker(parent);
+		mdpmc.inheritSettings(this);
 		mdpmc.setVerbosity(0);
-		mdpmc.setSilentPrecomputations(true);		
 		assumptionCheck = false;
 		smtSolver = getSettings().getString(PrismSettings.PRISM_SMT_SOLVER);
 		switch (smtSolver) {
@@ -191,8 +191,10 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		}
 		avgNumActions[0] /= csg.getNumStates();
 		avgNumActions[1] /= csg.getNumStates();
-		mainLog.println("Max/avg (actions): " + "(" + maxRows + "," + maxCols + ")/(" + PrismUtils.formatDouble2dp(avgNumActions[0]) + ","
-				+ PrismUtils.formatDouble2dp(avgNumActions[1]) + ")");
+		if (verbosity > 1) {
+			mainLog.println("Max/avg (actions): " + "(" + maxRows + "," + maxCols + ")/(" + PrismUtils.formatDouble2dp(avgNumActions[0]) + ","
+					+ PrismUtils.formatDouble2dp(avgNumActions[1]) + ")");
+		}
 	}
 
 	/**
@@ -1564,9 +1566,12 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		dominating = new BitSet[numCoalitions];
 		mainLog.println();
 		findMaxRowsCols(ucsg);
-		
-		mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
-		mainLog.println("Checking whether all objectives are reachable...");
+
+		String solver = setSolver(eqType);
+		if (verbosity > 1) {
+			mainLog.println("Starting equilibria computation (solver=" + solver + ")...");
+			mainLog.println("Checking whether all objectives are reachable...");
+		}
 		
 		if (assumptionCheck) {
    			for (i = 0; i < targets.length; i++) {
@@ -1725,8 +1730,10 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 			}
 			k++;
 		}
-		mainLog.println("\nValue iteration converged after " + k + " iterations.");
-		mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
+		if (verbosity > 1) {
+			mainLog.println("\nValue iteration converged after " + k + " iterations.");
+			mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
+		}
 		mainLog.println("Coalition results (initial state): (" + sol[0][ucsg.getFirstInitialState()] + "," + sol[1][ucsg.getFirstInitialState()] + ")");
 		res.soln = r;
 		if (genStrat) 	{

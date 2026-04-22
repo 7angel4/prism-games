@@ -63,6 +63,7 @@ public class UMDPModelChecker extends ProbModelChecker
 	{
 		super(parent);
 		mcMDP = new MDPModelChecker(this);
+		this.silentPrecomputations = (parent instanceof CSGModelChecker) ? ((CSGModelChecker) parent).silentPrecomputations : false;
 		mcMDP.inheritSettings(this);
 	}
 
@@ -305,7 +306,8 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting bounded probabilistic reachability...");
+		if (verbosity > 0)
+			mainLog.println("\nStarting bounded probabilistic reachability...");
 
 		// Check for any zero lower probability bounds (not supported
 		// since this approach assumes the graph structure remains static)
@@ -475,7 +477,8 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Start probabilistic reachability
 		long timer = System.currentTimeMillis();
-		mainLog.println("\nStarting probabilistic reachability...");
+		if (verbosity > 0)
+			mainLog.println("\nStarting probabilistic reachability...");
 
 		// Check for any zero lower probability bounds (not supported
 		// since this approach assumes the graph structure remains static)
@@ -513,7 +516,8 @@ public class UMDPModelChecker extends ProbModelChecker
 		// Print results of precomputation
 		int numYes = yes.cardinality();
 		int numNo = no.cardinality();
-		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
+		if (verbosity > 0)
+			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// If still required, store strategy for no/yes (0/1) states.
 		// This is just for the cases max=0 and min=1, where arbitrary choices suffice (denoted by -2)
@@ -534,7 +538,8 @@ public class UMDPModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis();
 		String sMinMax = minMax.isMin() ? "min" : "max";
 		sMinMax += minMax.isMinUnc() ? "min" : "max";
-		mainLog.println("Starting value iteration (" + sMinMax + ")...");
+		if (verbosity > 0)
+			mainLog.println("Starting value iteration (" + sMinMax + ")...");
 
 		// Store num states
 		n = umdp.getNumStates();
@@ -615,7 +620,8 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Start probabilistic reachability
 		long timer = System.currentTimeMillis();
-		mainLog.println("\nStarting expected reachability...");
+		if (verbosity > 0)
+			mainLog.println("\nStarting expected reachability...");
 
 		// Check for any zero lower probability bounds (not supported
 		// since this approach assumes the graph structure remains static)
@@ -644,7 +650,8 @@ public class UMDPModelChecker extends ProbModelChecker
 		// Print results of precomputation
 		int numTarget = target.cardinality();
 		int numInf = inf.cardinality();
-		mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
+		if (verbosity > 0)
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// If required, generate strategy for "inf" states.
 		if (genStrat) {
@@ -673,7 +680,8 @@ public class UMDPModelChecker extends ProbModelChecker
 		timer = System.currentTimeMillis();
 		String sMinMax = minMax.isMin() ? "min" : "max";
 		sMinMax += minMax.isMinUnc() ? "min" : "max";
-		mainLog.println("Starting value iteration (" + sMinMax + ")...");
+		if (verbosity > 0)
+			mainLog.println("Starting value iteration (" + sMinMax + ")...");
 
 		// Store num states
 		n = umdp.getNumStates();

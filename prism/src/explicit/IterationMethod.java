@@ -483,10 +483,12 @@ public abstract class IterationMethod {
 		// Finished value iteration
 		long mvCount = iters * iteration.getModel().getNumTransitions(unknownStates.iterator());
 		long timer = System.currentTimeMillis() - startTime;
-		mc.getLog().print("Value iteration (" + description + ")");
-		mc.getLog().print(" took " + iters + " iterations, ");
-		mc.getLog().print(mvCount + " multiplications");
-		mc.getLog().println(" and " + timer / 1000.0 + " seconds.");
+		if (mc.verbosity > 0) {
+			mc.getLog().print("Value iteration (" + description + ")");
+			mc.getLog().print(" took " + iters + " iterations, ");
+			mc.getLog().print(mvCount + " multiplications");
+			mc.getLog().println(" and " + timer / 1000.0 + " seconds.");
+		}
 
 		if (iterationsExport != null)
 			iterationsExport.close();
