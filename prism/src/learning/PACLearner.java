@@ -77,7 +77,6 @@ public class PACLearner {
     private long nMin;
     private double maxRadius = 0.0;
     private MDPRewardsSimple<Double> explorationRewards;
-    private BitSet explorationTarget;
     private UCSGModelChecker empiricalMC;
     Strategy<Double> explorationStrat;
 
@@ -297,10 +296,10 @@ public class PACLearner {
         empiricalGame = new L1CSGSimple<>(template, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
-        explorationTarget = new BitSet(empiricalGame.getNumStates());
     }
 
-    private void updateL1Transitions(double deltaContain) throws PrismException {
+    private void updateL1Transitions(double deltaContain) {
+        maxRadius = 0.0; // reset every episode
         int numStates = empiricalGame.getNumStates();
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
@@ -438,7 +437,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.TEST_CSG);
+        Experiment ex = new Experiment(Experiment.Model.ALOHA);
         ex.setSolverString("yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
