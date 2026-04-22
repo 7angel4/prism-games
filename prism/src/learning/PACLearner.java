@@ -3,28 +3,41 @@ package learning;
 import explicit.*;
 import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
+import parser.Values;
 import parser.ast.Coalition;
+import parser.ast.Expression;
+import parser.ast.ExpressionMultiNash;
+import parser.ast.ExpressionMultiNashProb;
+import parser.ast.ExpressionMultiNashReward;
+import parser.ast.ExpressionProb;
+import parser.ast.ExpressionQuant;
+import parser.ast.ExpressionReward;
+import parser.ast.ExpressionStrategy;
 import parser.ast.ExpressionTemporal;
-import explicit.MinMax;
+import parser.ast.ExpressionUnaryOp;
+import parser.ast.ModulesFile;
+import parser.ast.Property;
+import parser.ast.PropertiesFile;
 import prism.Evaluator;
+import prism.IntegerBound;
 import prism.Prism;
 import prism.PrismException;
+import prism.PrismLangException;
 import strat.CSGStrategy;
 import strat.Strategy;
 
-import java.util.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
 public class PACLearner {
-
-    public enum ObjectiveKind {
-        PROB_REACH,
-        REW_REACH,
-        PROB_REACH_BOUNDED,
-        REW_BOUNDED,
-        MIXED,
-        ZERO_SUM_PROB_REACH,
-        ZERO_SUM_REW_REACH
-    }
 
     public static final double STOP_THRESH_FACTOR = 4.0;
     private static final double TRANS_PROB_LB = 1e-6;
@@ -67,7 +80,6 @@ public class PACLearner {
         public String toString() {
             return "SolveOutcome{" +
                     "found=" + found +
-//                    ", strategy=" + strategy +
                     ", value=" + value +
                     '}';
         }
@@ -94,30 +106,27 @@ public class PACLearner {
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
         return runPacLoop(
-                spec.trueGame, spec.objectiveKind, spec.coalitions, spec.exprs, spec.rewards, spec.targets, spec.remain,
-                spec.bounds, spec.eqType, spec.crit, spec.min, spec.eps, spec.delta, spec.rMax, spec.horizon
+                spec.trueGame,
+                spec.propertiesFile,
+                spec.property,
+                spec.eps,
+                spec.delta,
+                spec.rMax,
+                spec.horizon
         );
     }
 
     public PacResult runPacLoop(
             CSGSimple<Double> trueGame,
-            ObjectiveKind objectiveKind,
-            List<Coalition> coalitions,
-            List<ExpressionTemporal> exprs,
-            List<CSGRewards<Double>> rewards,
-            BitSet[] targets,
-            BitSet[] remain,
-            int[] bounds,
-            int eqType,
-            int crit,
-            boolean min,
+            PropertiesFile propertiesFile,
+            Property property,
             double eps,
             double delta,
             double rMax,
             int horizon
     ) throws PrismException {
 
-        checkValidInput(trueGame, coalitions, targets, eps, delta, horizon);
+        checkValidInput(trueGame, eps, delta, horizon);
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
@@ -131,7 +140,7 @@ public class PACLearner {
             updateL1Transitions(deltaContain);
 
             double deltaT = computeDeltaT(rMax, horizon);
-            SolveOutcome robustSol = robustSolveL1CSG(objectiveKind, coalitions, exprs, rewards, targets, remain, bounds, eqType, crit, min);
+            SolveOutcome robustSol = robustSolveL1CSG(propertiesFile, property);
 
             boolean allKnown = allSlotsKnown();
 
@@ -153,24 +162,16 @@ public class PACLearner {
 
             System.out.println("Episode " + episode + ":");
             System.out.println("    " + robustSol);
-            System.out.println("    " + "deltaT=" + deltaT + ", allKnown=" + allKnown);
+            System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
         }
     }
 
     private void checkValidInput(CSGSimple<Double> trueGame,
-                                 List<Coalition> coalitions,
-                                 BitSet[] targets,
                                  double epsilon,
                                  double delta,
                                  int horizon) throws PrismException {
         if (trueGame == null) {
             throw new PrismException("trueGame is null");
-        }
-        if (coalitions == null || coalitions.isEmpty()) {
-            throw new PrismException("coalitions must be provided");
-        }
-        if (targets == null || targets.length == 0) {
-            throw new PrismException("targets must be provided");
         }
         if (horizon <= 0) {
             throw new PrismException("horizon must be positive");
@@ -200,6 +201,10 @@ public class PACLearner {
     private void initialiseRun(CSGSimple<Double> template) {
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
+
+        slotCounts.clear();
+        transitionCounts.clear();
+        known.clear();
 
         for (int s = 0; s < numStates; s++) {
             int numChoices = template.getNumChoices(s);
@@ -286,50 +291,55 @@ public class PACLearner {
         }
     }
 
-    private SolveOutcome robustSolveL1CSG(ObjectiveKind objectiveKind,
-                                          List<Coalition> coalitions,
-                                          List<ExpressionTemporal> exprs,
-                                          List<CSGRewards<Double>> rewards,
-                                          BitSet[] targets, BitSet[] remain, int[] bounds,
-                                          int eqType, int crit, boolean min) throws PrismException {
+    private SolveOutcome robustSolveL1CSG(PropertiesFile propertiesFile, Property property) throws PrismException {
+        StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
+        if (!(mc instanceof UCSGModelChecker)) {
+            throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
+        }
+        UCSGModelChecker ucsgMc = (UCSGModelChecker) mc;
+        ucsgMc.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        ucsgMc.setGenStrat(true);
+        // defaults
+//        ucsgMc.setPrecomp(true);
+//        ucsgMc.setPrecomp(true);
+//        ucsgMc.setVerbosity(0);
 
-        UCSGModelChecker mc = new UCSGModelChecker(this.prism);
-        mc.setGenStrat(true);
-        mc.setPrecomp(true);
-        mc.setVerbosity(0);
-        mc.setTermCritParam(1e-4);
-
-        ModelCheckerResult res;
         try {
-            switch (objectiveKind) {
-                case PROB_REACH:
-                    res = mc.computeProbReachEquilibria(empiricalGame, coalitions, targets, remain, eqType, crit, min);
-                    break;
-                case REW_REACH:
-                    res = mc.computeRewReachEquilibria(empiricalGame, coalitions, rewards, targets, eqType, crit, min);
-                    break;
-                case PROB_REACH_BOUNDED:
-                    res = mc.computeProbBoundedEquilibria(empiricalGame, coalitions, exprs, targets, remain, bounds, eqType, crit, min);
-                    break;
-                case REW_BOUNDED:
-                    res = mc.computeRewBoundedEquilibria(empiricalGame, coalitions, rewards, exprs, bounds, eqType, crit, min);
-                    break;
-                default:
-                    throw new PrismException("Unsupported objective kind: " + objectiveKind);
+            StateValues sv = ucsgMc.checkExpression(empiricalGame, property.getExpression(), null, true);
+            if (sv == null) {
+                return new SolveOutcome(false, null, Double.NaN);
+            }
+
+            double[] vals = sv.getDoubleArray();
+            if (vals == null) {
+                return new SolveOutcome(false, null, Double.NaN);
+            }
+
+            int init = empiricalGame.getFirstInitialState();
+            if (init < 0 || init >= vals.length) {
+                throw new PrismException("Initial state index out of range for robust solve.");
+            }
+
+            double value = vals[init];
+            if (Double.isNaN(value) || Double.isInfinite(value)) {
+                return new SolveOutcome(false, null, value);
+            }
+
+            CSGStrategy<Double> strategy = null;
+            Strategy<?> strat = ucsgMc.getStrategy();
+            if (strat instanceof CSGStrategy) {
+                strategy = (CSGStrategy<Double>) strat;
+                return new SolveOutcome(true, strategy, value);
+            } else if (strat == null) {
+                throw new PrismException("Expected a CSGStrategy from robust solve, but got null");
+            } else {
+                throw new PrismException("Expected a CSGStrategy from robust solve, but got null" + strat.getClass().getSimpleName());
             }
         } catch (PrismException e) {
             return new SolveOutcome(false, null, Double.NaN);
         }
-
-        double value = res.soln[empiricalGame.getFirstInitialState()];
-        CSGStrategy<Double> strategy = (res == null) ? null : (CSGStrategy<Double>) res.strat;
-        if (Double.isNaN(value)) {
-            throw new PrismException("Equilibrium solve did not return a usable value");
-        }
-        return new SolveOutcome(true, strategy, value);
     }
 
-    // Can treat as an MDP strategy due to centralised play
     private Strategy<Double> solveExplorationRMDP(int horizon) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
@@ -341,7 +351,6 @@ public class PACLearner {
         }
         return (Strategy<Double>) res.strat;
     }
-
 
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {

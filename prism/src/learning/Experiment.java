@@ -45,7 +45,6 @@ public class Experiment
         public final Property property;
 
         public final CSGSimple<Double> trueGame;
-        public final PACLearner.ObjectiveKind objectiveKind;
         public final List<Coalition> coalitions;
         public final List<ExpressionTemporal> exprs;
         public final List<CSGRewards<Double>> rewards;
@@ -67,7 +66,6 @@ public class Experiment
                 PropertiesFile propertiesFile,
                 Property property,
                 CSGSimple<Double> trueGame,
-                PACLearner.ObjectiveKind objectiveKind,
                 List<Coalition> coalitions,
                 List<ExpressionTemporal> exprs,
                 List<CSGRewards<Double>> rewards,
@@ -87,7 +85,6 @@ public class Experiment
             this.propertiesFile = propertiesFile;
             this.property = property;
             this.trueGame = trueGame;
-            this.objectiveKind = objectiveKind;
             this.coalitions = coalitions;
             this.exprs = exprs;
             this.rewards = rewards;
@@ -120,8 +117,6 @@ public class Experiment
     public int eqType = 0;
     public int crit = 0;
     public boolean min = false;
-
-    public PACLearner.ObjectiveKind objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
 
     public Experiment(Model model) {
         setModel(model);
@@ -157,10 +152,9 @@ public class Experiment
                         "q", 0.9,
                         "bcmax", 1
                 );
-                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
 
                 this.pacDelta = 0.05;
-                this.rMax = objectiveKind == PACLearner.ObjectiveKind.PROB_REACH ? 1.0 : 10.0;
+                this.rMax = 1.0;
                 this.horizon = 8;
 
                 this.eqType = 0;
@@ -174,10 +168,9 @@ public class Experiment
 
                 parameterValues = new Values();
                 addParameters("l", 4, "q", 0.25);
-                this.objectiveKind = PACLearner.ObjectiveKind.PROB_REACH;
 
                 this.pacDelta = 0.05;
-                this.rMax = objectiveKind == PACLearner.ObjectiveKind.PROB_REACH ? 1.0 : 10.0;
+                this.rMax = 1.0;
                 this.horizon = 8;
 
                 this.eqType = 0;
@@ -249,7 +242,6 @@ public class Experiment
         List<CSGRewards<Double>> rewards = new ArrayList<>();
 
         boolean hasRewards = false;
-        boolean hasBounded = false;
 
         for (int p = 0; p < formulae.size(); p++) {
             ExpressionQuant q = formulae.get(p);
@@ -280,7 +272,6 @@ public class Experiment
                                 throw new PrismException("Only an upper bounded until is supported.");
                             }
                             bounds[p] = b.getHighestInteger();
-                            hasBounded = true;
                         }
                     }
                     default -> throw new PrismException("Unsupported temporal operator: " + temporal.getOperatorSymbol());
@@ -292,24 +283,17 @@ public class Experiment
                     throw new PrismException("Expected a temporal reward formula, got " + path.getClass().getSimpleName());
                 }
                 exprs.add(temporal);
-
                 throw new PrismException("Reward-based multi-objective properties are not wired into this harness yet.");
             } else {
                 throw new PrismException("Unsupported multi-objective term: " + q.getClass().getSimpleName());
             }
         }
 
-        if (hasRewards) {
-            objectiveKind = hasBounded ? PACLearner.ObjectiveKind.REW_BOUNDED : PACLearner.ObjectiveKind.REW_REACH;
-        } else {
-            objectiveKind = hasBounded ? PACLearner.ObjectiveKind.PROB_REACH_BOUNDED : PACLearner.ObjectiveKind.PROB_REACH;
-        }
-
         if (remain == null) {
             remain = buildRemain(trueGame);
         }
 
-        return new PacRunSpec(prism, pf, prop, trueGame, objectiveKind, coalitions, exprs, rewards, targets, remain, bounds,
+        return new PacRunSpec(prism, pf, prop, trueGame, coalitions, exprs, rewards, targets, remain, bounds,
                 eqType, crit, min, 2, pacDelta, rMax, horizon, solverString
         );
     }
@@ -361,8 +345,7 @@ public class Experiment
             Expression stateFormula
     ) throws PrismException, PrismLangException {
 
-        explicit.StateModelChecker mc =
-                explicit.StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
+        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
         mc.setModelCheckingInfo(prism.getModelInfo(), pf, prism.getRewardGenerator());
 
         StateValues sv = mc.checkExpression(trueGame, stateFormula, null);

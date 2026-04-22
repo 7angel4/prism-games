@@ -131,7 +131,7 @@ public class MinMax
 	// Additional info about quantification over uncertainty
 
 	/** Min (true) or max (false) over epistemic uncertainty? */
-	protected boolean minUnc;
+	protected boolean minUnc = true;
 	
 	public MinMax setMinUnc(boolean minUnc)
 	{

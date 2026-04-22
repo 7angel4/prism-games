@@ -243,6 +243,9 @@ public class StateModelChecker extends PrismComponent
 		case ICSG:
 			mc = new UCSGModelChecker(parent);
 			break;
+		case L1CSG:
+			mc = new UCSGModelChecker(parent);
+			break;
 		case LTS:
 			mc = new NonProbModelChecker(parent);
 			break;
