@@ -29,6 +29,7 @@ import java.util.BitSet;
 public class Experiment
 {
     public enum Model {
+        VERY_SIMPLE,
         TINY_ALOHA,
         ALOHA,
         ROBOT_COORD
@@ -39,7 +40,7 @@ public class Experiment
         public final PropertiesFile propertiesFile;
         public final Property property;
 
-        public final double eps;
+        public final double epsilon;
         public final double delta;
         public final double rMax;
         public final int horizon;
@@ -49,7 +50,7 @@ public class Experiment
                 CSGSimple<Double> trueGame,
                 PropertiesFile propertiesFile,
                 Property property,
-                double eps,
+                double epsilon,
                 double delta,
                 double rMax,
                 int horizon,
@@ -58,9 +59,9 @@ public class Experiment
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
             this.property = property;
-            this.eps = eps;
             this.delta = delta;
             this.rMax = rMax;
+            this.epsilon = epsilon;
             this.horizon = horizon;
             this.solverString = solverString;
         }
@@ -74,8 +75,8 @@ public class Experiment
     public Values parameterValues = new Values();
     public String solverString = "";
 
-    public double pacEps = 0.5;
-    public double pacDelta = 0.05;
+    public double epsilon = 0.5;
+    public double confidence = 0.05;
     public double rMax = 1.0;
     public int horizon = 8;
 
@@ -102,6 +103,18 @@ public class Experiment
         this.model = model;
 
         switch (model) {
+            case VERY_SIMPLE -> {
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.prism";
+                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.props";
+                this.propertyIndex = 2;
+
+                parameterValues = new Values();
+
+                this.epsilon = 0.5;
+                this.confidence = 0.1;
+                this.rMax = 1.0;
+                this.horizon = 2;
+            }
             case TINY_ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.props";
@@ -114,8 +127,8 @@ public class Experiment
                         "bcmax", 1
                 );
 
-                this.pacEps = 0.5;
-                this.pacDelta = 0.1;
+                this.epsilon = 0.5;
+                this.confidence = 0.1;
                 this.rMax = 1.0;
                 this.horizon = 2;
             }
@@ -131,8 +144,8 @@ public class Experiment
                         "bcmax", 1
                 );
 
-                this.pacEps = 0.5;
-                this.pacDelta = 0.05;
+                this.epsilon = 0.5;
+                this.confidence = 0.05;
                 this.rMax = 1.0;
                 this.horizon = 8;
             }
@@ -144,8 +157,8 @@ public class Experiment
                 parameterValues = new Values();
                 addParameters("l", 4, "q", 0.25);
 
-                this.pacEps = 0.5;
-                this.pacDelta = 0.05;
+                this.epsilon = 0.5;
+                this.confidence = 0.05;
                 this.rMax = 1.0;
                 this.horizon = 8;
             }
@@ -192,8 +205,8 @@ public class Experiment
                 trueGame,
                 pf,
                 prop,
-                pacEps,
-                pacDelta,
+                epsilon,
+                confidence,
                 rMax,
                 horizon,
                 solverString
