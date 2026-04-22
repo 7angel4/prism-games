@@ -1,26 +1,16 @@
 package learning;
 
 import explicit.*;
-import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
-import parser.Values;
-import parser.ast.Coalition;
-import parser.ast.Expression;
-import parser.ast.ExpressionMultiNash;
-import parser.ast.ExpressionMultiNashProb;
-import parser.ast.ExpressionMultiNashReward;
-import parser.ast.ExpressionProb;
-import parser.ast.ExpressionQuant;
-import parser.ast.ExpressionReward;
-import parser.ast.ExpressionStrategy;
-import parser.ast.ExpressionTemporal;
-import parser.ast.ExpressionUnaryOp;
-import parser.ast.ModulesFile;
+import parser.State;
 import parser.ast.Property;
 import parser.ast.PropertiesFile;
 import prism.*;
+import simulator.SimulatorEngine;
 import strat.CSGStrategy;
+import strat.FMDStrategyStep;
 import strat.Strategy;
+import strat.StrategyGenerator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -32,6 +22,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class PACLearner {
 
@@ -82,12 +73,12 @@ public class PACLearner {
     }
 
     private final Prism prism;
-    private final CSGSampler sampler;
 
     private final List<List<Long>> slotCounts = new ArrayList<>();
     private final List<List<Map<Integer, Long>>> transitionCounts = new ArrayList<>();
     private final List<List<Boolean>> known = new ArrayList<>();
 
+    private CSGSimple<Double> trueGame;
     private L1CSGSimple<Double> empiricalGame;
     private L1MDPSimple<Double> explorationRMDP;
     private long nMin;
@@ -95,9 +86,10 @@ public class PACLearner {
     private MDPRewardsSimple<Double> explorationRewards;
     private BitSet explorationTarget;
 
-    public PACLearner(Prism prism, int seed) {
+    public PACLearner(Prism prism, int seed) throws PrismException {
         this.prism = prism;
-        this.sampler = new CSGSampler(seed);
+        this.prism.setSimulatorSeed(seed);
+        this.prism.setGenStrat(true);
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
@@ -126,6 +118,7 @@ public class PACLearner {
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
+        this.trueGame = trueGame;
 
         computeNmin(trueGame.getNumStates(), trueGame.getActions().size(), deltaContain, rMax, horizon, eps);
         initialiseRun(trueGame);
@@ -152,15 +145,82 @@ public class PACLearner {
             updateExplorationRewards();
             Strategy<Double> exploreStrat = solveExplorationRMDP(horizon);
 
-            sampler.sampleTrajectory(trueGame, exploreStrat, slotCounts, transitionCounts, horizon, explorationTarget, true);
+            sampleTrajectory(exploreStrat);
 
             updateKnown();
 
-            System.out.println("\n---------------------------------------");
+            System.out.println();
             System.out.println("Episode " + episode + ":");
             System.out.println("    " + robustSol);
             System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
+            System.out.println("\n---------------------------------------");
         }
+    }
+
+    private void sampleTrajectory(Strategy<Double> exploreStrat, int horizon) throws PrismException {
+        // Build a model generator from the explicit true game.
+//        ModelModelGenerator<Double> modelGen =
+//                new ModelModelGenerator<>(trueGame, prism.getModelInfo());
+        prism.loadModelIntoSimulator();
+        SimulatorEngine sim = prism.getSimulator();
+        if (exploreStrat instanceof FMDStrategyStep)
+            sim.loadStrategy((FMDStrategyStep) exploreStrat);
+        sim.setStrategyEnforced(true);
+
+        sim.createNewPath();
+        sim.initialisePath(null);
+
+        for (int h = 0; h < horizon; h++) {
+            if (sim.queryIsDeadlock()) {
+                break;
+            }
+
+            Function<State, Integer> stateIndexOf =
+                    state -> trueGame.getStatesList().indexOf(state);
+            int s = stateIndexOf.apply(sim.getCurrentState());
+
+            boolean moved = sim.automaticTransition();
+            if (!moved) {
+                break;
+            }
+            int sp = stateIndexOf.apply(sim.getCurrentState());
+            int c = sim.getLastChoiceIndex();
+
+            updateCount(s, c, sp);
+
+            if (explorationTarget != null && explorationTarget.get(sp)) {
+                break;
+            }
+        }
+
+    }
+
+    private void updateCount(int s, int c, int succ) throws PrismException {
+        if (s < 0 || s >= slotCounts.size()) {
+            throw new PrismException("State index out of range in updateCount: " + s);
+        }
+        if (c < 0 || c >= slotCounts.get(s).size()) {
+            throw new PrismException("Choice index out of range in updateCount: " + c + " at state " + s);
+        }
+
+        slotCounts.get(s).set(c, slotCounts.get(s).get(c) + 1L);
+
+        Map<Integer, Long> counts = transitionCounts.get(s).get(c);
+        counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
+    }
+
+    private BitSet buildPropertyTarget(BitSet[] targets, int numStates) {
+        BitSet propertyTarget = new BitSet(numStates);
+        if (targets == null) {
+            return propertyTarget;
+        }
+
+        for (BitSet t : targets) {
+            if (t != null) {
+                propertyTarget.or(t);
+            }
+        }
+        return propertyTarget;
     }
 
     private void checkValidInput(CSGSimple<Double> trueGame,
@@ -319,7 +379,7 @@ public class PACLearner {
                 throw new PrismException("Initial state index out of range for robust solve.");
             }
 
-            double value = vals[init];
+            double value = vals[init]; // social-welfare value
             if (Double.isNaN(value) || Double.isInfinite(value)) {
                 return new SolveOutcome(false, null, value);
             }

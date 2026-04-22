@@ -135,6 +135,8 @@ public class SimulatorEngine extends PrismComponent
 	// as path.getCurrentState(); we maintain it separately for efficiency,
 	// i.e. to avoid creating new State objects at every step)
 	protected State currentState;
+
+	protected int lastChoiceIndex = -1;
 	
 	// State for which transition list applies
 	// (if null, just the default - i.e. the last state in the current path)
@@ -187,6 +189,14 @@ public class SimulatorEngine extends PrismComponent
 		tmpStateRewards = null;
 		tmpTransitionRewards = null;
 		rng = new RandomNumberGenerator();
+	}
+
+	public State getCurrentStateCopy() throws PrismException {
+		return new State(currentState);
+	}
+
+	public int getLastChoiceIndex() {
+		return lastChoiceIndex;
 	}
 
 	/**
@@ -979,6 +989,7 @@ public class SimulatorEngine extends PrismComponent
 		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
+		lastChoiceIndex = i;
 		// Update path
 		path.addStep(index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
 		// Update strategy (if loaded)
@@ -1019,6 +1030,7 @@ public class SimulatorEngine extends PrismComponent
 		State currentObs = modelGen.getObservation(currentState);
 		// Compute state rewards for new state
 		calculateStateRewards(currentState, tmpStateRewards);
+		lastChoiceIndex = i;
 		// Update path
 		path.addStep(time, index, action, actionString, p, tmpTransitionRewards, currentState, currentObs, tmpStateRewards, modelGen);
 		// Update strategy (if loaded)

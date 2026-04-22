@@ -3,6 +3,7 @@ package learning;
 import explicit.CSG;
 import explicit.CSGSimple;
 import explicit.Distribution;
+import org.jfree.data.Value;
 import prism.PrismException;
 import simulator.RandomNumberGenerator;
 import strat.CSGStrategy;
@@ -80,8 +81,7 @@ public class CSGSampler {
             List<List<Long>> slotCounts,
             List<List<Map<Integer, Long>>> transitionCounts,
             int horizon,
-            BitSet target,
-            boolean stopOnTarget
+            BitSet target
     ) throws PrismException {
 
         EpisodeTrace trace = new EpisodeTrace();
@@ -100,11 +100,11 @@ public class CSGSampler {
         Set<Integer> visited = new HashSet<>();
 
         while (step < horizon) {
-            if (stopOnTarget && target != null && target.get(s)) {
+            if (target != null && target.get(s)) {
                 break;
             }
 
-            if (!visited.add(s)) {
+            if (isTerminal(trueGame, s, m, strategy)) {
                 break; // loop detected
             }
 
@@ -134,6 +134,16 @@ public class CSGSampler {
             step++;
         }
 //        return trace;
+    }
+
+    private boolean isTerminal(CSGSimple<Double> model, int s, int m, Strategy<Double> strategy) {
+        int c = strategy.getChoiceIndex(s, m);
+        return isAbsorbing(model, s, c);
+    }
+
+    private boolean isAbsorbing(CSGSimple<Double> model, int s, int c) {
+        Distribution<Double> choices = model.getChoice(s, c);
+        return (choices.size() == 1 && choices.getSupport().contains(s));
     }
 
     protected void updateCount(int s, int c, int succ,
