@@ -24,7 +24,10 @@ import prism.PrismLangException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.lang.reflect.Method;
 import java.util.BitSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Experiment
 {
@@ -43,8 +46,28 @@ public class Experiment
         public final double epsilon;
         public final double delta;
         public final double rMax;
-        public final int horizon;
+
+        /**
+         * Bounded-horizon objective horizon extracted from the property.
+         * -1 means unbounded / infinite-horizon objective.
+         */
+        public final int propertyHorizon;
+
+        /**
+         * Rollout cap used only for simulation / exploration.
+         * For finite-horizon properties this equals propertyHorizon.
+         * For unbounded properties this is the safety cap to use for rollouts.
+         */
+        public final int rolloutCap;
+
+        public final boolean finiteHorizon;
         public final String solverString;
+
+        /**
+         * Kept for backward compatibility with your current code.
+         * This equals rolloutCap.
+         */
+        public final int horizon;
 
         public PacRunSpec(
                 CSGSimple<Double> trueGame,
@@ -53,7 +76,8 @@ public class Experiment
                 double epsilon,
                 double delta,
                 double rMax,
-                int horizon,
+                int propertyHorizon,
+                int rolloutCap,
                 String solverString
         ) {
             this.trueGame = trueGame;
@@ -62,7 +86,10 @@ public class Experiment
             this.delta = delta;
             this.rMax = rMax;
             this.epsilon = epsilon;
-            this.horizon = horizon;
+            this.propertyHorizon = propertyHorizon;
+            this.rolloutCap = rolloutCap;
+            this.finiteHorizon = propertyHorizon >= 0;
+            this.horizon = rolloutCap;
             this.solverString = solverString;
         }
     }
@@ -78,6 +105,11 @@ public class Experiment
     public double epsilon = 0.5;
     public double confidence = 0.05;
     public double rMax = 1.0;
+
+    /**
+     * Default rollout cap used only if the property is unbounded.
+     * For bounded objectives this gets overridden by the property horizon.
+     */
     public int horizon = 8;
 
     public Experiment(Model model) {
@@ -113,7 +145,7 @@ public class Experiment
                 this.epsilon = 0.5;
                 this.confidence = 0.1;
                 this.rMax = 1.0;
-                this.horizon = 2;
+                this.horizon = 2; // fallback rollout cap
             }
             case TINY_ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
@@ -130,7 +162,7 @@ public class Experiment
                 this.epsilon = 0.5;
                 this.confidence = 0.1;
                 this.rMax = 1.0;
-                this.horizon = 2;
+                this.horizon = 2; // fallback rollout cap
             }
             case ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
@@ -176,8 +208,7 @@ public class Experiment
         }
     }
 
-    public PacRunSpec buildPacRunSpec(Prism prism)
-            throws PrismException, PrismLangException, FileNotFoundException {
+    public PacRunSpec buildPacRunSpec(Prism prism) throws PrismException, FileNotFoundException {
 
         File mfFile = Prism.resolveFile(modelFile);
         File pfFile = Prism.resolveFile(propertiesFile);
@@ -201,16 +232,112 @@ public class Experiment
 
         validateSupportedProperty(prop, trueGame, pf, prism);
 
-        return new PacRunSpec(
-                trueGame,
-                pf,
-                prop,
-                epsilon,
-                confidence,
-                rMax,
-                horizon,
-                solverString
-        );
+        int propertyHorizon = derivePropertyHorizon(prop, pf);
+
+        // If the property is bounded, use its horizon.
+        // Otherwise fall back to the model-specific simulation cap.
+        int rolloutCap = (propertyHorizon >= 0) ? propertyHorizon : horizon;
+
+        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, rolloutCap, solverString);
+    }
+
+    private int derivePropertyHorizon(Property prop, PropertiesFile pf) throws PrismException {
+        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
+        if (stratExpr == null) {
+            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
+        }
+
+        Expression inner = stripParentheses(stratExpr.getOperand(0));
+        if (!(inner instanceof ExpressionMultiNash multiNash)) {
+            throw new PrismException(
+                    "Expected ExpressionMultiNash inside strategy expression, got "
+                            + inner.getClass().getSimpleName()
+            );
+        }
+
+        int horizon = -1;
+        boolean sawAnyProbabilityObjective = false;
+
+        for (ExpressionQuant q : multiNash.getOperands()) {
+            if (q instanceof ExpressionMultiNashProb probQ) {
+                sawAnyProbabilityObjective = true;
+
+                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+                if (!(path instanceof ExpressionTemporal temporal)) {
+                    throw new PrismException(
+                            "Expected a temporal formula, got " + path.getClass().getSimpleName()
+                    );
+                }
+
+                int thisHorizon = deriveTemporalHorizon(temporal, pf);
+                if (thisHorizon < 0) {
+                    return -1; // any unbounded objective makes the whole property unbounded
+                }
+                horizon = Math.max(horizon, thisHorizon);
+            } else if (q instanceof ExpressionMultiNashReward) {
+                // Reward objectives can be added later, but for now keep the same guardrail.
+                return -1;
+            } else {
+                throw new PrismException(
+                        "Unsupported multi-objective term: " + q.getClass().getSimpleName()
+                );
+            }
+        }
+
+        return sawAnyProbabilityObjective ? horizon : -1;
+    }
+
+    private int deriveTemporalHorizon(ExpressionTemporal temporal, PropertiesFile pf) throws PrismException {
+        switch (temporal.getOperator()) {
+            case ExpressionTemporal.P_F, ExpressionTemporal.P_U -> {
+                if (!temporal.hasBounds()) {
+                    return -1;
+                }
+                IntegerBound b = IntegerBound.fromExpressionTemporal(
+                        temporal,
+                        pf.getConstantValues(),
+                        true
+                );
+                return extractUpperBound(b);
+            }
+            default -> throw new PrismException(
+                    "Unsupported temporal operator: " + temporal.getOperatorSymbol()
+            );
+        }
+    }
+
+    private int extractUpperBound(IntegerBound bound) throws PrismException {
+        // Try a few likely accessor names first, then fall back to parsing toString().
+        String[] candidates = {
+                "getUpperBound",
+                "getUpper",
+                "getBound",
+                "getValue",
+                "getUpperValue",
+                "getIntBound"
+        };
+
+        for (String name : candidates) {
+            try {
+                Method m = bound.getClass().getMethod(name);
+                Object value = m.invoke(bound);
+                if (value instanceof Number n) {
+                    return n.intValue();
+                }
+                if (value instanceof String s) {
+                    return Integer.parseInt(s.trim());
+                }
+            } catch (ReflectiveOperationException ignored) {
+                // Try next candidate.
+            }
+        }
+
+        Matcher matcher = Pattern.compile("-?\\d+").matcher(bound.toString());
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group());
+        }
+
+        throw new PrismException("Could not extract an upper bound from IntegerBound: " + bound);
     }
 
     private void validateSupportedProperty(
@@ -259,22 +386,15 @@ public class Experiment
                                     pf.getConstantValues(),
                                     true
                             );
-                            if (!b.hasUpperBound()) {
-                                throw new PrismException("Only an upper bounded until is supported.");
-                            }
+                            // Only upper-bounded until is supported by this harness.
+                            extractUpperBound(b);
                         }
                     }
                     default -> throw new PrismException(
                             "Unsupported temporal operator: " + temporal.getOperatorSymbol()
                     );
                 }
-            } else if (q instanceof ExpressionMultiNashReward rewQ) {
-                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(rewQ.getExpression());
-                if (!(path instanceof ExpressionTemporal)) {
-                    throw new PrismException(
-                            "Expected a temporal reward formula, got " + path.getClass().getSimpleName()
-                    );
-                }
+            } else if (q instanceof ExpressionMultiNashReward) {
                 throw new PrismException(
                         "Reward-based multi-objective properties are not wired into this harness yet."
                 );

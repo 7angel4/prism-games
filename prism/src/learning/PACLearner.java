@@ -17,12 +17,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-
 public class PACLearner {
 
     public static final double STOP_THRESH_FACTOR = 4.0;
     private static final double TRANS_PROB_LB = 1e-6;
     private static final String DEFAULT_SMT_SOLVER = "Yices";
+
+    private static final class SolveOutcome {
+        final boolean found;
+        final CSGStrategy<Double> strategy;
+        final double value;
+
+        SolveOutcome(boolean found, CSGStrategy<Double> strategy, double value) {
+            this.found = found;
+            this.strategy = strategy;
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return "SolveOutcome{" +
+                    "found=" + found +
+                    ", value=" + value +
+                    '}';
+        }
+    }
 
     public static final class PacResult {
         public final boolean certificateNoExactNE;
@@ -47,26 +66,6 @@ public class PACLearner {
         }
     }
 
-    private static final class SolveOutcome {
-        final boolean found;
-        final CSGStrategy<Double> strategy;
-        final double value;
-
-        SolveOutcome(boolean found, CSGStrategy<Double> strategy, double value) {
-            this.found = found;
-            this.strategy = strategy;
-            this.value = value;
-        }
-
-        @Override
-        public String toString() {
-            return "SolveOutcome{" +
-                    "found=" + found +
-                    ", value=" + value +
-                    '}';
-        }
-    }
-
     private final Prism prism;
 
     private final List<List<Long>> slotCounts = new ArrayList<>();
@@ -81,7 +80,18 @@ public class PACLearner {
     private MDPRewardsSimple<Double> explorationRewards;
     private UCSGModelChecker empiricalMC;
     private Strategy<Double> explorationStrat;
-    private int horizon;
+
+    /**
+     * effectiveHorizon is the horizon used in the theoretical stopping threshold.
+     * For finite-horizon properties, this is the property's upper bound.
+     * For unbounded properties, this is the fallback rollout cap.
+     */
+    private int effectiveHorizon;
+
+    /**
+     * The rollout cap used for simulator trajectories.
+     */
+    private int rolloutCap;
 
     public PACLearner(Prism prism, int seed) throws PrismException {
         this.prism = prism;
@@ -90,14 +100,18 @@ public class PACLearner {
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
+        int effH = spec.finiteHorizon ? spec.propertyHorizon : spec.rolloutCap;
+        effH = Math.max(1, effH);
+
         return runPacLoop(
                 spec.trueGame,
                 spec.propertiesFile,
                 spec.property,
-                spec.eps,
+                spec.epsilon,
                 spec.delta,
                 spec.rMax,
-                spec.horizon,
+                effH,
+                spec.rolloutCap,
                 spec.solverString
         );
     }
@@ -109,23 +123,12 @@ public class PACLearner {
             double eps,
             double delta,
             double rMax,
-            int horizon
-    ) throws PrismException {
-        return runPacLoop(trueGame, propertiesFile, property, eps, delta, rMax, horizon, "");
-    }
-
-    public PacResult runPacLoop(
-            CSGSimple<Double> trueGame,
-            PropertiesFile propertiesFile,
-            Property property,
-            double eps,
-            double delta,
-            double rMax,
-            int horizon,
+            int effectiveHorizon,
+            int rolloutCap,
             String solverString
     ) throws PrismException {
 
-        checkAndSetInput(trueGame, eps, delta, horizon);
+        checkAndSetInput(trueGame, eps, delta, effectiveHorizon, rolloutCap);
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
@@ -139,7 +142,7 @@ public class PACLearner {
 
             updateL1Transitions(deltaContain);
 
-            double deltaT = computeDeltaT(rMax, horizon);
+            double deltaT = computeDeltaT(rMax, effectiveHorizon);
             SolveOutcome robustSol = robustSolveL1CSG(propertiesFile, property, solverString);
 
             boolean allKnown = allSlotsKnown();
@@ -174,8 +177,7 @@ public class PACLearner {
         System.out.println("\n---------------------------------------");
     }
 
-    private void sampleTrajectory() throws PrismException
-    {
+    private void sampleTrajectory() throws PrismException {
         prism.loadModelIntoSimulator();
         SimulatorEngine sim = prism.getSimulator();
 
@@ -194,7 +196,9 @@ public class PACLearner {
         int numCoalitions = targets.length;
         BitSet reached = new BitSet(numCoalitions);
 
-        for (int h = 0; h < horizon; h++) {
+        int cap = Math.max(0, rolloutCap);
+
+        for (int h = 0; h < cap; h++) {
             if (sim.queryIsDeadlock()) {
                 break;
             }
@@ -244,16 +248,21 @@ public class PACLearner {
         counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
     }
 
-    private void checkAndSetInput(CSGSimple<Double> trueGame, double epsilon, double delta, int horizon) throws PrismException {
+    private void checkAndSetInput(CSGSimple<Double> trueGame, double epsilon, double delta, int effectiveHorizon, int rolloutCap) throws PrismException {
         if (trueGame == null) {
             throw new PrismException("trueGame is null");
         }
         this.trueGame = trueGame;
 
-        if (horizon <= 0) {
-            throw new PrismException("horizon must be positive");
+        if (effectiveHorizon < 0) {
+            throw new PrismException("effectiveHorizon must be non-negative");
         }
-        this.horizon = Math.min(horizon, Integer.MAX_VALUE);
+        if (rolloutCap < 0) {
+            throw new PrismException("rolloutCap must be non-negative");
+        }
+
+        this.effectiveHorizon = effectiveHorizon;
+        this.rolloutCap = rolloutCap;
 
         if (epsilon <= 0.0) {
             throw new PrismException("epsilon must be positive");
@@ -266,7 +275,8 @@ public class PACLearner {
     private void computeNmin(double deltaContain, double rMax, double eps) {
         int numStates = trueGame.getNumStates();
         int numChoices = trueGame.getActions().size();
-        double c = -16.0 * rMax * rMax * Math.pow(horizon, 4.0) / (eps * eps);
+
+        double c = -16.0 * rMax * rMax * Math.pow(effectiveHorizon, 4.0) / (eps * eps);
         double inner = Math.sqrt(deltaContain / (2.0 * (Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
         double n = c * lambertWm1(inner);
         nMin = Math.max(1L, Math.round(n));
@@ -396,7 +406,8 @@ public class PACLearner {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
                 if (saCount == 0L) {
-                    maxRadius = L1CSGSimple.INIT_RADIUS;
+                    empiricalGame.setRadius(s, c, 2.0); // full simplex
+                    maxRadius = 2.0;
                     continue;
                 }
 
@@ -420,9 +431,9 @@ public class PACLearner {
             }
         }
 
-        if (maxRadius < L1CSGSimple.INIT_RADIUS) {
-            System.out.println("New max radius: " + maxRadius);
-        }
+//        if (maxRadius < 2.0) {
+//            System.out.println("New max radius: " + maxRadius);
+//        }
     }
 
     private double weissmanRadius(double saCount, double deltaSlot) {
@@ -437,7 +448,7 @@ public class PACLearner {
         }
 
         double r = Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
-        return Math.min(r, L1CSGSimple.INIT_RADIUS);
+        return Math.min(r, 2.0);
     }
 
     private double computeDeltaT(double rMax, int horizon) {
@@ -513,7 +524,7 @@ public class PACLearner {
         ModelCheckerResult res = mc.computeCumulativeRewards(
                 explorationRMDP,
                 explorationRewards,
-                horizon,
+                rolloutCap,
                 MinMax.max().setMinUnc(true)
         );
 
@@ -547,7 +558,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.TINY_ALOHA);
+        Experiment ex = new Experiment(Experiment.Model.VERY_SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
