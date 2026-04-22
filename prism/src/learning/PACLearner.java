@@ -17,10 +17,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+
 public class PACLearner {
 
     public static final double STOP_THRESH_FACTOR = 4.0;
     private static final double TRANS_PROB_LB = 1e-6;
+    private static final String DEFAULT_SMT_SOLVER = "Yices";
 
     public static final class PacResult {
         public final boolean certificateNoExactNE;
@@ -81,7 +83,6 @@ public class PACLearner {
     private Strategy<Double> explorationStrat;
     private int horizon;
 
-
     public PACLearner(Prism prism, int seed) throws PrismException {
         this.prism = prism;
         this.prism.setSimulatorSeed(seed);
@@ -96,7 +97,8 @@ public class PACLearner {
                 spec.eps,
                 spec.delta,
                 spec.rMax,
-                spec.horizon
+                spec.horizon,
+                spec.solverString
         );
     }
 
@@ -109,12 +111,24 @@ public class PACLearner {
             double rMax,
             int horizon
     ) throws PrismException {
+        return runPacLoop(trueGame, propertiesFile, property, eps, delta, rMax, horizon, "");
+    }
+
+    public PacResult runPacLoop(
+            CSGSimple<Double> trueGame,
+            PropertiesFile propertiesFile,
+            Property property,
+            double eps,
+            double delta,
+            double rMax,
+            int horizon,
+            String solverString
+    ) throws PrismException {
 
         checkAndSetInput(trueGame, eps, delta, horizon);
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
-        double lastValue = Double.NaN;
         double lastDeltaT = 0.0;
 
         computeNmin(deltaContain, rMax, eps);
@@ -126,7 +140,7 @@ public class PACLearner {
             updateL1Transitions(deltaContain);
 
             double deltaT = computeDeltaT(rMax, horizon);
-            SolveOutcome robustSol = robustSolveL1CSG(propertiesFile, property);
+            SolveOutcome robustSol = robustSolveL1CSG(propertiesFile, property, solverString);
 
             boolean allKnown = allSlotsKnown();
 
@@ -148,7 +162,6 @@ public class PACLearner {
             if (deltaT != lastDeltaT) {
                 printEpisodeResult(episode, robustSol, deltaT, allKnown);
             }
-            lastValue = robustSol.value;
             lastDeltaT = deltaT;
         }
     }
@@ -234,14 +247,14 @@ public class PACLearner {
     private void checkAndSetInput(CSGSimple<Double> trueGame, double epsilon, double delta, int horizon) throws PrismException {
         if (trueGame == null) {
             throw new PrismException("trueGame is null");
-        } else {
-            this.trueGame = trueGame;
         }
+        this.trueGame = trueGame;
+
         if (horizon <= 0) {
             throw new PrismException("horizon must be positive");
-        } else {
-            this.horizon = Math.min(horizon, Integer.MAX_VALUE);
         }
+        this.horizon = Math.min(horizon, Integer.MAX_VALUE);
+
         if (epsilon <= 0.0) {
             throw new PrismException("epsilon must be positive");
         }
@@ -268,7 +281,6 @@ public class PACLearner {
             throw new IllegalArgumentException("W_{-1}(x) is undefined for x < -1/e.");
         }
 
-        // W_{-1}(0) = -infinity as a limit, but not a finite value.
         if (x == 0.0) {
             return Double.NEGATIVE_INFINITY;
         }
@@ -281,11 +293,8 @@ public class PACLearner {
             throw new IllegalArgumentException("W_{-1}(x) is real only for -1/e <= x < 0.");
         }
 
-        // Initial guess
         double w;
         if (x < -0.3) {
-            // Near the branch point x = -1/e:
-            // W_{-1}(x) = -1 - p - p^2/3 - 11 p^3/72 - 43 p^4/540 - ...
             double p = Math.sqrt(2.0 * (Math.E * x + 1.0));
             double p2 = p * p;
             double p3 = p2 * p;
@@ -298,13 +307,11 @@ public class PACLearner {
                     - 43.0 * p4 / 540.0
                     - 769.0 * p5 / 17280.0;
         } else {
-            // As x -> 0-, W_{-1}(x) ~ ln(-x) - ln(-ln(-x))
             double L1 = Math.log(-x);
             double L2 = Math.log(-L1);
             w = L1 - L2 + L2 / L1;
         }
 
-        // Halley's method
         for (int i = 0; i < 30; i++) {
             double ew = Math.exp(w);
             double f = w * ew - x;
@@ -316,10 +323,9 @@ public class PACLearner {
             double wp1 = w + 1.0;
             double fp = ew * wp1;
 
-            // Halley step with a safe fallback near w = -1
             double step;
             if (Math.abs(wp1) < 1e-8 || !Double.isFinite(fp) || fp == 0.0) {
-                step = f / fp; // Newton fallback
+                step = f / fp;
             } else {
                 double denom = fp - 0.5 * f * (w + 2.0) / wp1;
                 step = f / denom;
@@ -383,18 +389,19 @@ public class PACLearner {
     }
 
     private void updateL1Transitions(double deltaContain) {
-        maxRadius = 0.0; // reset every episode
+        maxRadius = 0.0;
         int numStates = empiricalGame.getNumStates();
+
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
-                double radius;
                 if (saCount == 0L) {
-                    maxRadius = L1CSGSimple.INIT_RADIUS; // no need to look at other slots, since this one has the maximum radius
+                    maxRadius = L1CSGSimple.INIT_RADIUS;
                     continue;
                 }
+
                 double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
-                radius = weissmanRadius(saCount, deltaSlot);
+                double radius = weissmanRadius(saCount, deltaSlot);
 
                 if (radius > maxRadius) {
                     maxRadius = radius;
@@ -429,8 +436,6 @@ public class PACLearner {
             throw new IllegalArgumentException("deltaSlot must be in (0, 1)");
         }
 
-        // Weissman radius:
-        // alpha(n; delta) = sqrt( (2 / n) * ln((2^|S| - 2) / delta) )
         double r = Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
         return Math.min(r, L1CSGSimple.INIT_RADIUS);
     }
@@ -447,20 +452,19 @@ public class PACLearner {
         }
     }
 
-    private SolveOutcome robustSolveL1CSG(PropertiesFile propertiesFile, Property property) throws PrismException {
-        prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, "Yices");
+    private SolveOutcome robustSolveL1CSG(PropertiesFile propertiesFile, Property property, String solverString) throws PrismException {
+        String chosenSolver = (solverString == null || solverString.isBlank()) ? DEFAULT_SMT_SOLVER : solverString;
+        prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
+
         StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
         if (!(mc instanceof UCSGModelChecker)) {
             throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
         }
+
         empiricalMC = (UCSGModelChecker) mc;
         empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         empiricalMC.setGenStrat(true);
         empiricalMC.setSilentPrecomputations(true);
-        // defaults
-//        empiricalMC.setPrecomp(true);
-//        empiricalMC.setPrecomp(true);
-//        empiricalMC.setVerbosity(0);
 
         try {
             StateValues sv = empiricalMC.checkExpression(empiricalGame, property.getExpression(), null, true);
@@ -478,21 +482,22 @@ public class PACLearner {
                 throw new PrismException("Initial state index out of range for robust solve.");
             }
 
-            double value = vals[init]; // social-welfare value
+            double value = vals[init];
             if (Double.isNaN(value) || Double.isInfinite(value)) {
                 return new SolveOutcome(false, null, value);
             }
 
-            CSGStrategy<Double> strategy = null;
             Strategy<?> strat = empiricalMC.getStrategy();
-            if (strat instanceof CSGStrategy) {
-                strategy = (CSGStrategy<Double>) strat;
+            if (strat instanceof CSGStrategy<?> csgStrat) {
+                @SuppressWarnings("unchecked")
+                CSGStrategy<Double> strategy = (CSGStrategy<Double>) csgStrat;
                 return new SolveOutcome(true, strategy, value);
-            } else if (strat == null) {
-                throw new PrismException("Expected a CSGStrategy from robust solve, but got null");
-            } else {
-                throw new PrismException("Expected a CSGStrategy from robust solve, but got null" + strat.getClass().getSimpleName());
             }
+
+            if (strat == null) {
+                throw new PrismException("Expected a CSGStrategy from robust solve, but got null");
+            }
+            throw new PrismException("Expected a CSGStrategy from robust solve, but got " + strat.getClass().getSimpleName());
         } catch (PrismException e) {
             return new SolveOutcome(false, null, Double.NaN);
         }
@@ -504,7 +509,14 @@ public class PACLearner {
         mc.setPrecomp(true);
         mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
-        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
+
+        ModelCheckerResult res = mc.computeCumulativeRewards(
+                explorationRMDP,
+                explorationRewards,
+                horizon,
+                MinMax.max().setMinUnc(true)
+        );
+
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
@@ -514,10 +526,7 @@ public class PACLearner {
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                boolean newKnown = slotCounts.get(s).get(c) >= nMin;
-//                if (newKnown)
-//                    System.out.println("new known slot: " + "(s=" + s + ", c=" + c + ") with count " + slotCounts.get(s).get(c));
-                known.get(s).set(c, newKnown);
+                known.get(s).set(c, slotCounts.get(s).get(c) >= nMin);
             }
         }
     }
@@ -539,7 +548,7 @@ public class PACLearner {
         prism.useNative();
 
         Experiment ex = new Experiment(Experiment.Model.TINY_ALOHA);
-        ex.setSolverString("yices");
+        ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 

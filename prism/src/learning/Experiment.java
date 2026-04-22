@@ -3,9 +3,7 @@ package learning;
 import explicit.CSGSimple;
 import explicit.StateModelChecker;
 import explicit.StateValues;
-import explicit.rewards.CSGRewards;
 import parser.Values;
-import parser.ast.Coalition;
 import parser.ast.Expression;
 import parser.ast.ExpressionMultiNash;
 import parser.ast.ExpressionMultiNashProb;
@@ -26,11 +24,7 @@ import prism.PrismLangException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
 
 public class Experiment
 {
@@ -41,60 +35,29 @@ public class Experiment
     }
 
     public static final class PacRunSpec {
-        public final Prism prism;
+        public final CSGSimple<Double> trueGame;
         public final PropertiesFile propertiesFile;
         public final Property property;
 
-        public final CSGSimple<Double> trueGame;
-        public final List<Coalition> coalitions;
-        public final List<ExpressionTemporal> exprs;
-        public final List<CSGRewards<Double>> rewards;
-        public final BitSet[] targets;
-        public final BitSet[] remain;
-        public final int[] bounds;
-        public final int eqType;
-        public final int crit;
-        public final boolean min;
         public final double eps;
         public final double delta;
         public final double rMax;
         public final int horizon;
-
         public final String solverString;
 
         public PacRunSpec(
-                Prism prism,
+                CSGSimple<Double> trueGame,
                 PropertiesFile propertiesFile,
                 Property property,
-                CSGSimple<Double> trueGame,
-                List<Coalition> coalitions,
-                List<ExpressionTemporal> exprs,
-                List<CSGRewards<Double>> rewards,
-                BitSet[] targets,
-                BitSet[] remain,
-                int[] bounds,
-                int eqType,
-                int crit,
-                boolean min,
                 double eps,
                 double delta,
                 double rMax,
                 int horizon,
                 String solverString
         ) {
-            this.prism = prism;
+            this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
             this.property = property;
-            this.trueGame = trueGame;
-            this.coalitions = coalitions;
-            this.exprs = exprs;
-            this.rewards = rewards;
-            this.targets = targets;
-            this.remain = remain;
-            this.bounds = bounds;
-            this.eqType = eqType;
-            this.crit = crit;
-            this.min = min;
             this.eps = eps;
             this.delta = delta;
             this.rMax = rMax;
@@ -111,13 +74,10 @@ public class Experiment
     public Values parameterValues = new Values();
     public String solverString = "";
 
+    public double pacEps = 0.5;
     public double pacDelta = 0.05;
     public double rMax = 1.0;
     public int horizon = 8;
-
-    public int eqType = 0;
-    public int crit = 0;
-    public boolean min = false;
 
     public Experiment(Model model) {
         setModel(model);
@@ -154,13 +114,10 @@ public class Experiment
                         "bcmax", 1
                 );
 
+                this.pacEps = 0.5;
                 this.pacDelta = 0.1;
                 this.rMax = 1.0;
                 this.horizon = 2;
-
-                this.eqType = 0;
-                this.crit = 0;
-                this.min = false;
             }
             case ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
@@ -174,13 +131,10 @@ public class Experiment
                         "bcmax", 1
                 );
 
+                this.pacEps = 0.5;
                 this.pacDelta = 0.05;
                 this.rMax = 1.0;
                 this.horizon = 8;
-
-                this.eqType = 0;
-                this.crit = 0;
-                this.min = false;
             }
             case ROBOT_COORD -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.prism";
@@ -190,13 +144,10 @@ public class Experiment
                 parameterValues = new Values();
                 addParameters("l", 4, "q", 0.25);
 
+                this.pacEps = 0.5;
                 this.pacDelta = 0.05;
                 this.rMax = 1.0;
                 this.horizon = 8;
-
-                this.eqType = 0;
-                this.crit = 0;
-                this.min = false;
             }
         }
         return this;
@@ -235,88 +186,91 @@ public class Experiment
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
+        validateSupportedProperty(prop, trueGame, pf, prism);
+
+        return new PacRunSpec(
+                trueGame,
+                pf,
+                prop,
+                pacEps,
+                pacDelta,
+                rMax,
+                horizon,
+                solverString
+        );
+    }
+
+    private void validateSupportedProperty(
+            Property prop,
+            CSGSimple<Double> trueGame,
+            PropertiesFile pf,
+            Prism prism
+    ) throws PrismException {
+
         ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
         if (stratExpr == null) {
             throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
         }
 
-        List<Coalition> coalitions =
-                stratExpr.getCoalitions() == null
-                        ? Collections.emptyList()
-                        : new ArrayList<>(stratExpr.getCoalitions());
-
         Expression inner = stripParentheses(stratExpr.getOperand(0));
         if (!(inner instanceof ExpressionMultiNash multiNash)) {
-            throw new PrismException("Expected ExpressionMultiNash inside strategy expression, got " + inner.getClass().getSimpleName());
+            throw new PrismException(
+                    "Expected ExpressionMultiNash inside strategy expression, got "
+                            + inner.getClass().getSimpleName()
+            );
         }
 
-        boolean min = multiNash.getRelOp() != null && multiNash.getRelOp().isMin();
-
-        List<ExpressionQuant> formulae = multiNash.getOperands();
-
-        BitSet[] targets = new BitSet[formulae.size()];
-        BitSet[] remain = new BitSet[formulae.size()];
-        int[] bounds = new int[formulae.size()];
-        Arrays.fill(bounds, -1);
-
-        List<ExpressionTemporal> exprs = new ArrayList<>();
-        List<CSGRewards<Double>> rewards = new ArrayList<>();
-
-        boolean hasRewards = false;
-
-        for (int p = 0; p < formulae.size(); p++) {
-            ExpressionQuant q = formulae.get(p);
-
+        for (ExpressionQuant q : multiNash.getOperands()) {
             if (q instanceof ExpressionMultiNashProb probQ) {
                 Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
                 if (!(path instanceof ExpressionTemporal temporal)) {
-                    throw new PrismException("Expected a temporal formula, got " + path.getClass().getSimpleName());
+                    throw new PrismException(
+                            "Expected a temporal formula, got " + path.getClass().getSimpleName()
+                    );
                 }
-
-                exprs.add(temporal);
 
                 switch (temporal.getOperator()) {
                     case ExpressionTemporal.P_F -> {
-                        targets[p] = evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-                        remain[p] = fullStateSet(trueGame.getNumStates());
+                        evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
                     }
                     case ExpressionTemporal.P_U -> {
-                        targets[p] = evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
+                        evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
                         Expression guard = temporal.getOperand1();
-                        remain[p] = Expression.isTrue(guard)
-                                ? fullStateSet(trueGame.getNumStates())
-                                : evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
+                        if (!Expression.isTrue(guard)) {
+                            evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
+                        }
 
                         if (temporal.hasBounds()) {
-                            IntegerBound b = IntegerBound.fromExpressionTemporal(temporal, pf.getConstantValues(), true);
+                            IntegerBound b = IntegerBound.fromExpressionTemporal(
+                                    temporal,
+                                    pf.getConstantValues(),
+                                    true
+                            );
                             if (!b.hasUpperBound()) {
                                 throw new PrismException("Only an upper bounded until is supported.");
                             }
-                            bounds[p] = b.getHighestInteger();
                         }
                     }
-                    default -> throw new PrismException("Unsupported temporal operator: " + temporal.getOperatorSymbol());
+                    default -> throw new PrismException(
+                            "Unsupported temporal operator: " + temporal.getOperatorSymbol()
+                    );
                 }
             } else if (q instanceof ExpressionMultiNashReward rewQ) {
-                hasRewards = true;
                 Expression path = Expression.convertSimplePathFormulaToCanonicalForm(rewQ.getExpression());
-                if (!(path instanceof ExpressionTemporal temporal)) {
-                    throw new PrismException("Expected a temporal reward formula, got " + path.getClass().getSimpleName());
+                if (!(path instanceof ExpressionTemporal)) {
+                    throw new PrismException(
+                            "Expected a temporal reward formula, got " + path.getClass().getSimpleName()
+                    );
                 }
-                exprs.add(temporal);
-                throw new PrismException("Reward-based multi-objective properties are not wired into this harness yet.");
+                throw new PrismException(
+                        "Reward-based multi-objective properties are not wired into this harness yet."
+                );
             } else {
-                throw new PrismException("Unsupported multi-objective term: " + q.getClass().getSimpleName());
+                throw new PrismException(
+                        "Unsupported multi-objective term: " + q.getClass().getSimpleName()
+                );
             }
         }
-
-        if (remain == null) {
-            remain = buildRemain(trueGame);
-        }
-
-        return new PacRunSpec(prism, pf, prop, trueGame, coalitions, exprs, rewards, targets, remain, bounds,
-                eqType, crit, min, 0.5, pacDelta, rMax, horizon, solverString
-        );
     }
 
     private ExpressionStrategy findFirstStrategyExpression(Expression expr) {
@@ -371,19 +325,5 @@ public class Experiment
 
         StateValues sv = mc.checkExpression(trueGame, stateFormula, null);
         return (BitSet) sv.getBitSet().clone();
-    }
-
-    private BitSet fullStateSet(int n) {
-        BitSet bs = new BitSet(n);
-        bs.set(0, n);
-        return bs;
-    }
-
-    private BitSet[] buildRemain(CSGSimple<Double> trueGame) {
-        int n = trueGame.getNumStates();
-        BitSet[] remain = new BitSet[2];
-        remain[0] = fullStateSet(n);
-        remain[1] = fullStateSet(n);
-        return remain;
     }
 }
