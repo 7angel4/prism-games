@@ -430,7 +430,7 @@ public class PACLearner {
         }
 
         // Weissman radius:
-        // alpha(n; delta) = sqrt( (2 / n) * ln((2|S| - 2) / delta) )
+        // alpha(n; delta) = sqrt( (2 / n) * ln((2^|S| - 2) / delta) )
         double r = Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
         return Math.min(r, L1CSGSimple.INIT_RADIUS);
     }
