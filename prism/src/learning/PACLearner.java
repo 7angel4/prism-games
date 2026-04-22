@@ -78,7 +78,8 @@ public class PACLearner {
     private double maxRadius = 0.0;
     private MDPRewardsSimple<Double> explorationRewards;
     private UCSGModelChecker empiricalMC;
-    Strategy<Double> explorationStrat;
+    private Strategy<Double> explorationStrat;
+    private int horizon;
 
 
     public PACLearner(Prism prism, int seed) throws PrismException {
@@ -109,15 +110,14 @@ public class PACLearner {
             int horizon
     ) throws PrismException {
 
-        checkValidInput(trueGame, eps, delta, horizon);
+        checkAndSetInput(trueGame, eps, delta, horizon);
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
-        this.trueGame = trueGame;
         double lastValue = Double.NaN;
         double lastDeltaT = 0.0;
 
-        computeNmin(trueGame.getNumStates(), trueGame.getActions().size(), deltaContain, rMax, horizon, eps);
+        computeNmin(deltaContain, rMax, eps);
         initialiseRun(trueGame);
 
         while (true) {
@@ -140,9 +140,9 @@ public class PACLearner {
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
             updateExplorationRewards();
-            explorationStrat = solveExplorationRMDP(horizon);
+            explorationStrat = solveExplorationRMDP();
 
-            sampleTrajectory(horizon);
+            sampleTrajectory();
             updateKnown();
 
             if (deltaT != lastDeltaT) {
@@ -161,7 +161,7 @@ public class PACLearner {
         System.out.println("\n---------------------------------------");
     }
 
-    private void sampleTrajectory(int horizon) throws PrismException
+    private void sampleTrajectory() throws PrismException
     {
         prism.loadModelIntoSimulator();
         SimulatorEngine sim = prism.getSimulator();
@@ -231,15 +231,16 @@ public class PACLearner {
         counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
     }
 
-    private void checkValidInput(CSGSimple<Double> trueGame,
-                                 double epsilon,
-                                 double delta,
-                                 int horizon) throws PrismException {
+    private void checkAndSetInput(CSGSimple<Double> trueGame, double epsilon, double delta, int horizon) throws PrismException {
         if (trueGame == null) {
             throw new PrismException("trueGame is null");
+        } else {
+            this.trueGame = trueGame;
         }
         if (horizon <= 0) {
             throw new PrismException("horizon must be positive");
+        } else {
+            this.horizon = Math.min(horizon, Integer.MAX_VALUE);
         }
         if (epsilon <= 0.0) {
             throw new PrismException("epsilon must be positive");
@@ -249,18 +250,91 @@ public class PACLearner {
         }
     }
 
-    private void computeNmin(int numStates, int numChoices, double deltaContain, double rMax, int horizon, double eps) {
+    private void computeNmin(double deltaContain, double rMax, double eps) {
+        int numStates = trueGame.getNumStates();
+        int numChoices = trueGame.getActions().size();
         double c = -16.0 * rMax * rMax * Math.pow(horizon, 4.0) / (eps * eps);
-        double inner = Math.sqrt(deltaContain / ((Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
-        double n = c * lambertW(inner);
+        double inner = Math.sqrt(deltaContain / (2.0 * (Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
+        double n = c * lambertWm1(inner);
         nMin = Math.max(1L, Math.round(n));
     }
 
-    private double lambertW(double x) {
-        if (x <= 0.0) {
-            return 0.0;
+    private double lambertWm1(double x) {
+        if (Double.isNaN(x)) return Double.NaN;
+
+        final double MIN_X = -1.0 / Math.E;
+
+        if (x < MIN_X) {
+            throw new IllegalArgumentException("W_{-1}(x) is undefined for x < -1/e.");
         }
-        return Math.log(x) - Math.log(Math.log(x));
+
+        // W_{-1}(0) = -infinity as a limit, but not a finite value.
+        if (x == 0.0) {
+            return Double.NEGATIVE_INFINITY;
+        }
+
+        if (x == MIN_X) {
+            return -1.0;
+        }
+
+        if (x > 0.0) {
+            throw new IllegalArgumentException("W_{-1}(x) is real only for -1/e <= x < 0.");
+        }
+
+        // Initial guess
+        double w;
+        if (x < -0.3) {
+            // Near the branch point x = -1/e:
+            // W_{-1}(x) = -1 - p - p^2/3 - 11 p^3/72 - 43 p^4/540 - ...
+            double p = Math.sqrt(2.0 * (Math.E * x + 1.0));
+            double p2 = p * p;
+            double p3 = p2 * p;
+            double p4 = p2 * p2;
+            double p5 = p4 * p;
+            w = -1.0
+                    - p
+                    - p2 / 3.0
+                    - 11.0 * p3 / 72.0
+                    - 43.0 * p4 / 540.0
+                    - 769.0 * p5 / 17280.0;
+        } else {
+            // As x -> 0-, W_{-1}(x) ~ ln(-x) - ln(-ln(-x))
+            double L1 = Math.log(-x);
+            double L2 = Math.log(-L1);
+            w = L1 - L2 + L2 / L1;
+        }
+
+        // Halley's method
+        for (int i = 0; i < 30; i++) {
+            double ew = Math.exp(w);
+            double f = w * ew - x;
+
+            if (Math.abs(f) <= 1e-16 * (1.0 + Math.abs(x))) {
+                return w;
+            }
+
+            double wp1 = w + 1.0;
+            double fp = ew * wp1;
+
+            // Halley step with a safe fallback near w = -1
+            double step;
+            if (Math.abs(wp1) < 1e-8 || !Double.isFinite(fp) || fp == 0.0) {
+                step = f / fp; // Newton fallback
+            } else {
+                double denom = fp - 0.5 * f * (w + 2.0) / wp1;
+                step = f / denom;
+            }
+
+            double wNext = w - step;
+
+            if (wNext == w || Math.abs(wNext - w) <= 1e-15 * (1.0 + Math.abs(wNext))) {
+                return wNext;
+            }
+
+            w = wNext;
+        }
+
+        return w;
     }
 
     private void initialiseRun(CSGSimple<Double> template) {
@@ -314,13 +388,13 @@ public class PACLearner {
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
+                double radius;
                 if (saCount == 0L) {
-                    maxRadius = L1CSGSimple.INIT_RADIUS;
+                    maxRadius = L1CSGSimple.INIT_RADIUS; // no need to look at other slots, since this one has the maximum radius
                     continue;
                 }
-
                 double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
-                double radius = weissmanRadius(saCount, deltaSlot);
+                radius = weissmanRadius(saCount, deltaSlot);
 
                 if (radius > maxRadius) {
                     maxRadius = radius;
@@ -338,10 +412,27 @@ public class PACLearner {
                 });
             }
         }
+
+        if (maxRadius < L1CSGSimple.INIT_RADIUS) {
+            System.out.println("New max radius: " + maxRadius);
+        }
     }
 
     private double weissmanRadius(double saCount, double deltaSlot) {
-        return Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
+        if (Double.isNaN(saCount) || Double.isNaN(deltaSlot)) {
+            return Double.NaN;
+        }
+        if (saCount <= 0.0) {
+            throw new IllegalArgumentException("saCount must be > 0");
+        }
+        if (!(deltaSlot > 0.0) || deltaSlot >= 1.0) {
+            throw new IllegalArgumentException("deltaSlot must be in (0, 1)");
+        }
+
+        // Weissman radius:
+        // alpha(n; delta) = sqrt( (2 / n) * ln((2|S| - 2) / delta) )
+        double r = Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
+        return Math.min(r, L1CSGSimple.INIT_RADIUS);
     }
 
     private double computeDeltaT(double rMax, int horizon) {
@@ -407,7 +498,7 @@ public class PACLearner {
         }
     }
 
-    private Strategy<Double> solveExplorationRMDP(int horizon) throws PrismException {
+    private Strategy<Double> solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
