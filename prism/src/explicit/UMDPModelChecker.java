@@ -351,8 +351,10 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Expected cumulative reward");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (verbosity > 0) {
+			mainLog.print("Expected cumulative reward");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		// Build finite-memory deterministic strategy
 		FMDStrategyStep<Double> fmdStrat = new FMDStrategyStep<>(umdp, k);

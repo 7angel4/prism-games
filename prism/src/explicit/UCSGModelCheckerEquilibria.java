@@ -1564,7 +1564,9 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		buildCoalitions(ucsg, coalitions);
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
-		mainLog.println();
+		if (verbosity > 1) {
+			mainLog.println();
+		}
 		findMaxRowsCols(ucsg);
 
 		String solver = setSolver(eqType);
@@ -1652,7 +1654,9 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 				}
 			}	
 		}
-		mainLog.println();
+		if (verbosity > 1) {
+			mainLog.println();
+		}
 		done = true;
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
@@ -1733,8 +1737,8 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		if (verbosity > 1) {
 			mainLog.println("\nValue iteration converged after " + k + " iterations.");
 			mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
+			mainLog.println("Coalition results (initial state): (" + sol[0][ucsg.getFirstInitialState()] + "," + sol[1][ucsg.getFirstInitialState()] + ")");
 		}
-		mainLog.println("Coalition results (initial state): (" + sol[0][ucsg.getFirstInitialState()] + "," + sol[1][ucsg.getFirstInitialState()] + ")");
 		res.soln = r;
 		if (genStrat) 	{
 			switch (eqType) {
