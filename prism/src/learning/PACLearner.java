@@ -114,6 +114,8 @@ public class PACLearner {
         final double deltaContain = delta / 2.0;
         int episode = 0;
         this.trueGame = trueGame;
+        double lastValue = Double.NaN;
+        double lastDeltaT = 0.0;
 
         computeNmin(trueGame.getNumStates(), trueGame.getActions().size(), deltaContain, rMax, horizon, eps);
         initialiseRun(trueGame);
@@ -143,12 +145,20 @@ public class PACLearner {
             sampleTrajectory(horizon);
             updateKnown();
 
-            System.out.println();
-            System.out.println("Episode " + episode + ":");
-            System.out.println("    " + robustSol);
-            System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
-            System.out.println("\n---------------------------------------");
+            if (deltaT != lastDeltaT) {
+                printEpisodeResult(episode, robustSol, deltaT, allKnown);
+            }
+            lastValue = robustSol.value;
+            lastDeltaT = deltaT;
         }
+    }
+
+    private void printEpisodeResult(int episode, SolveOutcome robustSol, double deltaT, boolean allKnown) {
+        System.out.println();
+        System.out.println("Episode " + episode + ":");
+        System.out.println("    " + robustSol);
+        System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
+        System.out.println("\n---------------------------------------");
     }
 
     private void sampleTrajectory(int horizon) throws PrismException
@@ -437,7 +447,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.ALOHA);
+        Experiment ex = new Experiment(Experiment.Model.TINY_ALOHA);
         ex.setSolverString("yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);

@@ -1,0 +1,46 @@
+csg
+
+player usr1 user1 endplayer
+player usr2 user2 endplayer
+
+const int bcmax = 1; // tiny backoff limit
+const int M = pow(2,bcmax)-1;
+
+const int D = 2; // tiny deadline
+const double beta = 1;
+const double q = 0.9;
+
+formula tick = (s1=0 | s1=2 | s1=3) & (s2=0 | s2=2 | s2=3) & (tr1=0 & tr2=0);
+formula n = tr1 + tr2;
+formula rn = (n=2)? q/(pow(beta,2)*2) : (n=1)? q : 0;
+
+module user1
+	s1 : [0..3] init 0;
+	tr1 : [0..1] init 0;
+	bc1 : [0..M] init 0;
+	cd1 : [0..bcmax] init 0;
+	t1 : [0..2] init 0;
+
+	[wait1] tick & (s1=0 | s1=3) & t1<2 -> (t1'=t1+1);
+	[trans1] tick & s1=0 -> (tr1'=1) & (t1'=0);
+
+	[try1] tr1=1 -> (rn/n) : (s1'=3) & (tr1'=0)
+	            + (1-rn/n) : (s1'=1) & (tr1'=0) & (cd1'=min(bcmax,cd1+1));
+
+	[sbc1] s1=1 & cd1=1 -> 1/2 : (s1'=2) & (bc1'=0)
+	                 + 1/2 : (s1'=2) & (bc1'=1);
+
+	[boff1] tick & s1=2 & bc1>0 -> (bc1'=bc1-1);
+	[boff1] tick & s1=2 & bc1=0 -> (tr1'=1) & (s1'=0);
+endmodule
+
+module user2 = user1[s1=s2,s2=s1,tr1=tr2,tr2=tr1,bc1=bc2,cd1=cd2,wait1=wait2,trans1=trans2,try1=try2,boff1=boff2,sbc1=sbc2,t1=t2] endmodule
+
+module timer
+	t : [0..D+1] init 0;
+	[] tick -> (t'=min(D+1,t+1));
+endmodule
+
+rewards "time"
+	tick : 1;
+endrewards

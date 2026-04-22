@@ -1,0 +1,7 @@
+<<usr1:usr2>>max=? (P[F s1=3] + P[F s2=3])
+<<usr1:usr2>>max=? (P[F (s1=3 & t<=D)] + P[F s2=3])
+<<usr1:usr2>>max=? (P[F s1=3] + P[F (s2=3 & t<=D)])
+<<usr1:usr2>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & t<=D)])
+<<usr1:usr2>>max=? (P[F s1=3] + P[F (s2=3 & t<=D)])
+<<usr1:usr2>>max=? (P[F (s1=3 & t<=D)] + P[F s2=3])
+<<usr1:usr2>>max=? (P[F (s1=3 & t<=D)] + P[F (s2=3 & t<=D)])

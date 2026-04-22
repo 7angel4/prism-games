@@ -35,7 +35,8 @@ import java.util.List;
 public class Experiment
 {
     public enum Model {
-        TEST_CSG,
+        TINY_ALOHA,
+        ALOHA,
         ROBOT_COORD
     }
 
@@ -141,7 +142,27 @@ public class Experiment
         this.model = model;
 
         switch (model) {
-            case TEST_CSG -> {
+            case TINY_ALOHA -> {
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
+                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.props";
+                this.propertyIndex = 7;
+
+                parameterValues = new Values();
+                addParameters(
+                        "D", 2,
+                        "q", 0.9,
+                        "bcmax", 1
+                );
+
+                this.pacDelta = 0.1;
+                this.rMax = 1.0;
+                this.horizon = 2;
+
+                this.eqType = 0;
+                this.crit = 0;
+                this.min = false;
+            }
+            case ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
                 this.propertyIndex = 7;
@@ -294,7 +315,7 @@ public class Experiment
         }
 
         return new PacRunSpec(prism, pf, prop, trueGame, coalitions, exprs, rewards, targets, remain, bounds,
-                eqType, crit, min, 2, pacDelta, rMax, horizon, solverString
+                eqType, crit, min, 0.5, pacDelta, rMax, horizon, solverString
         );
     }
 
