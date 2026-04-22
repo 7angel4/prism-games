@@ -482,6 +482,7 @@ public class SimulatorEngine extends PrismComponent
 		return true;
 	}
 
+
 	/**
 	 * Get the index of the choice to be automatically selected in the current state.
 	 * If a strategy is loaded (and to be enforced, and defined for the current state), this will be used.
@@ -1097,17 +1098,58 @@ public class SimulatorEngine extends PrismComponent
 		}
 	}
 
+//	/**
+//	 * Initialise the state of the loaded strategy, if present, based on the current state.
+//	 */
+//	private void initialiseStrategy()
+//	{
+//		if (stratGen != null) {
+//			stratGen.initialise(getCurrentState());
+//			int memory = stratGen.getCurrentMemory();
+//			Object decision = stratGen.getCurrentChoiceAction();
+//			path.setStrategyInfoForCurrentState(memory, decision);
+//		}
+//	}
+
 	/**
 	 * Initialise the state of the loaded strategy, if present, based on the current state.
+	 *
+	 * Some strategy implementations (notably state-indexed / history-based ones)
+	 * do not have a valid "current choice" immediately after initialise(...).
+	 * We therefore perform a safe initial update using Strategy.UNDEFINED to let
+	 * the strategy populate its first decision, and then read the current choice.
 	 */
 	private void initialiseStrategy()
 	{
-		if (stratGen != null) {
-			stratGen.initialise(getCurrentState());
-			int memory = stratGen.getCurrentMemory();
-			Object decision = stratGen.getCurrentChoiceAction();
-			path.setStrategyInfoForCurrentState(memory, decision);
+		if (stratGen == null) {
+			return;
 		}
+
+		stratGen.initialise(getCurrentState());
+
+		// Give the strategy a chance to compute its first decision.
+		// This is important for strategy implementations that only expose a
+		// valid current choice after at least one update.
+		try {
+			stratGen.update(Strategy.UNDEFINED, getCurrentState());
+		} catch (UnsupportedOperationException ignored) {
+			// Some strategy implementations may not need / support this.
+		}
+
+		int memory = stratGen.getCurrentMemory();
+		Object decision = Strategy.UNDEFINED;
+
+		try {
+			Object currentDecision = stratGen.getCurrentChoiceAction();
+			if (currentDecision != null) {
+				decision = currentDecision;
+			}
+		} catch (RuntimeException ex) {
+			// Keep UNDEFINED. This avoids crashing on strategies whose
+			// current choice is not yet available at initialization.
+		}
+
+		path.setStrategyInfoForCurrentState(memory, decision);
 	}
 
 	/**
@@ -1115,13 +1157,39 @@ public class SimulatorEngine extends PrismComponent
 	 */
 	private void updateStrategy()
 	{
-		if (stratGen != null) {
-			stratGen.update(path.getPreviousAction(), getCurrentState());
-			int memory = stratGen.getCurrentMemory();
-			Object decision = stratGen.getCurrentChoiceAction();
-			path.setStrategyInfoForCurrentState(memory, decision);
+		if (stratGen == null) {
+			return;
 		}
+
+		stratGen.update(path.getPreviousAction(), getCurrentState());
+
+		int memory = stratGen.getCurrentMemory();
+		Object decision = Strategy.UNDEFINED;
+
+		try {
+			Object currentDecision = stratGen.getCurrentChoiceAction();
+			if (currentDecision != null) {
+				decision = currentDecision;
+			}
+		} catch (RuntimeException ex) {
+			// Keep UNDEFINED rather than crashing.
+		}
+
+		path.setStrategyInfoForCurrentState(memory, decision);
 	}
+
+//	/**
+//	 * Update the state of the loaded strategy, if present, based on the last step that occurred.
+//	 */
+//	private void updateStrategy()
+//	{
+//		if (stratGen != null) {
+//			stratGen.update(path.getPreviousAction(), getCurrentState());
+//			int memory = stratGen.getCurrentMemory();
+//			Object decision = stratGen.getCurrentChoiceAction();
+//			path.setStrategyInfoForCurrentState(memory, decision);
+//		}
+//	}
 
 	/**
 	 * Reset the state of the loaded strategy, if present, based on the last step that occurred.

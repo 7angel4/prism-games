@@ -461,4 +461,5 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		return getDoubleTransitionsIterator(s, i, null);
 	}
 
+
 }

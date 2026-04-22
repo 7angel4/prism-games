@@ -7,17 +7,10 @@ import parser.ast.Property;
 import parser.ast.PropertiesFile;
 import prism.*;
 import simulator.SimulatorEngine;
-import strat.CSGStrategy;
-import strat.FMDStrategyStep;
-import strat.Strategy;
-import strat.StrategyGenerator;
+import strat.*;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -85,6 +78,9 @@ public class PACLearner {
     private double maxRadius = 0.0;
     private MDPRewardsSimple<Double> explorationRewards;
     private BitSet explorationTarget;
+    private UCSGModelChecker empiricalMC;
+    Strategy<Double> explorationStrat;
+
 
     public PACLearner(Prism prism, int seed) throws PrismException {
         this.prism = prism;
@@ -143,10 +139,9 @@ public class PACLearner {
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
             updateExplorationRewards();
-            Strategy<Double> exploreStrat = solveExplorationRMDP(horizon);
+            explorationStrat = solveExplorationRMDP(horizon);
 
-            sampleTrajectory(exploreStrat);
-
+            sampleTrajectory(horizon);
             updateKnown();
 
             System.out.println();
@@ -157,42 +152,60 @@ public class PACLearner {
         }
     }
 
-    private void sampleTrajectory(Strategy<Double> exploreStrat, int horizon) throws PrismException {
-        // Build a model generator from the explicit true game.
-//        ModelModelGenerator<Double> modelGen =
-//                new ModelModelGenerator<>(trueGame, prism.getModelInfo());
+    private void sampleTrajectory(int horizon) throws PrismException
+    {
         prism.loadModelIntoSimulator();
         SimulatorEngine sim = prism.getSimulator();
-        if (exploreStrat instanceof FMDStrategyStep)
-            sim.loadStrategy((FMDStrategyStep) exploreStrat);
+
+        if (!(explorationStrat instanceof StrategyGenerator)) {
+            throw new PrismException("Exploration strategy must be a StrategyGenerator for the simulator");
+        }
+        sim.loadStrategy((StrategyGenerator<Double>) explorationStrat);
         sim.setStrategyEnforced(true);
 
         sim.createNewPath();
-        sim.initialisePath(null);
+        sim.initialisePath(sim.getModel().getInitialState());
+
+        Function<State, Integer> stateIndexOf = state -> trueGame.getStatesList().indexOf(state);
+
+        BitSet[] targets = empiricalMC.getTargets();
+        int numCoalitions = targets.length;
+        BitSet reached = new BitSet(numCoalitions);
 
         for (int h = 0; h < horizon; h++) {
             if (sim.queryIsDeadlock()) {
                 break;
             }
 
-            Function<State, Integer> stateIndexOf =
-                    state -> trueGame.getStatesList().indexOf(state);
-            int s = stateIndexOf.apply(sim.getCurrentState());
+            State before = sim.getCurrentState();
+            int s = stateIndexOf.apply(before);
+            if (s < 0) {
+                throw new PrismException("Current state not found in explicit state list: " + before);
+            }
 
-            boolean moved = sim.automaticTransition();
-            if (!moved) {
+            if (!sim.automaticTransition()) {
                 break;
             }
-            int sp = stateIndexOf.apply(sim.getCurrentState());
-            int c = sim.getLastChoiceIndex();
 
-            updateCount(s, c, sp);
+            State after = sim.getCurrentState();
+            int sp = stateIndexOf.apply(after);
+            if (sp < 0) {
+                throw new PrismException("Next state not found in explicit state list: " + after);
+            }
 
-            if (explorationTarget != null && explorationTarget.get(sp)) {
+            int choiceIndex = sim.getLastChoiceIndex();
+            updateCount(s, choiceIndex, sp);
+
+            for (int p = 0; p < numCoalitions; p++) {
+                if (targets[p] != null && targets[p].get(sp)) {
+                    reached.set(p);
+                }
+            }
+
+            if (reached.cardinality() == numCoalitions) {
                 break;
             }
         }
-
     }
 
     private void updateCount(int s, int c, int succ) throws PrismException {
@@ -207,20 +220,6 @@ public class PACLearner {
 
         Map<Integer, Long> counts = transitionCounts.get(s).get(c);
         counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
-    }
-
-    private BitSet buildPropertyTarget(BitSet[] targets, int numStates) {
-        BitSet propertyTarget = new BitSet(numStates);
-        if (targets == null) {
-            return propertyTarget;
-        }
-
-        for (BitSet t : targets) {
-            if (t != null) {
-                propertyTarget.or(t);
-            }
-        }
-        return propertyTarget;
     }
 
     private void checkValidInput(CSGSimple<Double> trueGame,
@@ -354,17 +353,17 @@ public class PACLearner {
         if (!(mc instanceof UCSGModelChecker)) {
             throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
         }
-        UCSGModelChecker ucsgMc = (UCSGModelChecker) mc;
-        ucsgMc.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-        ucsgMc.setGenStrat(true);
-        ucsgMc.setSilentPrecomputations(true);
+        empiricalMC = (UCSGModelChecker) mc;
+        empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        empiricalMC.setGenStrat(true);
+        empiricalMC.setSilentPrecomputations(true);
         // defaults
-//        ucsgMc.setPrecomp(true);
-//        ucsgMc.setPrecomp(true);
-//        ucsgMc.setVerbosity(0);
+//        empiricalMC.setPrecomp(true);
+//        empiricalMC.setPrecomp(true);
+//        empiricalMC.setVerbosity(0);
 
         try {
-            StateValues sv = ucsgMc.checkExpression(empiricalGame, property.getExpression(), null, true);
+            StateValues sv = empiricalMC.checkExpression(empiricalGame, property.getExpression(), null, true);
             if (sv == null) {
                 return new SolveOutcome(false, null, Double.NaN);
             }
@@ -385,7 +384,7 @@ public class PACLearner {
             }
 
             CSGStrategy<Double> strategy = null;
-            Strategy<?> strat = ucsgMc.getStrategy();
+            Strategy<?> strat = empiricalMC.getStrategy();
             if (strat instanceof CSGStrategy) {
                 strategy = (CSGStrategy<Double>) strat;
                 return new SolveOutcome(true, strategy, value);
@@ -415,7 +414,10 @@ public class PACLearner {
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                known.get(s).set(c, slotCounts.get(s).get(c) >= nMin);
+                boolean newKnown = slotCounts.get(s).get(c) >= nMin;
+//                if (newKnown)
+//                    System.out.println("new known slot: " + "(s=" + s + ", c=" + c + ") with count " + slotCounts.get(s).get(c));
+                known.get(s).set(c, newKnown);
             }
         }
     }

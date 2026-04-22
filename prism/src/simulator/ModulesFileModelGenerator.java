@@ -603,6 +603,38 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 	}
 
 	@Override
+	public int getChoiceIndexByAction(Object action) throws PrismException
+	{
+		int numChoices = getNumChoices();
+
+		for (int i = 0; i < numChoices; i++) {
+			// Choice actions in CSG/MDP models are attached to the current state's choice.
+			// For CSGs they are usually JointAction objects.
+			if (getNumTransitions(i) == 0) {
+				continue;
+			}
+
+			Object choiceAction = getTransitionAction(i, 0);
+
+			// First try normal object equality.
+			if (java.util.Objects.equals(choiceAction, action)) {
+				return i;
+			}
+
+			// Fallback: compare textual forms, so JointAction vs String can still match.
+			if (choiceAction != null && action != null) {
+				if (choiceAction.toString().equals(action.toString())) {
+					return i;
+				}
+			}
+		}
+
+		return -1;
+	}
+
+
+
+	@Override
 	public int getChoiceOffsetOfTransition(int index) throws PrismException
 	{
 		return getTransitionList().getChoiceOffsetOfTransition(index);
@@ -623,7 +655,7 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			int a = transitions.getTransitionModuleOrActionIndex(index);
 			return a < 0 ? null : modulesFile.getSynch(a - 1);
 		} else {
-			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(index)).getActions();
+			int as[] = ((ChoiceListFlexi<Value>) transitions.getChoice(i)).getActions();
 			return as;
 		}
 	}

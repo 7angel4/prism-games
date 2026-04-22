@@ -85,4 +85,32 @@ public class JointAction extends ArrayList<Object>
 		// Comma-separated list of action strings, with "" for undefined, e.g. "[a,b,,c,-,d]"
 		return "[" + stream().map(a -> a == null ? "" : a.toString()).collect(Collectors.joining(",")) + "]";
 	}
+
+	@Override
+	public boolean equals(Object o)
+	{
+		if (this == o) return true;
+		if (!(o instanceof JointAction)) return false;
+		JointAction other = (JointAction) o;
+
+		if (this.size() != other.size()) return false;
+
+		for (int p = 0; p < this.size(); p++) {
+			if (!java.util.Objects.equals(this.get(p), other.get(p))) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	@Override
+	public int hashCode()
+	{
+		java.util.List<Object> parts = new java.util.ArrayList<>();
+		for (int p = 0; p < this.size(); p++) {
+			parts.add(this.get(p));
+		}
+		return java.util.Objects.hash(parts.toArray());
+	}
 }
+

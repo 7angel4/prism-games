@@ -105,6 +105,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
 
+	private BitSet[] targets;
+
 	// Delay between occasional updates for slow processes, e.g. numerical solution (milliseconds)
 	public static final int UPDATE_DELAY = 5000;
 
@@ -687,7 +689,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		List<ExpressionQuant> formulae = expr.getOperands();
 		List<CSGRewards<Double>> rewards = new ArrayList<>();
 		BitSet[] remain = new BitSet[coalitions.size()];
-		BitSet[] targets = new BitSet[coalitions.size()];
+		targets = new BitSet[coalitions.size()];
 		BitSet bounded  = new BitSet();
 		BitSet unbounded = new BitSet();
 		int[] bounds = new int[coalitions.size()];
@@ -1971,5 +1973,9 @@ public class ProbModelChecker extends NonProbModelChecker
 				return (RewardsExplicit<Double>) rewards.liftFromModel(product);
 			}
 		};
+	}
+
+	public BitSet[] getTargets() {
+		return targets;
 	}
 }
