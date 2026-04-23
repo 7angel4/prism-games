@@ -15,7 +15,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 public class PACLearner {
 
@@ -81,6 +80,8 @@ public class PACLearner {
     private UCSGModelChecker empiricalMC;
     private Strategy<Double> explorationStrat;
 
+    private Map<State, Integer> stateToIndex;
+
     /**
      * effectiveHorizon is the horizon used in the theoretical stopping threshold.
      * For finite-horizon properties, this is the property's upper bound.
@@ -139,8 +140,7 @@ public class PACLearner {
         double lastDeltaT = 0.0;
 
         computeNmin(deltaContain, rMax, eps);
-        initialiseRun(trueGame, solver);
-        initialiseMC(propertiesFile);
+        initialiseRun(trueGame, solver, propertiesFile);
         robustSolveL1CSG(property); // solve once so that the model checker records the target states
 
         while (true) {
@@ -164,7 +164,8 @@ public class PACLearner {
             updateExplorationRewards();
             explorationStrat = solveExplorationRMDP();
 
-            sampleTrajectory();
+            for (int i = 0; i < 100; i++)
+                sampleTrajectory();
             updateKnown();
 
             if (deltaT != lastDeltaT) {
@@ -194,7 +195,6 @@ public class PACLearner {
         sim.createNewPath();
         sim.initialisePath(sim.getModel().getInitialState());
 
-        Function<State, Integer> stateIndexOf = state -> trueGame.getStatesList().indexOf(state);
 
         BitSet[] targets = empiricalMC.getTargets();
         int numCoalitions = targets.length;
@@ -208,8 +208,8 @@ public class PACLearner {
             }
 
             State before = sim.getCurrentState();
-            int s = stateIndexOf.apply(before);
-            if (s < 0) {
+            Integer s = stateToIndex.get(before);
+            if (s == null) {
                 throw new PrismException("Current state not found in explicit state list: " + before);
             }
 
@@ -218,8 +218,8 @@ public class PACLearner {
             }
 
             State after = sim.getCurrentState();
-            int sp = stateIndexOf.apply(after);
-            if (sp < 0) {
+            Integer sp = stateToIndex.get(after);
+            if (sp == null) {
                 throw new PrismException("Next state not found in explicit state list: " + after);
             }
 
@@ -357,7 +357,7 @@ public class PACLearner {
         return w;
     }
 
-    private void initialiseRun(CSGSimple<Double> template, String solver) throws PrismException {
+    private void initialiseRun(CSGSimple<Double> template, String solver, PropertiesFile propertiesFile) throws PrismException {
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
@@ -402,6 +402,13 @@ public class PACLearner {
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
         String chosenSolver = (solver == null || solver.isBlank()) ? DEFAULT_SMT_SOLVER : solver;
         prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
+
+        stateToIndex = new HashMap<>();
+        for (int i = 0; i < trueGame.getStatesList().size(); i++) {
+            stateToIndex.put(trueGame.getStatesList().get(i), i);
+        }
+
+        initialiseMC(propertiesFile);
     }
 
     private void updateL1Transitions(double deltaContain) {
@@ -542,11 +549,7 @@ public class PACLearner {
         mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
 
-        ModelCheckerResult res = mc.computeCumulativeRewards(
-                explorationRMDP,
-                explorationRewards,
-                rolloutCap,
-                MinMax.max().setMinUnc(true)
+        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, rolloutCap, MinMax.max().setMinUnc(true)
         );
 
         if (res == null || res.strat == null) {
@@ -579,7 +582,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.VERY_SIMPLE);
+        Experiment ex = new Experiment(Experiment.Model.TINY_ALOHA);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
