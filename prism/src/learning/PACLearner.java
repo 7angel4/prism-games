@@ -129,7 +129,7 @@ public class PACLearner {
             double rMax,
             int effectiveHorizon,
             int rolloutCap,
-            String solverString
+            String solver
     ) throws PrismException {
 
         checkAndSetInput(trueGame, eps, delta, effectiveHorizon, rolloutCap);
@@ -139,7 +139,9 @@ public class PACLearner {
         double lastDeltaT = 0.0;
 
         computeNmin(deltaContain, rMax, eps);
-        initialiseRun(trueGame);
+        initialiseRun(trueGame, solver);
+        initialiseMC(propertiesFile);
+        robustSolveL1CSG(property); // solve once so that the model checker records the target states
 
         while (true) {
             episode++;
@@ -147,16 +149,15 @@ public class PACLearner {
             updateL1Transitions(deltaContain);
 
             double deltaT = computeDeltaT(rMax, effectiveHorizon);
-            SolveOutcome robustSol = robustSolveL1CSG(propertiesFile, property, solverString);
 
             boolean allKnown = allSlotsKnown();
 
-            if (!robustSol.found && deltaT <= eps / STOP_THRESH_FACTOR) {
-                return new PacResult(true, false, episode, robustSol.value, deltaT, robustSol.strategy);
-            }
-
-            if (robustSol.found && (deltaT <= eps / STOP_THRESH_FACTOR || allKnown)) {
-                return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
+            if (deltaT <= eps / STOP_THRESH_FACTOR || allKnown) {
+                SolveOutcome robustSol = robustSolveL1CSG(property);
+                if (!robustSol.found)
+                    return new PacResult(true, false, episode, robustSol.value, deltaT, robustSol.strategy);
+                else
+                    return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
             }
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
@@ -167,16 +168,15 @@ public class PACLearner {
             updateKnown();
 
             if (deltaT != lastDeltaT) {
-                printEpisodeResult(episode, robustSol, deltaT, allKnown);
+                printEpisodeResult(episode, deltaT, allKnown);
             }
             lastDeltaT = deltaT;
         }
     }
 
-    private void printEpisodeResult(int episode, SolveOutcome robustSol, double deltaT, boolean allKnown) {
+    private void printEpisodeResult(int episode, double deltaT, boolean allKnown) {
         System.out.println();
         System.out.println("Episode " + episode + ":");
-        System.out.println("    " + robustSol);
         System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
         System.out.println("\n---------------------------------------");
     }
@@ -357,7 +357,7 @@ public class PACLearner {
         return w;
     }
 
-    private void initialiseRun(CSGSimple<Double> template) {
+    private void initialiseRun(CSGSimple<Double> template, String solver) throws PrismException {
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
@@ -400,6 +400,8 @@ public class PACLearner {
         empiricalGame = new L1CSGSimple<>(template, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
+        String chosenSolver = (solver == null || solver.isBlank()) ? DEFAULT_SMT_SOLVER : solver;
+        prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
     }
 
     private void updateL1Transitions(double deltaContain) {
@@ -463,10 +465,7 @@ public class PACLearner {
         }
     }
 
-    private SolveOutcome robustSolveL1CSG(PropertiesFile propertiesFile, Property property, String solverString) throws PrismException {
-        String chosenSolver = (solverString == null || solverString.isBlank()) ? DEFAULT_SMT_SOLVER : solverString;
-        prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
-
+    private void initialiseMC(PropertiesFile propertiesFile) throws PrismException {
         StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
         if (!(mc instanceof UCSGModelChecker)) {
             throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
@@ -476,6 +475,9 @@ public class PACLearner {
         empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         empiricalMC.setGenStrat(true);
         empiricalMC.setSilentPrecomputations(true);
+    }
+
+    private SolveOutcome robustSolveL1CSG(Property property) throws PrismException {
         return getSolveOutcome(empiricalMC, empiricalGame, property);
     }
 
