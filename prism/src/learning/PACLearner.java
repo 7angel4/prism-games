@@ -43,20 +43,20 @@ public class PACLearner {
     }
 
     public static final class PacResult {
-        public final boolean certificateNoExactNE;
+        public final boolean noExactNE;
         public final boolean terminatedByAllKnown;
         public final int episodes;
         public final double robustValue;
         public final double deltaT;
         public final CSGStrategy<Double> robustStrategy;
 
-        public PacResult(boolean certificateNoExactNE,
+        public PacResult(boolean noExactNE,
                          boolean terminatedByAllKnown,
                          int episodes,
                          double robustValue,
                          double deltaT,
                          CSGStrategy<Double> robustStrategy) {
-            this.certificateNoExactNE = certificateNoExactNE;
+            this.noExactNE = noExactNE;
             this.terminatedByAllKnown = terminatedByAllKnown;
             this.episodes = episodes;
             this.robustValue = robustValue;
@@ -67,9 +67,9 @@ public class PACLearner {
 
     private final Prism prism;
 
-    private final List<List<Long>> slotCounts = new ArrayList<>();
-    private final List<List<Map<Integer, Long>>> transitionCounts = new ArrayList<>();
-    private final List<List<Boolean>> known = new ArrayList<>();
+    private long[][] slotCounts;
+    private long[][][] transitionCounts; // indexed by [s][c], then maps successor state index to count; 3rd dimension might be sparse
+    private boolean[][] known;
 
     private CSGSimple<Double> trueGame;
     private L1CSGSimple<Double> empiricalGame;
@@ -232,9 +232,9 @@ public class PACLearner {
     }
 
     private void updateCount(int s, int c, int succ) throws PrismException {
-        slotCounts.get(s).set(c, slotCounts.get(s).get(c) + 1L);
-        Map<Integer, Long> counts = transitionCounts.get(s).get(c);
-        counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
+        slotCounts[s][c] += 1L;
+        long[] counts = transitionCounts[s][c];
+        counts[succ] += 1L;
     }
 
     private void checkAndSetInput(CSGSimple<Double> trueGame, double epsilon, double delta, int effectiveHorizon, int rolloutCap) throws PrismException {
@@ -346,29 +346,31 @@ public class PACLearner {
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
-        slotCounts.clear();
-        transitionCounts.clear();
-        known.clear();
+        slotCounts = new long[numStates][];
+        transitionCounts = new long[numStates][][];
+        known = new boolean[numStates][];
 
         for (int s = 0; s < numStates; s++) {
             int numChoices = template.getNumChoices(s);
 
-            known.add(new ArrayList<>(numChoices));
+            known[s] = new boolean[numChoices];
             trans.add(new ArrayList<>(numChoices));
-            slotCounts.add(new ArrayList<>(numChoices));
-            transitionCounts.add(new ArrayList<>(numChoices));
+            slotCounts[s] = new long[numChoices];
+            transitionCounts[s] = new long[numChoices][];
 
             for (int c = 0; c < numChoices; c++) {
-                known.get(s).add(false);
-                slotCounts.get(s).add(0L);
-                transitionCounts.get(s).add(new HashMap<>());
+                // initialised to false/0L by default
+//                known[s][c] = false;
+//                slotCounts[s][c] = 0L;
+                transitionCounts[s][c] = new long[numStates];
 
                 Iterator<Integer> successors = template.getSuccessorsIterator(s, c);
                 List<Integer> succs = new ArrayList<>();
                 while (successors.hasNext()) {
                     int succ = successors.next();
                     succs.add(succ);
-                    transitionCounts.get(s).get(c).put(succ, 0L);
+                    // initialized to 0L by default
+//                    transitionCounts[s][c][succ] = 0L;
                 }
 
                 Distribution<Double> uniform = new Distribution<>(Evaluator.forDouble());
@@ -404,7 +406,7 @@ public class PACLearner {
 
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                long saCount = slotCounts.get(s).get(c);
+                long saCount = slotCounts[s][c];
                 if (saCount == 0L) {
                     maxRadius = 2.0;
                     continue;
@@ -418,7 +420,7 @@ public class PACLearner {
                 int cFinal = c;
 
                 empiricalGame.getSuccessorsIterator(s, c).forEachRemaining(succ -> {
-                    double pHat = transitionCounts.get(sFinal).get(cFinal).getOrDefault(succ, 0L) / (double) saCount;
+                    double pHat = transitionCounts[sFinal][cFinal][succ] / (double) saCount;
                     pHat = Math.max(TRANS_PROB_LB, pHat);
                     empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
                 });
@@ -448,7 +450,7 @@ public class PACLearner {
     private void updateExplorationRewards() {
         for (int s = 0; s < explorationRMDP.getNumStates(); s++) {
             for (int c = 0; c < explorationRMDP.getNumChoices(s); c++) {
-                explorationRewards.setTransitionReward(s, c, known.get(s).get(c) ? 0.0 : 1.0);
+                explorationRewards.setTransitionReward(s, c, known[s][c] ? 0.0 : 1.0);
             }
         }
     }
@@ -551,9 +553,9 @@ public class PACLearner {
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                boolean isKnown = slotCounts.get(s).get(c) >= nMin;
-                if (!known.get(s).get(c) && isKnown) System.out.println("Slot (" + s + ", " + c + ") is now known with count " + slotCounts.get(s).get(c));
-                known.get(s).set(c, isKnown);
+                boolean isKnown = slotCounts[s][c] >= nMin;
+                if (!known[s][c] && isKnown) System.out.println("Slot (" + s + ", " + c + ") is now known with count " + slotCounts[s][c]);
+                known[s][c] = isKnown;
             }
         }
     }
@@ -561,7 +563,7 @@ public class PACLearner {
     private boolean allSlotsKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                if (slotCounts.get(s).get(c) < nMin) {
+                if (slotCounts[s][c] < nMin) {
                     return false;
                 }
             }
@@ -574,7 +576,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.MEDIUM_ACCESS2);
+        Experiment ex = new Experiment(Experiment.Model.VERY_SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
@@ -582,7 +584,7 @@ public class PACLearner {
         PACLearner learner = new PACLearner(prism, 41);
         PacResult res = learner.runPacLoop(spec);
 
-        System.out.println("certificateNoExactNE=" + res.certificateNoExactNE);
+        System.out.println("noExactNE=" + res.noExactNE);
         System.out.println("terminatedByAllKnown=" + res.terminatedByAllKnown);
         System.out.println("episodes=" + res.episodes);
         System.out.println("robustValue=" + res.robustValue);

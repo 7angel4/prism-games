@@ -128,9 +128,9 @@ public class Experiment
 
         switch (model) {
             case VERY_SIMPLE -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.prism";
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple_rew.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.props";
-                this.propertyIndex = 2;
+                this.propertyIndex = 3;
 
                 this.parameterValues = new Values();
                 this.epsilon = 0.5;
