@@ -9,8 +9,7 @@ const int k=2;
 <<p1:p2>>max=? ( R{"r1"}[C<=k] + R{"r2"}[C<=k] )
 
 // 4) Unbounded reachability reward
-// <<p1:p2>>min=? ( R{"r1"}[F s=1] + R{"r2"}[F s=2] )
-// <<p1:p2>>min=? ( R{"cost"}[F s=1] )
+<<p1:p2>>max=? ( R{"r1"}[F s=1] + R{"r2"}[F s=2] )
 
 // maximum probability of reaching s1
 // <<p1>> Pmax=? [ F s=1 ]
