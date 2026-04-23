@@ -5,6 +5,7 @@
 <<p1:p2>>max=? ( P[F<=k s=1] + P[F<=k s=2] )
 
 // 3) Bounded cumulative rewards
+const int k=2;
 <<p1:p2>>max=? ( R{"r1"}[C<=k] + R{"r2"}[C<=k] )
 
 // 4) Unbounded reachability reward
@@ -13,5 +14,4 @@
 // maximum probability of reaching s1
 // <<p1>> Pmax=? [ F s=1 ]
 
-const int k=2;
 <<p1>> Pmax=? [ F<=k (s=1)]

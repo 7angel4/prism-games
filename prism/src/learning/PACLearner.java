@@ -430,10 +430,6 @@ public class PACLearner {
                 });
             }
         }
-
-//        if (maxRadius < 2.0) {
-//            System.out.println("New max radius: " + maxRadius);
-//        }
     }
 
     private double weissmanRadius(double saCount, double deltaSlot) {
@@ -524,8 +520,6 @@ public class PACLearner {
                 CSGStrategy<Double> strategy = (CSGStrategy<Double>) csgStrat;
                 return new SolveOutcome(true, strategy, value);
             } else if (strat == null) {
-//                System.err.println("Warning: robust solve did not return a strategy.");
-                // strat is not supported in some cases (e.g. unbounded properties), but we can still return the value
                 return new SolveOutcome(true, null, value);
             } else {
                 throw new PrismException("Expected a CSGStrategy from solve, but got " + strat.getClass().getSimpleName());
@@ -534,7 +528,6 @@ public class PACLearner {
             return new SolveOutcome(false, null, Double.NaN);
         }
     }
-
 
     private Strategy<Double> solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
