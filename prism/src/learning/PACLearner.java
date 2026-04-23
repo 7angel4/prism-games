@@ -75,12 +75,14 @@ public class PACLearner {
     private L1CSGSimple<Double> empiricalGame;
     private L1MDPSimple<Double> explorationRMDP;
     private long nMin;
-    private double maxRadius = 0.0;
+    private double maxRadius = L1CSGSimple.INIT_RADIUS;
     private MDPRewardsSimple<Double> explorationRewards;
     private UCSGModelChecker empiricalMC;
     private Strategy<Double> explorationStrat;
 
     private Map<State, Integer> stateToIndex;
+    BitSet[] targets;
+    SimulatorEngine sim;
 
     /**
      * effectiveHorizon is the horizon used in the theoretical stopping threshold.
@@ -137,20 +139,22 @@ public class PACLearner {
 
         final double deltaContain = delta / 2.0;
         int episode = 0;
-        double lastDeltaT = 0.0;
-
         computeNmin(deltaContain, rMax, eps);
-        initialiseRun(trueGame, solver, propertiesFile);
-        robustSolveL1CSG(property); // solve once so that the model checker records the target states
+        System.out.println("nMin: " + nMin);
+
+        initialiseRun(trueGame, solver, propertiesFile, property);
+        long numSamples = nMin;
+//        double lastDeltaT = 0.0;
+        double deltaT = computeDeltaT(rMax, effectiveHorizon);
+        System.out.println("Initial deltaT: " + deltaT);
+        System.out.println("numSamples=" + numSamples + " per episode");
+        boolean allKnown = false;
 
         while (true) {
             episode++;
 
-            updateL1Transitions(deltaContain);
-
-            double deltaT = computeDeltaT(rMax, effectiveHorizon);
-
-            boolean allKnown = allSlotsKnown();
+            deltaT = computeDeltaT(rMax, effectiveHorizon);
+            allKnown = allSlotsKnown();
 
             if (deltaT <= eps / STOP_THRESH_FACTOR || allKnown) {
                 SolveOutcome robustSol = robustSolveL1CSG(property);
@@ -162,41 +166,30 @@ public class PACLearner {
 
             explorationRMDP = new L1MDPSimple<>(empiricalGame);
             updateExplorationRewards();
-            explorationStrat = solveExplorationRMDP();
+            solveExplorationRMDP();
 
-            for (int i = 0; i < 100; i++)
+            for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
             updateKnown();
 
-            if (deltaT != lastDeltaT) {
-                printEpisodeResult(episode, deltaT, allKnown);
-            }
-            lastDeltaT = deltaT;
+//            if (deltaT != lastDeltaT)
+            printEpisodeResult(episode, deltaT, allKnown);
+//            lastDeltaT = deltaT;
+            updateL1Transitions(deltaContain);
         }
     }
 
     private void printEpisodeResult(int episode, double deltaT, boolean allKnown) {
         System.out.println();
-        System.out.println("Episode " + episode + ":");
-        System.out.println("    deltaT=" + deltaT + ", allKnown=" + allKnown);
-        System.out.println("\n---------------------------------------");
+        System.out.println("Episode " + episode + ":  deltaT=" + deltaT + ", allKnown=" + allKnown);
+        System.out.println("---------------------------------------");
     }
 
     private void sampleTrajectory() throws PrismException {
-        prism.loadModelIntoSimulator();
-        SimulatorEngine sim = prism.getSimulator();
-
-        if (!(explorationStrat instanceof StrategyGenerator)) {
-            throw new PrismException("Exploration strategy must be a StrategyGenerator for the simulator");
-        }
-        sim.loadStrategy((StrategyGenerator<Double>) explorationStrat);
-        sim.setStrategyEnforced(true);
 
         sim.createNewPath();
         sim.initialisePath(sim.getModel().getInitialState());
 
-
-        BitSet[] targets = empiricalMC.getTargets();
         int numCoalitions = targets.length;
         BitSet reached = new BitSet(numCoalitions);
 
@@ -239,15 +232,7 @@ public class PACLearner {
     }
 
     private void updateCount(int s, int c, int succ) throws PrismException {
-        if (s < 0 || s >= slotCounts.size()) {
-            throw new PrismException("State index out of range in updateCount: " + s);
-        }
-        if (c < 0 || c >= slotCounts.get(s).size()) {
-            throw new PrismException("Choice index out of range in updateCount: " + c + " at state " + s);
-        }
-
         slotCounts.get(s).set(c, slotCounts.get(s).get(c) + 1L);
-
         Map<Integer, Long> counts = transitionCounts.get(s).get(c);
         counts.put(succ, counts.getOrDefault(succ, 0L) + 1L);
     }
@@ -357,7 +342,7 @@ public class PACLearner {
         return w;
     }
 
-    private void initialiseRun(CSGSimple<Double> template, String solver, PropertiesFile propertiesFile) throws PrismException {
+    private void initialiseRun(CSGSimple<Double> template, String solver, PropertiesFile propertiesFile, Property property) throws PrismException {
         int numStates = template.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
@@ -408,7 +393,9 @@ public class PACLearner {
             stateToIndex.put(trueGame.getStatesList().get(i), i);
         }
 
-        initialiseMC(propertiesFile);
+        initialiseMC(propertiesFile, property);
+        prism.loadModelIntoSimulator();
+        sim = prism.getSimulator();
     }
 
     private void updateL1Transitions(double deltaContain) {
@@ -419,18 +406,12 @@ public class PACLearner {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts.get(s).get(c);
                 if (saCount == 0L) {
-                    empiricalGame.setRadius(s, c, 2.0); // full simplex
                     maxRadius = 2.0;
                     continue;
                 }
-
                 double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
                 double radius = weissmanRadius(saCount, deltaSlot);
-
-                if (radius > maxRadius) {
-                    maxRadius = radius;
-                }
-
+                if (radius > maxRadius) maxRadius = radius;
                 empiricalGame.setRadius(s, c, radius);
 
                 int sFinal = s;
@@ -472,7 +453,7 @@ public class PACLearner {
         }
     }
 
-    private void initialiseMC(PropertiesFile propertiesFile) throws PrismException {
+    private void initialiseMC(PropertiesFile propertiesFile, Property property) throws PrismException {
         StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
         if (!(mc instanceof UCSGModelChecker)) {
             throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
@@ -482,6 +463,9 @@ public class PACLearner {
         empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         empiricalMC.setGenStrat(true);
         empiricalMC.setSilentPrecomputations(true);
+
+        robustSolveL1CSG(property); // solve once so that the model checker records the target states
+        targets = empiricalMC.getTargets();
     }
 
     private SolveOutcome robustSolveL1CSG(Property property) throws PrismException {
@@ -542,7 +526,7 @@ public class PACLearner {
         }
     }
 
-    private Strategy<Double> solveExplorationRMDP() throws PrismException {
+    private void solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
@@ -555,13 +539,21 @@ public class PACLearner {
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
-        return (Strategy<Double>) res.strat;
+
+        explorationStrat = (Strategy<Double>) res.strat;
+        if (!(explorationStrat instanceof StrategyGenerator)) {
+            throw new PrismException("Exploration strategy must be a StrategyGenerator for the simulator");
+        }
+        sim.loadStrategy((StrategyGenerator<Double>) explorationStrat);
+        sim.setStrategyEnforced(true);
     }
 
     private void updateKnown() {
         for (int s = 0; s < empiricalGame.getNumStates(); s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                known.get(s).set(c, slotCounts.get(s).get(c) >= nMin);
+                boolean isKnown = slotCounts.get(s).get(c) >= nMin;
+                if (!known.get(s).get(c) && isKnown) System.out.println("Slot (" + s + ", " + c + ") is now known with count " + slotCounts.get(s).get(c));
+                known.get(s).set(c, isKnown);
             }
         }
     }
@@ -582,7 +574,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.Model.TINY_ALOHA);
+        Experiment ex = new Experiment(Experiment.Model.MEDIUM_ACCESS2);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
@@ -595,6 +587,7 @@ public class PACLearner {
         System.out.println("episodes=" + res.episodes);
         System.out.println("robustValue=" + res.robustValue);
         System.out.println("deltaT=" + res.deltaT);
+        System.out.println("nMin=" + learner.nMin);
 
         System.out.println("---------------------------------------");
         SolveOutcome trueSol = learner.solveTrueGame(spec.propertiesFile, spec.property);

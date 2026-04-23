@@ -31,6 +31,7 @@ public class Experiment
 {
     public enum Model {
         VERY_SIMPLE,
+        MEDIUM_ACCESS2,
         TINY_ALOHA,
         ALOHA,
         ROBOT_COORD
@@ -136,6 +137,17 @@ public class Experiment
                 this.confidence = 0.1;
                 this.rMax = 1.0;
                 this.horizon = 1;
+            }
+            case MEDIUM_ACCESS2 -> {
+                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access2.prism";
+                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access2.props";
+                this.propertyIndex = 1;
+
+                this.parameterValues = new Values();
+                addParameters("k1", 2, "k2", 2, "emax", 10, "q1", 0.95, "q2", 0.75);
+                this.epsilon = 0.5;
+                this.confidence = 0.1;
+                this.rMax = 1.0;
             }
             case TINY_ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
