@@ -219,7 +219,8 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Start bounded probabilistic reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting bounded probabilistic reachability...");
+		if (verbosity > 0)
+			mainLog.println("\nStarting bounded probabilistic reachability...");
 
 		// Check for any zero lower probability bounds (not supported
 		// since this approach assumes the graph structure remains static)
@@ -272,8 +273,10 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.print("Bounded probabilistic reachability");
-		mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		if (verbosity > 0) {
+			mainLog.print("Bounded probabilistic reachability");
+			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
+		}
 
 		// Return results
 		res = new ModelCheckerResult();

@@ -949,7 +949,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 	 */
 	public ModelCheckerResult computeBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		if (genStrat) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+//			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			System.err.println("Strategy synthesis for bounded properties is not supported yet.");
+			genStrat = false;
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<CSGRewards<Double>> newRewards = null;
@@ -1207,7 +1209,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 	public ModelCheckerResult computeMultiBoundedEquilibria(CSG<Double> csg, List<Coalition> coalitions, List<CSGRewards<Double>> rewards, List<ExpressionTemporal> exprs, BitSet[] targets, BitSet[] remain, int[] bounds, int eqType, int crit, boolean min) throws PrismException {
 		mainLog.println("\n# Running bounded multi-player equilibria...\n");
 		if (genStrat) {
-			throw new PrismException("Strategy synthesis for bounded properties is not yet supported");
+//			throw new PrismException("Strategy synthesis for bounded properties is not yet supported");
+			System.err.println("Strategy synthesis for bounded properties is not supported yet.");
+			genStrat = false; // to allow model checking to proceed (but not strategy synthesis)
 		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<Map<Integer, BitSet>> mmap = null;

@@ -1322,7 +1322,7 @@ public class MDPModelChecker extends ProbModelChecker
 		}
 		// Finished bounded probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		if(verbosity >= 1) {
+		if (verbosity >= 1) {
 			mainLog.print("Bounded probabilistic reachability (" + (min ? "min" : "max") + ")");
 			mainLog.println(" took " + iters + " iterations and " + timer / 1000.0 + " seconds.");
 		}

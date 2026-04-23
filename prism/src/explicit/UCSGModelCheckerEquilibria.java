@@ -1009,7 +1009,10 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 		
 		buildCoalitions(csg, coalitions);
 		findMaxRowsCols(csg);
-		mainLog.println("Starting bounded equilibria computation (solver=" + setSolver(eqType) + ")...");
+		String solver = setSolver(eqType);
+		if (verbosity > 1) {
+			mainLog.println("Starting bounded equilibria computation (solver=" + solver + ")...");
+		}
 		dominated = new BitSet[numCoalitions];
 		dominating = new BitSet[numCoalitions];
 		
@@ -1223,8 +1226,10 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 			n1 = Math.min(n1 + 1, bounds[0]);
 			n2 = Math.min(n2 + 1, bounds[1]);
 		}
-		mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
-		mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
+		if (verbosity > 1) {
+			mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
+			mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
+		}
 		res.soln = r;
 		res.numIters = k;
 		return res;		

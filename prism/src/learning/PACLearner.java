@@ -476,43 +476,65 @@ public class PACLearner {
         empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         empiricalMC.setGenStrat(true);
         empiricalMC.setSilentPrecomputations(true);
+        return getSolveOutcome(empiricalMC, empiricalGame, property);
+    }
 
+    private SolveOutcome solveTrueGame(PropertiesFile propertiesFile, Property property) throws PrismException {
+        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
+        if (!(mc instanceof CSGModelChecker)) {
+            throw new PrismException("Expected a CSGModelChecker, but got " + mc.getClass().getSimpleName());
+        }
+
+        CSGModelChecker trueMC = (CSGModelChecker) mc;
+        trueMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        trueMC.setGenStrat(true);
+        trueMC.setSilentPrecomputations(false);
+
+        return getSolveOutcome(trueMC, trueGame, property);
+    }
+
+    private SolveOutcome getSolveOutcome(ProbModelChecker mc, CSGSimple<Double> game, Property property) {
         try {
-            StateValues sv = empiricalMC.checkExpression(empiricalGame, property.getExpression(), null, true);
+            StateValues sv = mc.checkExpression(game, property.getExpression(), null);
             if (sv == null) {
+                System.err.println("Warning: solve did not return state values.");
                 return new SolveOutcome(false, null, Double.NaN);
             }
 
             double[] vals = sv.getDoubleArray();
             if (vals == null) {
+                System.err.println("Warning: robust solve did not return double values.");
                 return new SolveOutcome(false, null, Double.NaN);
             }
 
-            int init = empiricalGame.getFirstInitialState();
+            int init = game.getFirstInitialState();
             if (init < 0 || init >= vals.length) {
                 throw new PrismException("Initial state index out of range for robust solve.");
             }
 
             double value = vals[init];
             if (Double.isNaN(value) || Double.isInfinite(value)) {
+                System.err.println("Warning: robust solve returned invalid value: " + value);
                 return new SolveOutcome(false, null, value);
             }
 
-            Strategy<?> strat = empiricalMC.getStrategy();
+            Strategy<?> strat = mc.getStrategy();
             if (strat instanceof CSGStrategy<?> csgStrat) {
                 @SuppressWarnings("unchecked")
                 CSGStrategy<Double> strategy = (CSGStrategy<Double>) csgStrat;
                 return new SolveOutcome(true, strategy, value);
+            } else if (strat == null) {
+//                System.err.println("Warning: robust solve did not return a strategy.");
+                // strat is not supported in some cases (e.g. unbounded properties), but we can still return the value
+                return new SolveOutcome(true, null, value);
+            } else {
+                throw new PrismException("Expected a CSGStrategy from solve, but got " + strat.getClass().getSimpleName());
             }
-
-            if (strat == null) {
-                throw new PrismException("Expected a CSGStrategy from robust solve, but got null");
-            }
-            throw new PrismException("Expected a CSGStrategy from robust solve, but got " + strat.getClass().getSimpleName());
         } catch (PrismException e) {
             return new SolveOutcome(false, null, Double.NaN);
         }
     }
+
 
     private Strategy<Double> solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
@@ -571,6 +593,9 @@ public class PACLearner {
         System.out.println("episodes=" + res.episodes);
         System.out.println("robustValue=" + res.robustValue);
         System.out.println("deltaT=" + res.deltaT);
-        System.out.println("hasStrategy=" + (res.robustStrategy != null));
+
+        System.out.println("---------------------------------------");
+        SolveOutcome trueSol = learner.solveTrueGame(spec.propertiesFile, spec.property);
+        System.out.println("True value: " + trueSol);
     }
 }
