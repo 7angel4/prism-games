@@ -29,6 +29,12 @@ module recorder
     [] (s=2) -> (s'=2);
 endmodule
 
-rewards "cost"
-    s=0 : 1;
+rewards "r1"
+    s=1 : 1;
+    s=2 : 0;
+endrewards
+
+rewards "r2"
+    s=1 : 1;
+    s=2 : 0;
 endrewards
