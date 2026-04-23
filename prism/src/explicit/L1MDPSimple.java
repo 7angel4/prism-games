@@ -140,6 +140,10 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
         return L1SupportFunction.solve(distr, radius, vect, minMax);
     }
 
+    public void setCentre(int s, int c, int succ, Value prob) {
+        mdp.trans.get(s).get(c).set(succ, prob);
+    }
+
     @Override
     public int getNumChoices(int s) {
         return mdp.getNumChoices(s);

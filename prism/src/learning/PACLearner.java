@@ -70,6 +70,8 @@ public class PACLearner {
     private long[][] slotCounts;
     private long[][][] transitionCounts; // indexed by [s][c], then maps successor state index to count; 3rd dimension might be sparse
     private boolean[][] known;
+    int numUnknownSlots;
+    int prevNumUnknownSlots;
 
     private CSGSimple<Double> trueGame;
     private L1CSGSimple<Double> empiricalGame;
@@ -140,15 +142,11 @@ public class PACLearner {
         final double deltaContain = delta / 2.0;
         int episode = 0;
         computeNmin(deltaContain, rMax, eps);
-        System.out.println("nMin: " + nMin);
 
         initialiseRun(trueGame, solver, propertiesFile, property);
-        long numSamples = nMin;
-//        double lastDeltaT = 0.0;
         double deltaT = computeDeltaT(rMax, effectiveHorizon);
         System.out.println("Initial deltaT: " + deltaT);
-        System.out.println("numSamples=" + numSamples + " per episode");
-        boolean allKnown = false;
+        boolean allKnown;
 
         while (true) {
             episode++;
@@ -164,29 +162,26 @@ public class PACLearner {
                     return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
             }
 
-            explorationRMDP = new L1MDPSimple<>(empiricalGame);
-            updateExplorationRewards();
-            solveExplorationRMDP();
+            if (episode == 1 || prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if some slots became known
+                solveExplorationRMDP();
+                prevNumUnknownSlots = numUnknownSlots;
+            }
 
+            int numSamples = 100 * numUnknownSlots;
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
-            updateKnown();
 
-//            if (deltaT != lastDeltaT)
-            printEpisodeResult(episode, deltaT, allKnown);
-//            lastDeltaT = deltaT;
-            updateL1Transitions(deltaContain);
+            update(deltaContain);
+            printEpisodeResult(episode, deltaT);
         }
     }
 
-    private void printEpisodeResult(int episode, double deltaT, boolean allKnown) {
-        System.out.println();
-        System.out.println("Episode " + episode + ":  deltaT=" + deltaT + ", allKnown=" + allKnown);
+    private void printEpisodeResult(int episode, double deltaT) {
+        System.out.println("Episode " + episode + ":  deltaT=" + deltaT);
         System.out.println("---------------------------------------");
     }
 
     private void sampleTrajectory() throws PrismException {
-
         sim.createNewPath();
         sim.initialisePath(sim.getModel().getInitialState());
 
@@ -228,10 +223,13 @@ public class PACLearner {
             if (reached.cardinality() == numCoalitions) {
                 break;
             }
+//            if (!known[s][choiceIndex]) {
+//                break;
+//            }
         }
     }
 
-    private void updateCount(int s, int c, int succ) throws PrismException {
+    private void updateCount(int s, int c, int succ) {
         slotCounts[s][c] += 1L;
         long[] counts = transitionCounts[s][c];
         counts[succ] += 1L;
@@ -276,21 +274,10 @@ public class PACLearner {
 
         final double MIN_X = -1.0 / Math.E;
 
-        if (x < MIN_X) {
-            throw new IllegalArgumentException("W_{-1}(x) is undefined for x < -1/e.");
-        }
-
-        if (x == 0.0) {
-            return Double.NEGATIVE_INFINITY;
-        }
-
-        if (x == MIN_X) {
-            return -1.0;
-        }
-
-        if (x > 0.0) {
-            throw new IllegalArgumentException("W_{-1}(x) is real only for -1/e <= x < 0.");
-        }
+        if (x < MIN_X) throw new IllegalArgumentException("W_{-1}(x) is undefined for x < -1/e.");
+        if (x == 0.0)  return Double.NEGATIVE_INFINITY;
+        if (x == MIN_X) return -1.0;
+        if (x > 0.0)  throw new IllegalArgumentException("W_{-1}(x) is real only for -1/e <= x < 0.");
 
         double w;
         if (x < -0.3) {
@@ -349,11 +336,13 @@ public class PACLearner {
         slotCounts = new long[numStates][];
         transitionCounts = new long[numStates][][];
         known = new boolean[numStates][];
+        numUnknownSlots = 0;
 
         for (int s = 0; s < numStates; s++) {
             int numChoices = template.getNumChoices(s);
 
             known[s] = new boolean[numChoices];
+            numUnknownSlots += numChoices;
             trans.add(new ArrayList<>(numChoices));
             slotCounts[s] = new long[numChoices];
             transitionCounts[s] = new long[numChoices][];
@@ -384,6 +373,8 @@ public class PACLearner {
             }
         }
 
+        prevNumUnknownSlots = numUnknownSlots;
+
         empiricalGame = new L1CSGSimple<>(template, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
@@ -400,7 +391,25 @@ public class PACLearner {
         sim = prism.getSimulator();
     }
 
-    private void updateL1Transitions(double deltaContain) {
+    private void updateExplorationReward(int s, int c) {
+        double rew = 0.0;
+        if (!known[s][c]) {
+            double r = empiricalGame.getRadius(s, c);
+            rew = r * r; // quadratic in radius to incentivise reducing uncertainty
+        }
+        explorationRewards.setTransitionReward(s, c, rew);
+    }
+
+    private void updateKnown(int s, int c) {
+        boolean isKnown = slotCounts[s][c] >= nMin;
+        if (isKnown && !known[s][c]) {
+            numUnknownSlots -= 1;
+        }
+        known[s][c] = isKnown;
+    }
+
+    // update L1 transitions in empiricalGame and explorationRMDP, exploration rewards, and known
+    private void update(double deltaContain) {
         maxRadius = 0.0;
         int numStates = empiricalGame.getNumStates();
 
@@ -415,6 +424,10 @@ public class PACLearner {
                 double radius = weissmanRadius(saCount, deltaSlot);
                 if (radius > maxRadius) maxRadius = radius;
                 empiricalGame.setRadius(s, c, radius);
+                explorationRMDP.setRadius(s, c, radius);
+
+                updateExplorationReward(s, c);
+                updateKnown(s, c);
 
                 int sFinal = s;
                 int cFinal = c;
@@ -423,36 +436,19 @@ public class PACLearner {
                     double pHat = transitionCounts[sFinal][cFinal][succ] / (double) saCount;
                     pHat = Math.max(TRANS_PROB_LB, pHat);
                     empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
+                    explorationRMDP.setCentre(sFinal, cFinal, succ, pHat);
                 });
             }
         }
     }
 
     private double weissmanRadius(double saCount, double deltaSlot) {
-        if (Double.isNaN(saCount) || Double.isNaN(deltaSlot)) {
-            return Double.NaN;
-        }
-        if (saCount <= 0.0) {
-            throw new IllegalArgumentException("saCount must be > 0");
-        }
-        if (!(deltaSlot > 0.0) || deltaSlot >= 1.0) {
-            throw new IllegalArgumentException("deltaSlot must be in (0, 1)");
-        }
-
         double r = Math.sqrt((2.0 / saCount) * (empiricalGame.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
         return Math.min(r, 2.0);
     }
 
     private double computeDeltaT(double rMax, int horizon) {
         return 0.5 * rMax * horizon * horizon * maxRadius;
-    }
-
-    private void updateExplorationRewards() {
-        for (int s = 0; s < explorationRMDP.getNumStates(); s++) {
-            for (int c = 0; c < explorationRMDP.getNumChoices(s); c++) {
-                explorationRewards.setTransitionReward(s, c, known[s][c] ? 0.0 : 1.0);
-            }
-        }
     }
 
     private void initialiseMC(PropertiesFile propertiesFile, Property property) throws PrismException {
@@ -470,7 +466,7 @@ public class PACLearner {
         targets = empiricalMC.getTargets();
     }
 
-    private SolveOutcome robustSolveL1CSG(Property property) throws PrismException {
+    private SolveOutcome robustSolveL1CSG(Property property) {
         return getSolveOutcome(empiricalMC, empiricalGame, property);
     }
 
@@ -550,25 +546,9 @@ public class PACLearner {
         sim.setStrategyEnforced(true);
     }
 
-    private void updateKnown() {
-        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
-            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                boolean isKnown = slotCounts[s][c] >= nMin;
-                if (!known[s][c] && isKnown) System.out.println("Slot (" + s + ", " + c + ") is now known with count " + slotCounts[s][c]);
-                known[s][c] = isKnown;
-            }
-        }
-    }
 
     private boolean allSlotsKnown() {
-        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
-            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                if (slotCounts[s][c] < nMin) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return  numUnknownSlots == 0;
     }
 
     public static void main(String[] args) throws Exception {
@@ -582,7 +562,12 @@ public class PACLearner {
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41);
+        long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec);
+        long end = System.nanoTime();
+        long duration = end - start;
+
+        System.out.println("Execution time: " + duration  / 1e6 + " milliseconds");
 
         System.out.println("noExactNE=" + res.noExactNE);
         System.out.println("terminatedByAllKnown=" + res.terminatedByAllKnown);
