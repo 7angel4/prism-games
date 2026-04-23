@@ -101,6 +101,10 @@ public class PACLearner {
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
         int effH = spec.finiteHorizon ? spec.propertyHorizon : spec.rolloutCap;
+        if (spec.finiteHorizon)
+            System.out.println("Using finite horizon from property: " + effH);
+        else
+            System.out.println("Using rollout cap as effective horizon: " + effH);
         effH = Math.max(1, effH);
 
         return runPacLoop(
@@ -108,7 +112,7 @@ public class PACLearner {
                 spec.propertiesFile,
                 spec.property,
                 spec.epsilon,
-                spec.delta,
+                spec.confidence,
                 spec.rMax,
                 effH,
                 spec.rolloutCap,

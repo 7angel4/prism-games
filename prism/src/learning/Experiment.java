@@ -26,8 +26,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
 import java.util.BitSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Experiment
 {
@@ -39,49 +37,51 @@ public class Experiment
     }
 
     public static final class PacRunSpec {
+        public final Model model;
+        public final String modelFile;
+        public final String propertiesFilePath;
+        public final int propertyIndex;
+
         public final CSGSimple<Double> trueGame;
         public final PropertiesFile propertiesFile;
         public final Property property;
 
         public final double epsilon;
-        public final double delta;
+        public final double confidence;
         public final double rMax;
 
-        /**
-         * Bounded horizon extracted from the property, or -1 if unbounded.
-         */
         public final int propertyHorizon;
-
-        /**
-         * Rollout cap used only for simulation / exploration.
-         */
         public final int rolloutCap;
-
         public final boolean finiteHorizon;
         public final String solverString;
 
-        /**
-         * Kept for compatibility with existing code.
-         */
         public final int horizon;
 
         public PacRunSpec(
+                Model model,
+                String modelFile,
+                String propertiesFilePath,
+                int propertyIndex,
                 CSGSimple<Double> trueGame,
                 PropertiesFile propertiesFile,
                 Property property,
                 double epsilon,
-                double delta,
+                double confidence,
                 double rMax,
                 int propertyHorizon,
                 int rolloutCap,
                 String solverString
         ) {
+            this.model = model;
+            this.modelFile = modelFile;
+            this.propertiesFilePath = propertiesFilePath;
+            this.propertyIndex = propertyIndex;
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
             this.property = property;
-            this.delta = delta;
-            this.rMax = rMax;
             this.epsilon = epsilon;
+            this.confidence = confidence;
+            this.rMax = rMax;
             this.propertyHorizon = propertyHorizon;
             this.rolloutCap = rolloutCap;
             this.finiteHorizon = propertyHorizon >= 0;
@@ -90,13 +90,10 @@ public class Experiment
         }
     }
 
-    /**
-     * Raw configuration only. No duplicated parsed runtime fields are kept here.
-     */
     public Model model;
     public String modelFile;
     public String propertiesFile;
-    public int propertyIndex; // 1-based
+    public int propertyIndex;
 
     public Values parameterValues = new Values();
     public String solverString = "";
@@ -104,7 +101,7 @@ public class Experiment
     public double epsilon = 0.5;
     public double confidence = 0.05;
     public double rMax = 1.0;
-    public int horizon = 8; // fallback rollout cap
+    public int horizon = 8;
 
     public Experiment(Model model) {
         setModel(model);
@@ -132,20 +129,20 @@ public class Experiment
             case VERY_SIMPLE -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple_rew.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.props";
-                this.propertyIndex = 1;
+                this.propertyIndex = 4;
 
-                parameterValues = new Values();
+                this.parameterValues = new Values();
                 this.epsilon = 0.5;
                 this.confidence = 0.1;
                 this.rMax = 1.0;
-                this.horizon = 2;
+                this.horizon = 1;
             }
             case TINY_ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.props";
                 this.propertyIndex = 7;
 
-                parameterValues = new Values();
+                this.parameterValues = new Values();
                 addParameters("D", 2, "q", 0.9, "bcmax", 1);
 
                 this.epsilon = 0.5;
@@ -158,7 +155,7 @@ public class Experiment
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
                 this.propertyIndex = 7;
 
-                parameterValues = new Values();
+                this.parameterValues = new Values();
                 addParameters("D", 8, "q", 0.9, "bcmax", 1);
 
                 this.epsilon = 0.5;
@@ -171,7 +168,7 @@ public class Experiment
                 this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.props";
                 this.propertyIndex = 7;
 
-                parameterValues = new Values();
+                this.parameterValues = new Values();
                 addParameters("l", 4, "q", 0.25);
 
                 this.epsilon = 0.5;
@@ -193,7 +190,7 @@ public class Experiment
         }
     }
 
-    public PacRunSpec buildPacRunSpec(Prism prism) throws PrismException, FileNotFoundException {
+    public PacRunSpec buildPacRunSpec(Prism prism) throws PrismException, FileNotFoundException, PrismLangException {
         File mfFile = Prism.resolveFile(modelFile);
         File pfFile = Prism.resolveFile(propertiesFile);
 
@@ -210,20 +207,52 @@ public class Experiment
 
         Property prop = pf.getPropertyObject(idx);
 
+        // Merge experiment constants into the property constant environment.
+        // This lets a parameter like k be taken from the experiment, or from the props file.
+        applyExperimentConstantsToPropertiesFile(pf);
+
         prism.buildModelIfRequired();
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
         validateSupportedProperty(prop, trueGame, pf, prism);
 
-        int propertyHorizon = derivePropertyHorizon(prop, pf, horizon);
+        int propertyHorizon = derivePropertyHorizon(prop, pf);
         int rolloutCap = (propertyHorizon >= 0) ? propertyHorizon : horizon;
 
-        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, rolloutCap, solverString
+        return new PacRunSpec(
+                model,
+                modelFile,
+                propertiesFile,
+                propertyIndex,
+                trueGame,
+                pf,
+                prop,
+                epsilon,
+                confidence,
+                rMax,
+                propertyHorizon,
+                rolloutCap,
+                solverString
         );
     }
 
-    private int derivePropertyHorizon(Property prop, PropertiesFile pf, int fallbackHorizon) throws PrismException {
+    private void applyExperimentConstantsToPropertiesFile(PropertiesFile pf) throws PrismLangException {
+        if (pf == null) {
+            return;
+        }
+
+        Values pfConstants = pf.getConstantValues();
+        if (pfConstants == null) {
+            return;
+        }
+
+        // Copy experiment parameters into the properties-file constant environment.
+        // Existing values with the same name are overwritten.
+        pfConstants.setValues(parameterValues);
+    }
+
+    private int derivePropertyHorizon(Property prop, PropertiesFile pf) throws PrismException, PrismLangException {
         ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
         if (stratExpr == null) {
             throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
@@ -253,7 +282,7 @@ public class Experiment
                 horizon = Math.max(horizon, thisHorizon);
 
             } else if (q instanceof ExpressionMultiNashReward) {
-                int thisHorizon = deriveRewardHorizonFromText(q.toString(), pf, fallbackHorizon);
+                int thisHorizon = deriveRewardHorizon(q, pf);
                 if (thisHorizon < 0) {
                     return -1;
                 }
@@ -267,7 +296,7 @@ public class Experiment
         return sawAnyObjective ? horizon : -1;
     }
 
-    private int deriveTemporalHorizon(ExpressionTemporal temporal, PropertiesFile pf) throws PrismException {
+    private int deriveTemporalHorizon(ExpressionTemporal temporal, PropertiesFile pf) throws PrismException, PrismLangException {
         switch (temporal.getOperator()) {
             case ExpressionTemporal.P_F, ExpressionTemporal.P_U -> {
                 if (!temporal.hasBounds()) {
@@ -280,64 +309,85 @@ public class Experiment
         }
     }
 
-    private int deriveRewardHorizonFromText(String text, PropertiesFile pf, int fallbackHorizon) throws PrismException {
-        String compact = text.replaceAll("\\s+", "");
+    private int deriveRewardHorizon(ExpressionQuant q, PropertiesFile pf) throws PrismException, PrismLangException {
+        String text = q.toString();
 
-        Matcher m = Pattern.compile("\\[C<=([^\\]]+)\\]").matcher(compact);
-        if (!m.find()) {
-            return -1; // unbounded total reward / reachability reward
+        int open = text.indexOf('[');
+        int close = text.indexOf(']', open + 1);
+        if (open < 0 || close < 0 || close <= open + 1) {
+            return -1;
         }
 
-        String boundExpr = m.group(1);
+        String inside = text.substring(open + 1, close).replace(" ", "").replace("\t", "");
+        int boundIdx = inside.indexOf("C<=");
+        if (boundIdx < 0) {
+            return -1; // unbounded reward property
+        }
 
-        Double bound = tryResolveNumericExpression(boundExpr, pf);
+        String boundExpr = inside.substring(boundIdx + 3).trim();
+        if (boundExpr.isEmpty()) {
+            throw new PrismException("Empty cumulative reward bound in property: " + q);
+        }
+
+        Integer bound = resolveIntegerConstant(boundExpr, pf);
         if (bound == null) {
-            if (fallbackHorizon > 0) {
-                return fallbackHorizon;
-            }
             throw new PrismException("Could not resolve numeric expression: " + boundExpr);
         }
 
-        if (bound < 0.0) {
+        if (bound < 0) {
             throw new PrismException("Reward horizon must be non-negative: " + boundExpr);
         }
 
-        return (int) Math.ceil(bound);
+        return bound;
     }
 
-    private Double tryResolveNumericExpression(String expr, PropertiesFile pf) {
-        String s = expr.trim();
+    private Integer resolveIntegerConstant(String nameOrNumber, PropertiesFile pf) throws PrismLangException {
+        String s = nameOrNumber.trim();
 
         try {
-            return Double.parseDouble(s);
+            return Integer.parseInt(s);
         } catch (NumberFormatException ignored) {
-            // fall through
+            // not a literal
         }
 
-        Object constants = pf.getConstantValues();
-        String[] methods = {
-                "getValue",
-                "getDoubleValue",
-                "getIntValue",
-                "getIntegerValue",
-                "get"
-        };
+        Object v = resolveValueByName(s, parameterValues);
+        if (v == null && pf != null && pf.getConstantValues() != null) {
+            v = resolveValueByName(s, pf.getConstantValues());
+        }
 
-        for (String methodName : methods) {
+        if (v == null) {
+            return null;
+        }
+        return coerceToInt(v);
+    }
+
+    private Object resolveValueByName(String name, Values values) throws PrismLangException {
+        if (values == null || !values.contains(name)) {
+            return null;
+        }
+        return values.getValueOf(name);
+    }
+
+    private Integer coerceToInt(Object v) {
+        if (v instanceof Integer i) {
+            return i;
+        }
+        if (v instanceof Long l) {
+            return Math.toIntExact(l);
+        }
+        if (v instanceof Double d) {
+            return (int) Math.round(d);
+        }
+        if (v instanceof Float f) {
+            return Math.round(f);
+        }
+        if (v instanceof String s) {
             try {
-                Method m = constants.getClass().getMethod(methodName, String.class);
-                Object value = m.invoke(constants, s);
-                if (value instanceof Number n) {
-                    return n.doubleValue();
-                }
-                if (value instanceof String str) {
-                    return Double.parseDouble(str.trim());
-                }
-            } catch (ReflectiveOperationException | NumberFormatException ignored) {
-                // try next
+                return Integer.parseInt(s.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
             }
         }
-
         return null;
     }
 
@@ -366,64 +416,36 @@ public class Experiment
             }
         }
 
-        Matcher matcher = Pattern.compile("-?\\d+").matcher(bound.toString());
-        if (matcher.find()) {
-            return Integer.parseInt(matcher.group());
+        Integer parsed = parseFirstInteger(bound.toString());
+        if (parsed != null) {
+            return parsed;
         }
 
         throw new PrismException("Could not extract an upper bound from IntegerBound: " + bound);
     }
 
-    private void validateSupportedProperty(
-            Property prop,
-            CSGSimple<Double> trueGame,
-            PropertiesFile pf,
-            Prism prism
-    ) throws PrismException {
-
-        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-        if (stratExpr == null) {
-            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
+    private Integer parseFirstInteger(String s) {
+        if (s == null) {
+            return null;
         }
 
-        Expression inner = stripParentheses(stratExpr.getOperand(0));
-        if (!(inner instanceof ExpressionMultiNash multiNash)) {
-            throw new PrismException("Expected ExpressionMultiNash inside strategy expression, got " + inner.getClass().getSimpleName());
+        int i = 0;
+        while (i < s.length() && !Character.isDigit(s.charAt(i)) && s.charAt(i) != '-') {
+            i++;
+        }
+        if (i >= s.length()) {
+            return null;
         }
 
-        for (ExpressionQuant q : multiNash.getOperands()) {
-            if (q instanceof ExpressionMultiNashProb probQ) {
-                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
-                if (!(path instanceof ExpressionTemporal temporal)) {
-                    throw new PrismException("Expected a temporal formula, got " + path.getClass().getSimpleName());
-                }
+        int j = i + 1;
+        while (j < s.length() && Character.isDigit(s.charAt(j))) {
+            j++;
+        }
 
-                switch (temporal.getOperator()) {
-                    case ExpressionTemporal.P_F -> {
-                        evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-                    }
-                    case ExpressionTemporal.P_U -> {
-                        evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-                        Expression guard = temporal.getOperand1();
-                        if (!Expression.isTrue(guard)) {
-                            evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
-                        }
-
-                        if (temporal.hasBounds()) {
-                            IntegerBound b = IntegerBound.fromExpressionTemporal(temporal, pf.getConstantValues(), true);
-                            extractUpperBound(b);
-                        }
-                    }
-                    default -> throw new PrismException("Unsupported temporal operator: " + temporal.getOperatorSymbol());
-                }
-
-            } else if (q instanceof ExpressionMultiNashReward) {
-                // Accepted.
-                continue;
-
-            } else {
-                throw new PrismException("Unsupported multi-objective term: " + q.getClass().getSimpleName());
-            }
+        try {
+            return Integer.parseInt(s.substring(i, j));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 
@@ -467,16 +489,58 @@ public class Experiment
         return cur;
     }
 
+    private void validateSupportedProperty(
+            Property prop,
+            CSGSimple<Double> trueGame,
+            PropertiesFile pf,
+            Prism prism
+    ) throws PrismException, PrismLangException {
+
+        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
+        if (stratExpr == null) {
+            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
+        }
+
+        Expression inner = stripParentheses(stratExpr.getOperand(0));
+        if (!(inner instanceof ExpressionMultiNash multiNash)) {
+            throw new PrismException("Expected ExpressionMultiNash inside strategy expression, got " + inner.getClass().getSimpleName());
+        }
+
+        for (ExpressionQuant q : multiNash.getOperands()) {
+            if (q instanceof ExpressionMultiNashProb probQ) {
+                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+                if (!(path instanceof ExpressionTemporal temporal)) {
+                    throw new PrismException("Expected a temporal formula, got " + path.getClass().getSimpleName());
+                }
+
+                switch (temporal.getOperator()) {
+                    case ExpressionTemporal.P_F -> evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
+                    case ExpressionTemporal.P_U -> {
+                        evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
+                        Expression guard = temporal.getOperand1();
+                        if (!Expression.isTrue(guard)) {
+                            evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
+                        }
+                    }
+                    default -> throw new PrismException("Unsupported temporal operator: " + temporal.getOperatorSymbol());
+                }
+
+            } else if (q instanceof ExpressionMultiNashReward) {
+                continue;
+            } else {
+                throw new PrismException("Unsupported multi-objective term: " + q.getClass().getSimpleName());
+            }
+        }
+    }
+
     private BitSet evaluateStateFormulaToBitSet(
             Prism prism,
             CSGSimple<Double> trueGame,
             PropertiesFile pf,
             Expression stateFormula
     ) throws PrismException, PrismLangException {
-
         StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
         mc.setModelCheckingInfo(prism.getModelInfo(), pf, prism.getRewardGenerator());
-
         StateValues sv = mc.checkExpression(trueGame, stateFormula, null);
         return (BitSet) sv.getBitSet().clone();
     }
