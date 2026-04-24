@@ -105,7 +105,8 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected boolean useDiscounting = false;
 	protected double discountFactor = 1.0;
 
-	private BitSet[] targets;
+	private BitSet[] targets; // for nonzero-sum objectives
+	private BitSet target; // for zero-sum objectives
 
 	// Delay between occasional updates for slow processes, e.g. numerical solution (milliseconds)
 	public static final int UPDATE_DELAY = 5000;
@@ -1064,7 +1065,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	protected StateValues checkProbNext(Model<?> model, ExpressionTemporal expr, MinMax minMax, BitSet statesOfInterest) throws PrismException
 	{
 		// Model check the operand for all states
-		BitSet target = checkExpression(model, expr.getOperand2(), null).getBitSet();
+		target = checkExpression(model, expr.getOperand2(), null).getBitSet();
 
 		// Compute/return the probabilities
 		ModelCheckerResult res = null;
@@ -1127,7 +1128,7 @@ public class ProbModelChecker extends NonProbModelChecker
 
 		// Model check operands for all states
 		BitSet remain = checkExpression(model, expr.getOperand1(), null).getBitSet();
-		BitSet target = checkExpression(model, expr.getOperand2(), null).getBitSet();
+		target = checkExpression(model, expr.getOperand2(), null).getBitSet();
 
 		if (bounds.hasLowerBound()) {
 			lowerBound = bounds.getLowestInteger();
@@ -1262,7 +1263,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		// Model check operands for all states
 		BitSet remain = checkExpression(model, expr.getOperand1(), null).getBitSet();
-		BitSet target = checkExpression(model, expr.getOperand2(), null).getBitSet();
+		target = checkExpression(model, expr.getOperand2(), null).getBitSet();
 
 		// Compute/return the probabilities
 		ModelCheckerResult res = null;
@@ -1301,10 +1302,14 @@ public class ProbModelChecker extends NonProbModelChecker
 			break;
 		case L1CSG:
 			res = ((UCSGModelChecker) this).computeUntilProbs((L1CSG<Double>) model, remain, target, minMax);
+			if (res == null) {
+				throw new PrismNotSupportedException("res is null for L1CSG until");
+			}
 			break;
 		default:
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1477,6 +1482,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1547,6 +1553,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1587,6 +1594,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1609,6 +1617,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		default:
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the steady-state reward operator for " + model.getModelType() + "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1646,7 +1655,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		}
 		
 		// Model check the operand for all states
-		BitSet target = checkExpression(model, expr.getOperand2(), null).getBitSet();
+		target = checkExpression(model, expr.getOperand2(), null).getBitSet();
 
 		// Compute/return the rewards
 		ModelCheckerResult res = null;
@@ -1721,6 +1730,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			throw new PrismNotSupportedException("Explicit engine does not yet handle the " + expr.getOperatorSymbol() + " reward operator for " + model.getModelType()
 					+ "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1977,5 +1987,9 @@ public class ProbModelChecker extends NonProbModelChecker
 
 	public BitSet[] getTargets() {
 		return targets;
+	}
+
+	public BitSet getTarget() {
+		return target;
 	}
 }

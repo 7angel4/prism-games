@@ -427,6 +427,9 @@ public class CSGModelChecker extends ProbModelChecker
 		switch (solnMethod) {
 		case VALUE_ITERATION:
 			res = computeReachProbsValIter(csg, no, yes, bound, false, min1);
+			if (res == null) {
+				throw new PrismException("Value iteration failed to compute a solution");
+			}
 			break;
 		default:
 			throw new PrismException("Unknown CSG solution method " + solnMethod);
@@ -451,7 +454,8 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachProbsValIter(CSG<?> csg, BitSet no, BitSet yes, int limit, boolean bounded, boolean min) throws PrismException
 	{
 		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+			System.err.println("Strategy synthesis for bounded properties is not supported yet.");
+			genStrat = false;
 		}
 		LpSolve lp;
 		ArrayList<ArrayList<Double>> mgame;
