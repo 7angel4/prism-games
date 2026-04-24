@@ -1105,6 +1105,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		default:
 			throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 		}
+		if (result == null) result = new Result();
 		result.setStrategy(res.strat);
 		return StateValues.createFromArrayResult(res, model);
 	}
@@ -1181,6 +1182,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			default:
 				throw new PrismException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
+			if (result == null) result = new Result();
 			result.setStrategy(res.strat);
 			sv = StateValues.createFromArrayResult(res, model);
 		} else if (windowSize == 0) {
@@ -1222,6 +1224,7 @@ public class ProbModelChecker extends NonProbModelChecker
 			default:
 				throw new PrismNotSupportedException("Cannot model check " + expr + " for " + model.getModelType() + "s");
 			}
+			if (result == null) result = new Result();
 			result.setStrategy(res.strat);
 			sv = StateValues.createFromArrayResult(res, model);
 		}
