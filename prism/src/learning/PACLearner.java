@@ -156,7 +156,7 @@ public class PACLearner {
             }
 
             int numSamples = computeNumSamples(deltaCov);
-//            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
+            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
 
@@ -505,7 +505,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CASE_STUDY.SIMPLE);
+        Experiment ex = new Experiment(Experiment.CASE_STUDY.TINY_ALOHA);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
