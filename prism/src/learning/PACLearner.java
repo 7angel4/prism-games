@@ -46,20 +46,17 @@ public class PACLearner {
 
     public static final class PacResult {
         public final boolean noExactNE;
-        public final boolean terminatedByAllKnown;
         public final int episodes;
         public final double robustValue;
         public final double deltaT;
         public final CSGStrategy<Double> robustStrategy;
 
         public PacResult(boolean noExactNE,
-                         boolean terminatedByAllKnown,
                          int episodes,
                          double robustValue,
                          double deltaT,
                          CSGStrategy<Double> robustStrategy) {
             this.noExactNE = noExactNE;
-            this.terminatedByAllKnown = terminatedByAllKnown;
             this.episodes = episodes;
             this.robustValue = robustValue;
             this.deltaT = deltaT;
@@ -80,9 +77,7 @@ public class PACLearner {
     private L1MDPSimple<Double> explorationRMDP;
     private long nMin;
     private double maxRadius = L1CSGSimple.INIT_RADIUS;
-    private boolean maxRadiusChanged = false;
     private boolean enoughRadiusChange = false;
-    private double radiusChangeThresh;
     private MDPRewardsSimple<Double> explorationRewards;
     private UCSGModelChecker empiricalMC;
     private Strategy<Double> explorationStrat;
@@ -126,14 +121,15 @@ public class PACLearner {
             PropertiesFile propertiesFile,
             Property property,
             double eps,
-            double delta,
+            double confidence,
             double rMax,
             int horizon,
             String solver,
             boolean zeroSum
     ) throws PrismException {
 
-        final double deltaContain = delta / 2.0;
+        final double deltaContain = confidence / 2.0;
+        final double deltaCov= confidence / 2.0;
         episode = 1;
         this.horizon = horizon;
         this.trueGame = trueGame;
@@ -141,31 +137,28 @@ public class PACLearner {
         double stopThreshFactor = zeroSum ? ZERO_SUM_STOP_THRESH : NASH_STOP_THRESH;
         computeNmin(deltaContain, rMax, eps, stopThreshFactor);
         double stopThresh = eps / stopThreshFactor;
-
         double deltaT;
-        boolean allKnown;
 
         while (true) {
             deltaT = computeDeltaT(rMax, horizon);
-            allKnown = numUnknownSlots == 0;
-
-            if (deltaT <= stopThresh || allKnown) {
+            if (deltaT <= stopThresh) {
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 if (!robustSol.found) {
                     if (zeroSum) throw new PrismException("No NE found but zero-sum property should always have an NE");
-                    return new PacResult(true, false, episode, robustSol.value, deltaT, robustSol.strategy);
+                    return new PacResult(true, episode, robustSol.value, deltaT, robustSol.strategy);
                 } else {
-                    return new PacResult(false, allKnown, episode, robustSol.value, deltaT, robustSol.strategy);
+                    return new PacResult(false, episode, robustSol.value, deltaT, robustSol.strategy);
                 }
             }
 
             if (episode == 1 || prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if radii of the worst slots change
-                System.out.println("Episode " + episode + ": Resolving exploration RMDP");
+//                System.out.println("Episode " + episode + ": Resolving exploration RMDP");
                 solveExplorationRMDP();
                 prevNumUnknownSlots = numUnknownSlots;
             }
 
-            int numSamples = numUnknownSlots;
+            int numSamples = computeNumSamples(deltaCov);
+            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
 
@@ -173,6 +166,11 @@ public class PACLearner {
 //            printEpisodeResult(episode, deltaT);
             episode++;
         }
+    }
+
+    private int computeNumSamples(double deltaCov) {
+        double deltaEpisode = deltaCov / (episode * (episode + 1.0));
+        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
     }
 
     private void printEpisodeResult(int episode, double deltaT) {
@@ -187,9 +185,7 @@ public class PACLearner {
         int numCoalitions = targets.length;
         BitSet reached = new BitSet(numCoalitions);
         for (int h = 0; h < horizon; h++) {
-            if (sim.queryIsDeadlock()) {
-                break;
-            }
+            if (sim.queryIsDeadlock()) break;
 
             State before = sim.getCurrentState();
             Integer s = stateToIndex.get(before);
@@ -213,13 +209,6 @@ public class PACLearner {
                     reached.set(p);
                 }
             }
-
-//            if (reached.cardinality() == numCoalitions) {
-//                break;
-//            }
-//            if (!known[s][choiceIndex]) {
-//                break;
-//            }
         }
     }
 
@@ -227,21 +216,6 @@ public class PACLearner {
         slotCounts[s][c] += 1L;
         long[] counts = transitionCounts[s][c];
         counts[succ] += 1L;
-    }
-
-    private void checkValidInput(CSGSimple<Double> trueGame, double epsilon, double delta, int horizon) throws PrismException {
-        if (trueGame == null) {
-            throw new PrismException("trueGame is null");
-        }
-        if (horizon < 0) {
-            throw new PrismException("horizon must be non-negative");
-        }
-        if (epsilon <= 0.0) {
-            throw new PrismException("epsilon must be positive");
-        }
-        if (delta <= 0.0 || delta >= 1.0) {
-            throw new PrismException("delta must be in (0,1)");
-        }
     }
 
     private void computeNmin(double deltaContain, double rMax, double eps, double stopThreshFactor) {
@@ -354,7 +328,6 @@ public class PACLearner {
 
         prevNumUnknownSlots = numUnknownSlots;
         numSlots = numUnknownSlots;
-        radiusChangeThresh = 1.0;
 
         empiricalGame = new L1CSGSimple<>(template, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
@@ -392,11 +365,9 @@ public class PACLearner {
 
     // update L1 transitions in empiricalGame and explorationRMDP, exploration rewards, and known
     private void update(double deltaContain) {
-        double oldMaxRadius = maxRadius;
         maxRadius = 0.0;
         enoughRadiusChange = false;
-        maxRadiusChanged = false;
-        radiusChangeThresh = (1.0 / episode) * numUnknownSlots / (double) numSlots; // adaptively reduce the threshold as we get more certain about the game
+        double radiusChangeThresh = (1.0 / episode) * numUnknownSlots / (double) numSlots; // adaptively reduce the threshold as we get more certain about the game
 //        System.out.println("Updating with " + numUnknownSlots + " unknown slots, radius change threshold: " + radiusChangeThresh);
 
         int numStates = empiricalGame.getNumStates();
@@ -414,7 +385,6 @@ public class PACLearner {
                     maxRadius = radius;
                 }
                 if (oldRadius - radius > radiusChangeThresh) {
-//                    System.out.println("Radius for slot (" + s + "," + c + ") changed enough from " + oldRadius + " to " + radius);
                     enoughRadiusChange = true;
                 }
                 empiricalGame.setRadius(s, c, radius);
@@ -434,7 +404,6 @@ public class PACLearner {
                 });
             }
         }
-        maxRadiusChanged = maxRadius < oldMaxRadius;
     }
 
     private double weissmanRadius(double saCount, double deltaSlot) {
@@ -560,7 +529,6 @@ public class PACLearner {
         System.out.println("Execution time: " + duration  / 1e6 + " milliseconds");
 
         System.out.println("noExactNE=" + res.noExactNE);
-        System.out.println("terminatedByAllKnown=" + res.terminatedByAllKnown);
         System.out.println("episodes=" + res.episodes);
         System.out.println("robustValue=" + res.robustValue);
         System.out.println("deltaT=" + res.deltaT);
