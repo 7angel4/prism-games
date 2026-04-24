@@ -77,11 +77,9 @@ public class PACLearner {
     private L1MDPSimple<Double> explorationRMDP;
     private long nMin;
     private double maxRadius = L1CSGSimple.INIT_RADIUS;
-    private boolean enoughRadiusChange = false;
     private MDPRewardsSimple<Double> explorationRewards;
     private UCSGModelChecker empiricalMC;
     private Strategy<Double> explorationStrat;
-    private int numSlots;
 
     private Map<State, Integer> stateToIndex;
     BitSet[] targets;
@@ -327,7 +325,6 @@ public class PACLearner {
         }
 
         prevNumUnknownSlots = numUnknownSlots;
-        numSlots = numUnknownSlots;
 
         empiricalGame = new L1CSGSimple<>(template, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
@@ -366,11 +363,8 @@ public class PACLearner {
     // update L1 transitions in empiricalGame and explorationRMDP, exploration rewards, and known
     private void update(double deltaContain) {
         maxRadius = 0.0;
-        enoughRadiusChange = false;
-        double radiusChangeThresh = (1.0 / episode) * numUnknownSlots / (double) numSlots; // adaptively reduce the threshold as we get more certain about the game
-//        System.out.println("Updating with " + numUnknownSlots + " unknown slots, radius change threshold: " + radiusChangeThresh);
-
         int numStates = empiricalGame.getNumStates();
+
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts[s][c];
@@ -379,13 +373,9 @@ public class PACLearner {
                     continue;
                 }
                 double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
-                double oldRadius = empiricalGame.getRadius(s, c);
                 double radius = weissmanRadius(saCount, deltaSlot);
                 if (radius > maxRadius) {
                     maxRadius = radius;
-                }
-                if (oldRadius - radius > radiusChangeThresh) {
-                    enoughRadiusChange = true;
                 }
                 empiricalGame.setRadius(s, c, radius);
                 explorationRMDP.setRadius(s, c, radius);
