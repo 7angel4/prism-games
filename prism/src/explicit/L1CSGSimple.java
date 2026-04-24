@@ -58,24 +58,8 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     public L1CSGSimple(CSGSimple<Value> template, List<List<Distribution<Value>>> trans)
     {
         super(template, trans);
-        // Copy choice structure, but not exact probabilities
-//        for (int s = 0; s < template.getNumStates(); s++) {
-//            for (int c = 0; c < template.getNumChoices(s); c++) {
-//                int[] profile = template.getIndexes(s, c);
-//                profile = padJointActionProfile(profile, template.getNumPlayers());
-//                // super should've used probMap, so the new probs are already set
-//                Distribution<Value> distr = this.getChoice(s, c);
-//                addActionLabelledChoice(s, distr, 0.0, profile);
-//            }
-//        }
-        copyPlayerInfo(template);
         // Radii mirror the choice structure
         initialiseRadiiFrom(template);
-
-        // add idle indexes
-        int[] idles = template.getIdles();
-        this.setIdles(Arrays.copyOf(idles, idles.length));
-
         this.chosenTransitions.clear();
     }
 
@@ -101,26 +85,6 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             radii.add(row);
         }
     }
-
-    private static int[] padJointActionProfile(int[] profile, int numPlayers) {
-        if (profile == null) {
-            int[] out = new int[numPlayers];
-            Arrays.fill(out, -1);
-            return out;
-        }
-        if (profile.length == numPlayers) {
-            return profile;
-        }
-        if (profile.length > numPlayers) {
-            return Arrays.copyOf(profile, numPlayers);
-        }
-
-        int[] out = new int[numPlayers];
-        Arrays.fill(out, -1);
-        System.arraycopy(profile, 0, out, 0, profile.length);
-        return out;
-    }
-
 
     /**
      * Copy constructor with a state permutation.

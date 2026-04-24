@@ -92,8 +92,8 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 			}
 		}
 
-		copyGameInfo(template);
 		setPlayerNames(template.getPlayerNames());
+		copyGameInfo(template);
 
 		for (int i = 0; i < numStates; i++) {
 			int numChoices = template.getNumChoices(i);
