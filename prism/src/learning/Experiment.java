@@ -146,8 +146,7 @@ public class Experiment
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
-        validateSupportedProperty(prop, trueGame, pf, prism);
-
+//        validateSupportedProperty(prop, trueGame, pf, prism);
         boolean zeroSum = isZeroSumProperty(prop);
         int propertyHorizon = derivePropertyHorizon(prop, pf);
         boolean finiteHorizon = propertyHorizon >= 0;
@@ -423,101 +422,6 @@ public class Experiment
         return cur;
     }
 
-    private void validateSupportedProperty(
-            Property prop,
-            CSGSimple<Double> trueGame,
-            PropertiesFile pf,
-            Prism prism
-    ) throws PrismException {
-
-        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-        if (stratExpr == null) {
-            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
-        }
-
-        Expression inner = stripParentheses(stratExpr.getOperand(0));
-
-        // ================= MULTI-OBJECTIVE (general-sum) =================
-        if (inner instanceof ExpressionMultiNash multiNash) {
-            for (ExpressionQuant q : multiNash.getOperands()) {
-                validateSingleObjective(q, trueGame, pf, prism);
-            }
-            return;
-        }
-
-        // ================= SINGLE OBJECTIVE =================
-        // (zero-sum OR single-player OR anything not MultiNash)
-        validateSingleObjective(inner, trueGame, pf, prism);
-    }
-
-
-    private void validateSingleObjective(
-            Expression expr,
-            CSGSimple<Double> trueGame,
-            PropertiesFile pf,
-            Prism prism
-    ) throws PrismException {
-
-        // ---------- probabilistic objective ----------
-        if (expr instanceof ExpressionProb prob) {
-
-            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(prob.getExpression());
-
-            if (!(path instanceof ExpressionTemporal temporal)) {
-                throw new PrismException("Expected temporal formula, got " + path.getClass().getSimpleName());
-            }
-
-            validateTemporalFormula(temporal, trueGame, pf, prism);
-            return;
-        }
-
-        // ---------- reward objective ----------
-        if (expr instanceof ExpressionReward) {
-            // No structural validation needed here (handled elsewhere)
-            return;
-        }
-
-        throw new PrismException("Unsupported objective type: " + expr.getClass().getSimpleName());
-    }
-
-    private void validateTemporalFormula(
-            ExpressionTemporal temporal,
-            CSGSimple<Double> trueGame,
-            PropertiesFile pf,
-            Prism prism
-    ) throws PrismException {
-
-        switch (temporal.getOperator()) {
-
-            case ExpressionTemporal.P_F -> {
-                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-            }
-
-            case ExpressionTemporal.P_U -> {
-                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-
-                Expression guard = temporal.getOperand1();
-                if (!Expression.isTrue(guard)) {
-                    evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
-                }
-            }
-
-            default -> throw new PrismException(
-                    "Unsupported temporal operator: " + temporal.getOperatorSymbol());
-        }
-    }
-
-    private BitSet evaluateStateFormulaToBitSet(
-            Prism prism,
-            CSGSimple<Double> trueGame,
-            PropertiesFile pf,
-            Expression stateFormula
-    ) throws PrismException {
-        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
-        mc.setModelCheckingInfo(prism.getModelInfo(), pf, prism.getRewardGenerator());
-        StateValues sv = mc.checkExpression(trueGame, stateFormula, null);
-        return (BitSet) sv.getBitSet().clone();
-    }
 
     public Experiment setModel(CASE_STUDY model) {
         this.model = model;
@@ -606,4 +510,93 @@ public class Experiment
         }
         return this;
     }
+
+
+//    private void validateSupportedProperty(
+//            Property prop,
+//            CSGSimple<Double> trueGame,
+//            PropertiesFile pf,
+//            Prism prism
+//    ) throws PrismException {
+//
+//        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
+//        if (stratExpr == null) {
+//            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
+//        }
+//
+//        Expression inner = stripParentheses(stratExpr.getOperand(0));
+//
+//        // ================= MULTI-OBJECTIVE (general-sum) =================
+//        if (inner instanceof ExpressionMultiNash multiNash) {
+//            for (ExpressionQuant q : multiNash.getOperands()) {
+//                validateSingleObjective(q, trueGame, pf, prism);
+//            }
+//            return;
+//        }
+//
+//        // ================= SINGLE OBJECTIVE =================
+//        // (zero-sum OR single-player OR anything not MultiNash)
+//        validateSingleObjective(inner, trueGame, pf, prism);
+//    }
+//
+//
+//    private void validateSingleObjective(
+//            Expression expr,
+//            CSGSimple<Double> trueGame,
+//            PropertiesFile pf,
+//            Prism prism
+//    ) throws PrismException {
+//
+//        // ---------- probabilistic objective ----------
+//        if (expr instanceof ExpressionProb prob) {
+//
+//            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(prob.getExpression());
+//
+//            if (!(path instanceof ExpressionTemporal temporal)) {
+//                throw new PrismException("Expected temporal formula, got " + path.getClass().getSimpleName());
+//            }
+//
+//            validateTemporalFormula(temporal, trueGame, pf, prism);
+//        }
+//    }
+//
+//    private void validateTemporalFormula(
+//            ExpressionTemporal temporal,
+//            CSGSimple<Double> trueGame,
+//            PropertiesFile pf,
+//            Prism prism
+//    ) throws PrismException {
+//
+//        switch (temporal.getOperator()) {
+//
+//            case ExpressionTemporal.P_F -> {
+//                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
+//            }
+//
+//            case ExpressionTemporal.P_U -> {
+//                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
+//
+//                Expression guard = temporal.getOperand1();
+//                if (!Expression.isTrue(guard)) {
+//                    evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
+//                }
+//            }
+//
+//            default -> throw new PrismException(
+//                    "Unsupported temporal operator: " + temporal.getOperatorSymbol());
+//        }
+//    }
+//
+//    private BitSet evaluateStateFormulaToBitSet(
+//            Prism prism,
+//            CSGSimple<Double> trueGame,
+//            PropertiesFile pf,
+//            Expression stateFormula
+//    ) throws PrismException {
+//        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
+//        mc.setModelCheckingInfo(prism.getModelInfo(), pf, prism.getRewardGenerator());
+//        StateValues sv = mc.checkExpression(trueGame, stateFormula, null);
+//        return (BitSet) sv.getBitSet().clone();
+//    }
+
 }

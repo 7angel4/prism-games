@@ -150,13 +150,13 @@ public class PACLearner {
             }
 
             if (episode == 1 || prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if radii of the worst slots change
-//                System.out.println("Episode " + episode + ": Resolving exploration RMDP");
+                System.out.println("Episode " + episode + ": Resolving exploration RMDP");
                 solveExplorationRMDP();
                 prevNumUnknownSlots = numUnknownSlots;
             }
 
             int numSamples = computeNumSamples(deltaCov);
-            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
+//            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
 
@@ -505,7 +505,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CASE_STUDY.VERY_SIMPLE);
+        Experiment ex = new Experiment(Experiment.CASE_STUDY.SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
