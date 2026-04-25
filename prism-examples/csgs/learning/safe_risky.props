@@ -1,0 +1,13 @@
+const int k = 3;
+
+// 1. Bounded probabilistic reachability
+<<p1>> Pmax=? [F<=k s=1]
+
+// 2. Bounded cumulative rewards
+<<p1:p2>>max=? ( R{"r1"}[C<=k] + R{"r2"}[C<=k] )
+
+// 3. Unbounded probabilistic reachability
+<<p1:p2>> Pmax=? [F s=1]
+
+// 4. Reachability reward
+<<p1:p2>>max=? ( R{"r1"}[F s=1] + R{"r2"}[F s=1] )

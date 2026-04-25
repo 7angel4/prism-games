@@ -1,8 +1,6 @@
 package learning;
 
 import explicit.CSGSimple;
-import explicit.StateModelChecker;
-import explicit.StateValues;
 import parser.Values;
 import parser.ast.Expression;
 import parser.ast.ExpressionMultiNash;
@@ -25,19 +23,13 @@ import prism.PrismLangException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.lang.reflect.Method;
-import java.util.BitSet;
 
 public class Experiment
 {
-    public enum CASE_STUDY {
+    public enum CaseStudy {
         VERY_SIMPLE,
         SIMPLE,
-        RPS3,
-        MAC2,
-        MEDIUM_ACCESS2,
-        TINY_ALOHA,
-        ALOHA,
-        ROBOT_COORD
+        SAFE_RISKY
     }
 
     public static final class PacRunSpec {
@@ -79,7 +71,7 @@ public class Experiment
         }
     }
 
-    public CASE_STUDY model;
+    public CaseStudy model;
     public String modelFile;
     public String propertiesFile;
     public int propertyIndex;
@@ -91,7 +83,7 @@ public class Experiment
     public double confidence = 0.05;
     public double rMax = 1.0;
 
-    public Experiment(CASE_STUDY model) {
+    public Experiment(CaseStudy model) {
         setModel(model);
     }
 
@@ -421,84 +413,35 @@ public class Experiment
     }
 
 
-    public Experiment setModel(CASE_STUDY model) {
+    public Experiment setModel(CaseStudy model) {
         this.model = model;
         this.parameterValues = new Values();
         this.confidence = 0.1;
 
         switch (model) {
             case VERY_SIMPLE -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple_rew.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/very_simple.props";
+                this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
+                this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
                 this.propertyIndex = 1;
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
             }
             case SIMPLE -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/simple.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/simple.props";
+                this.modelFile = "./prism-examples/csgs/learning/simple.prism";
+                this.propertiesFile = "./prism-examples/csgs/learning/simple.props";
                 this.propertyIndex = 2;
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
             }
-            case RPS3 -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/rps3.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/rps3.props";
-                this.propertyIndex = 1;
-
-                addParameters("k", 2);
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
-            }
-            case MEDIUM_ACCESS2 -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access2.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access2.props";
-                this.propertyIndex = 1;
-
-                addParameters("k1", 2, "k2", 2, "emax", 4, "q1", 0.95, "q2", 0.75);
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
-            }
-            case MAC2 -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access_count2.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/medium_access_count2.props";
-                this.propertyIndex = 1;
-
-                addParameters("k", 2, "emax", 4, "smax", 2, "q1", 0.95, "q2", 0.75);
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
-            }
-            case TINY_ALOHA -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/tiny_aloha3.props";
-                this.propertyIndex = 7;
-
-                addParameters("D", 2, "q", 0.9, "bcmax", 1);
+            case SAFE_RISKY -> {
+                this.modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
+                this.propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
+                this.propertyIndex = 2;
 
                 this.epsilon = 0.5;
-                this.rMax = 1.0;
-            }
-            case ALOHA -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.props";
-                this.propertyIndex = 7;
-
-                addParameters("D", 8, "q", 0.9, "bcmax", 1);
-
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
-            }
-            case ROBOT_COORD -> {
-                this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.prism";
-                this.propertiesFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.props";
-                this.propertyIndex = 7;
-
-                addParameters("l", 4, "q", 0.25);
-
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
+                this.rMax = 10.0;
             }
         }
         return this;

@@ -28,3 +28,13 @@ module recorder
     [] (s=1) -> (s'=1);
     [] (s=2) -> (s'=2);
 endmodule
+
+rewards "r1"
+    s=1 : 1;
+    s=2 : 0;
+endrewards
+
+rewards "r2"
+    s=1 : 1;
+    s=2 : 0;
+endrewards

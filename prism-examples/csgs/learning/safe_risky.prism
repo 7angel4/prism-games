@@ -1,0 +1,60 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// Player 1 actions
+module m1
+    [safe1] true -> true;
+    [risky1] true -> true;
+endmodule
+
+// Player 2 actions (renamed)
+module m2 = m1[safe1=safe2, risky1=risky2] endmodule
+
+
+// Environment dynamics
+module env
+    s : [0..3] init 0;
+    // 0: start
+    // 1: success (target)
+    // 2: medium state
+    // 3: failure state
+
+    // --- initial decisions ---
+    // Safe coordination: stable but lower reward
+    [safe1,safe2] (s=0) -> 0.7:(s'=1) + 0.3:(s'=2);
+
+    // Risky coordination: higher success but fragile
+    [risky1,risky2] (s=0) -> 0.85:(s'=1) + 0.15:(s'=3);
+
+    // Miscoordination: bad outcomes
+    [safe1,risky2] (s=0) -> 0.4:(s'=2) + 0.6:(s'=3);
+    [risky1,safe2] (s=0) -> 0.4:(s'=2) + 0.6:(s'=3);
+
+    // --- ensure almost-sure reachability of success (IMPORTANT) ---
+
+    // success is absorbing
+    [] (s=1) -> (s'=1);
+
+    // medium eventually reaches success
+    [] (s=2) -> 0.95:(s'=2) + 0.05:(s'=1);
+
+    // failure eventually recovers to success
+    [] (s=3) -> 0.9:(s'=3) + 0.1:(s'=1);
+endmodule
+
+
+// Player 1 reward
+rewards "r1"
+    (s=1) : 10;  // success
+    (s=2) : 4;   // medium
+    (s=3) : 0;   // failure
+endrewards
+
+// Player 2 reward (general-sum: same here)
+rewards "r2"
+    (s=1) : 10;
+    (s=2) : 4;
+    (s=3) : 0;
+endrewards
