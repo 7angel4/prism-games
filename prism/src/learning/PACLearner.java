@@ -574,6 +574,7 @@ public class PACLearner {
         DTMCSimple<Double> dtmc = new DTMCSimple<>();
         dtmc.setEvaluator(Evaluator.forDouble());
         dtmc.addStates(numStates);
+        dtmc.setStatesList(csg.getStatesList());
 
         for (int s = 0; s < numStates; s++) {
 
@@ -645,15 +646,26 @@ public class PACLearner {
         return dtmc;
     }
 
-    private BitSet computeTargetSet(Expression targetExpr, PropertiesFile propertiesFile) throws PrismException {
-        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
-        mc.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-        StateValues sv = mc.checkExpression(trueGame, targetExpr, null);
+    private BitSet computeTargetSet(DTMCSimple<Double> dtmc,
+                                    Expression targetExpr,
+                                    PropertiesFile propertiesFile) throws PrismException {
+
+        DTMCModelChecker mc = new DTMCModelChecker(prism);
+        mc.setModelCheckingInfo(
+                prism.getModelInfo(),
+                propertiesFile,
+                prism.getRewardGenerator()
+        );
+
+        StateValues sv = mc.checkExpression(dtmc, targetExpr, null);
+
         BitSet bs = sv.getBitSet();
-        if (bs == null) throw new PrismException("Target expression did not evaluate to a BitSet");
+        if (bs == null) {
+            throw new PrismException("Target expression did not evaluate to a BitSet");
+        }
+
         return bs;
     }
-
 
     private double computeTrueValue(CSGStrategy<Double> strat, Experiment.PacRunSpec spec) throws PrismException {
 
@@ -664,7 +676,7 @@ public class PACLearner {
                 spec.propertiesFile,
                 prism.getRewardGenerator());
 
-        BitSet target = computeTargetSet(spec.objective.targetExpr, spec.propertiesFile);
+        BitSet target = computeTargetSet(dtmc, spec.objective.targetExpr, spec.propertiesFile);
 
         if (spec.objective.type == Experiment.ObjectiveSpec.Type.PROB_REACH) {
             return mc.computeReachProbs(dtmc, target)
