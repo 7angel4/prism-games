@@ -90,7 +90,6 @@ public class Experiment
     public double epsilon = 0.5;
     public double confidence = 0.05;
     public double rMax = 1.0;
-    public int horizon = 8;
 
     public Experiment(CASE_STUDY model) {
         setModel(model);
@@ -150,10 +149,9 @@ public class Experiment
         boolean zeroSum = isZeroSumProperty(prop);
         int propertyHorizon = derivePropertyHorizon(prop, pf);
         boolean finiteHorizon = propertyHorizon >= 0;
+//        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
         // TODO: check if the fallback horizon is sufficient for convergence of value iteration (currently just a heuristic)
-       horizon = finiteHorizon ? propertyHorizon : trueGame.getNumStates() * 2;
-
-        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, horizon, finiteHorizon, solverString, zeroSum);
+        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum);
     }
 
     private boolean isZeroSumProperty(Property prop) {
@@ -436,7 +434,6 @@ public class Experiment
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
-                this.horizon = 4;
             }
             case SIMPLE -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/simple.prism";
@@ -445,7 +442,6 @@ public class Experiment
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
-                this.horizon = 1;
             }
             case RPS3 -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/simple/rps3.prism";
@@ -483,7 +479,6 @@ public class Experiment
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
-                this.horizon = 2;
             }
             case ALOHA -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/aloha/aloha_backoff3.prism";
@@ -494,7 +489,6 @@ public class Experiment
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
-                this.horizon = 8;
             }
             case ROBOT_COORD -> {
                 this.modelFile = "/Users/angel/Desktop/prism-games/prism-examples/csgs/robot_coordination/robot_coordination2.prism";
@@ -505,7 +499,6 @@ public class Experiment
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
-                this.horizon = 8;
             }
         }
         return this;
