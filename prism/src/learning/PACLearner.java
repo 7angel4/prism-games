@@ -1,11 +1,13 @@
 package learning;
 
 import explicit.*;
+import explicit.Model;
+import explicit.rewards.MCRewards;
 import explicit.rewards.MDPRewardsSimple;
+import explicit.rewards.Rewards;
 import org.apache.commons.math3.util.Precision;
 import parser.State;
-import parser.ast.Property;
-import parser.ast.PropertiesFile;
+import parser.ast.*;
 import prism.*;
 import simulator.SimulatorEngine;
 import strat.*;
@@ -494,6 +496,7 @@ public class PACLearner {
         }
     }
 
+
     private void solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
@@ -563,22 +566,180 @@ public class PACLearner {
     }
 
 
+    private DTMCSimple<Double> constructInducedDTMC(CSGSimple<Double> csg,
+                                                    CSGStrategy<Double> strat) throws PrismException {
+
+        int numStates = csg.getNumStates();
+
+        DTMCSimple<Double> dtmc = new DTMCSimple<>();
+        dtmc.setEvaluator(Evaluator.forDouble());
+        dtmc.addStates(numStates);
+
+        for (int s = 0; s < numStates; s++) {
+
+            if (csg.isInitialState(s)) {
+                dtmc.addInitialState(s);
+            }
+
+            Map<Integer, Double> probs = new HashMap<>();
+
+            Map<BitSet, Double> prods = new HashMap<>();
+
+            boolean defined = true;
+            for (int p = 0; p < targets.length; p++) { // targets.length = numCoalitions
+                if (strat.getChoiceDistribution(p, 0, s) == null) {
+                    defined = false;
+                    break;
+                }
+            }
+
+            if (!defined) {
+                dtmc.addToProbability(s, s, 1.0); // absorbing fallback
+                continue;
+            }
+
+            strat.localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
+
+            if (prods.isEmpty()) {
+                throw new PrismException("No strategy defined at state " + s);
+            }
+
+            int numChoices = csg.getNumChoices(s);
+
+            for (int c = 0; c < numChoices; c++) {
+
+                BitSet joint = csg.choiceToIndexes(s, c);
+
+                Double jointProb = prods.get(joint);
+                if (jointProb == null || jointProb == 0.0) continue;
+
+                Iterator<Map.Entry<Integer, Double>> it =
+                        csg.getTransitionsIterator(s, c);
+
+                while (it.hasNext()) {
+                    var e = it.next();
+                    int sp = e.getKey();
+                    double p = e.getValue();
+
+                    probs.merge(sp, jointProb * p, Double::sum);
+                }
+            }
+
+            if (probs.isEmpty()) {
+                // fallback: self-loop
+                dtmc.addToProbability(s, s, 1.0);
+                continue;
+            }
+
+            double sum = probs.values().stream().mapToDouble(Double::doubleValue).sum();
+            if (Math.abs(sum - 1.0) > 1e-8) {
+                throw new PrismException("Probabilities at state " + s + " sum to " + sum);
+            }
+
+            for (var e : probs.entrySet()) {
+                dtmc.addToProbability(s, e.getKey(), e.getValue());
+            }
+        }
+
+        dtmc.findDeadlocks(true);
+        return dtmc;
+    }
+
+    private BitSet computeTargetSet(Expression targetExpr, PropertiesFile propertiesFile) throws PrismException {
+        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
+        mc.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        StateValues sv = mc.checkExpression(trueGame, targetExpr, null);
+        BitSet bs = sv.getBitSet();
+        if (bs == null) throw new PrismException("Target expression did not evaluate to a BitSet");
+        return bs;
+    }
+
+
+    private double computeTrueValue(CSGStrategy<Double> strat, Experiment.PacRunSpec spec) throws PrismException {
+
+        DTMCSimple<Double> dtmc = constructInducedDTMC(trueGame, strat);
+
+        DTMCModelChecker mc = new DTMCModelChecker(prism);
+        mc.setModelCheckingInfo(prism.getModelInfo(),
+                spec.propertiesFile,
+                prism.getRewardGenerator());
+
+        BitSet target = computeTargetSet(spec.objective.targetExpr, spec.propertiesFile);
+
+        if (spec.objective.type == Experiment.ObjectiveSpec.Type.PROB_REACH) {
+            return mc.computeReachProbs(dtmc, target)
+                    .soln[dtmc.getFirstInitialState()];
+        }
+
+        if (spec.objective.type == Experiment.ObjectiveSpec.Type.REWARD_REACH) {
+            MCRewards<Double> rewards = (MCRewards<Double>) mc.constructExpectedRewards(dtmc, spec.objective.rewardIndex);
+
+            return mc.computeReachRewards(dtmc, rewards, target)
+                    .soln[dtmc.getFirstInitialState()];
+        }
+
+        throw new PrismException("Unknown objective type");
+    }
+
+    private Expression stripGameOperators(Expression expr) {
+        while (true) {
+            // Handle multi-Nash
+            if (expr instanceof ExpressionMultiNash multi) {
+                int n = multi.getNumOperands();
+                if (n == 0) {
+                    throw new RuntimeException("Empty ExpressionMultiNash");
+                }
+                // Build sum of operands
+                Expression result = multi.getOperand(0);
+                for (int i = 1; i < n; i++) {
+                    result = Expression.Plus(result, multi.getOperand(i));
+                }
+                expr = result;
+                continue;
+            }
+
+            // Strip <<...>> coalition operator
+            if (expr instanceof ExpressionStrategy strat) {
+                expr = strat.getOperand(0);
+                continue;
+            }
+
+            // Strip parentheses
+            if (expr instanceof ExpressionUnaryOp un &&
+                    un.getOperator() == ExpressionUnaryOp.PARENTH) {
+                expr = un.getOperand();
+                continue;
+            }
+            break;
+        }
+        return expr;
+    }
+
+    private double computeDTMCReward(DTMCModelChecker mc, DTMCSimple<Double> dtmc, BitSet target, int rewardIndex) throws PrismException {
+        Rewards<Double> rewards = mc.constructExpectedRewards(dtmc, rewardIndex);
+        ModelCheckerResult res = mc.computeReachRewards(dtmc, (MCRewards<Double>) rewards, target);
+        return res.soln[dtmc.getFirstInitialState()];
+    }
+
+
     public static void main(String[] args) throws Exception {
         Prism prism = new Prism();
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.VERY_SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
-//        ex.propertyIndex = 4;
+        ex.propertyIndex = 1;
 
         PACLearner learner = new PACLearner(prism, 41);
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec);
         long end = System.nanoTime();
         long duration = end - start;
+
+        System.out.println("\n---------------------------------------");
 
         System.out.println("Execution time: " + duration  / 1e6 + " milliseconds");
 
@@ -591,5 +752,11 @@ public class PACLearner {
         System.out.println("---------------------------------------");
         SolveOutcome trueSol = learner.solveTrueGame(spec.propertiesFile, spec.property);
         System.out.println("True value: " + trueSol);
+
+        System.out.println("---------------------------------------");
+
+        // check true value of the returned policy
+        double trueValue = learner.computeTrueValue(res.robustStrategy, spec);
+        System.out.println("True value of returned strategy: " + trueValue);
     }
 }

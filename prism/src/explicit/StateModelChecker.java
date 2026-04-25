@@ -1544,7 +1544,7 @@ public class StateModelChecker extends PrismComponent
 	 * <br>
 	 * Note: Relies on the stored RewardGenerator for constructing the reward structure.
 	 */
-	protected <Value> Rewards<Value> constructExpectedRewards(Model<Value> model, int r) throws PrismException
+    public <Value> Rewards<Value> constructExpectedRewards(Model<Value> model, int r) throws PrismException
 	{
 		if (model.getModelType() == ModelType.IDTMC && rewardGen.rewardStructHasTransitionRewards(r)) {
 			throw new PrismNotSupportedException("Transition rewards not supported for " + model.getModelType() + "s");
