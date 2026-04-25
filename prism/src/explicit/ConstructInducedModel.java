@@ -50,7 +50,7 @@ public class ConstructInducedModel
 	/**
 	 * The "mode" of construction:
 	 * "restrict" (same model type but restrict to selected action choices); or
-	 * "reduce" (change mode type by removing nondeterminism)
+	 * "reduce" (change model type by removing nondeterminism)
 	 */
 	private InducedModelMode mode = InducedModelMode.RESTRICT;
 
@@ -62,7 +62,7 @@ public class ConstructInducedModel
 	/**
 	 * Set the "mode" of construction:
 	 * "restrict" (same model type but restrict to selected action choices); or
-	 * "reduce" (change mode type by removing nondeterminism)
+	 * "reduce" (change model type by removing nondeterminism)
 	 */
 	public ConstructInducedModel setMode(InducedModelMode mode)
 	{
