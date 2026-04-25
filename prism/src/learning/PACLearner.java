@@ -135,10 +135,13 @@ public class PACLearner {
         this.trueGame = trueGame;
         initialiseRun(trueGame, solver, propertiesFile, property, zeroSum);
 
-        double preach = computeReachProb();
-        System.out.println("Reachability probability: " + preach);
-        this.horizon = finiteHorizon ? horizon : (int) Math.ceil(trueGame.getNumStates() / preach);
+        double pT = computeStopProb();
+        System.out.println("Stopping probability: " + pT);
+        this.horizon = finiteHorizon ? horizon : (int) Math.ceil(trueGame.getNumStates() / pT);
         System.out.println("Effective horizon: " + this.horizon);
+
+        double pReach = computeMinReachProb();
+        System.out.println("Lower bound on reachability probability: " + pReach);
 
         double stopThreshFactor = zeroSum ? ZERO_SUM_STOP_THRESH : NASH_STOP_THRESH;
         computeNmin(deltaContain, rMax, eps, stopThreshFactor);
@@ -163,8 +166,8 @@ public class PACLearner {
                 prevNumUnknownSlots = numUnknownSlots;
             }
 
-            int numSamples = computeNumSamples(deltaCov);
-//            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
+            int numSamples = computeNumSamples(deltaCov, pReach);
+            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
 
@@ -174,9 +177,10 @@ public class PACLearner {
         }
     }
 
-    private int computeNumSamples(double deltaCov) {
+    private int computeNumSamples(double deltaCov, double pReach) {
         double deltaEpisode = deltaCov / (episode * (episode + 1.0));
-        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
+        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, 1.0 / pReach));
+//        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
     }
 
     private void printEpisodeResult(int episode, double deltaT) {
@@ -508,7 +512,7 @@ public class PACLearner {
         sim.setStrategyEnforced(true);
     }
 
-    private double computeReachProb() throws PrismException {
+    private double[] computeReachProbs(BitSet target, MinMax minMax) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(false); // we just want the reachability probabilities
         mc.setPrecomp(true);
@@ -516,16 +520,36 @@ public class PACLearner {
         mc.setVerbosity(0);
 
         // the initial empirical game allows full simplex
-        BitSet target = new BitSet();
-        for (BitSet t : targets) {
-            if (t != null) target.or(t);
-        }
-        ModelCheckerResult res = mc.computeReachProbs(empiricalGame, target, MinMax.min().setMinUnc(true));
+        ModelCheckerResult res = mc.computeReachProbs(empiricalGame, target, minMax.setMinUnc(true));
 
         if (res == null || res.soln == null) {
             throw new PrismException("Reachability solver did not return a value.");
         }
-        return DoubleStream.of(res.soln).min().orElse(0.0);
+        return res.soln;
+    }
+
+    private double computeMinReachProb() throws PrismException {
+        double minProb = 1.0;
+        BitSet target = new BitSet();
+        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
+            target.clear();
+            target.set(s);
+            double prob = computeReachProbs(target, MinMax.max())[empiricalGame.getFirstInitialState()];
+            if (prob < minProb) {
+                minProb = prob;
+            }
+        }
+        return minProb;
+    }
+
+    private double computeStopProb() throws PrismException {
+        // target is now union of the players' targets
+        BitSet target = new BitSet();
+        for (BitSet t : targets) {
+            if (t != null) target.or(t);
+        }
+        double[] sol = computeReachProbs(target, MinMax.max());
+        return DoubleStream.of(sol).min().orElse(0.0);
     }
 
 
