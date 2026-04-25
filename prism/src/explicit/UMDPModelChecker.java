@@ -743,6 +743,13 @@ public class UMDPModelChecker extends ProbModelChecker
 
 		return res;
 	}
+
+	@Override
+	public boolean setSilentPrecomputations(boolean value) {
+		boolean old = super.setSilentPrecomputations(value);
+		mcMDP.setSilentPrecomputations(value);
+		return old;
+	}
 	
 	/**
 	 * Simple test program.

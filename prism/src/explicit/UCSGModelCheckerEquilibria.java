@@ -726,7 +726,7 @@ public class UCSGModelCheckerEquilibria extends CSGModelChecker
 				double v = 0.0;
 
 				for (int d : ucsg.getChoice(s, t).getSupport()) {
-					if (Double.isNaN(val[c][d])) {
+					if (Double.isNaN(val[c][d]) && verbosity > 0) {
 						mainLog.println("val[c][d]: " + val[c][d]);
 						mainLog.println("\n## state " + s);
 						mainLog.println("-- strategies " + strategies);

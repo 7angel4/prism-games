@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.DoubleStream;
 
 public class PACLearner {
 
@@ -110,7 +111,8 @@ public class PACLearner {
                 spec.rMax,
                 spec.horizon,
                 spec.solverString,
-                spec.zeroSum
+                spec.zeroSum,
+                spec.finiteHorizon
         );
     }
 
@@ -123,15 +125,21 @@ public class PACLearner {
             double rMax,
             int horizon,
             String solver,
-            boolean zeroSum
+            boolean zeroSum,
+            boolean finiteHorizon
     ) throws PrismException {
 
         final double deltaContain = confidence / 2.0;
         final double deltaCov= confidence / 2.0;
         episode = 1;
-        this.horizon = horizon;
         this.trueGame = trueGame;
         initialiseRun(trueGame, solver, propertiesFile, property, zeroSum);
+
+        double preach = computeReachProb();
+        System.out.println("Reachability probability: " + preach);
+        this.horizon = finiteHorizon ? horizon : (int) Math.ceil(trueGame.getNumStates() / preach);
+        System.out.println("Effective horizon: " + this.horizon);
+
         double stopThreshFactor = zeroSum ? ZERO_SUM_STOP_THRESH : NASH_STOP_THRESH;
         computeNmin(deltaContain, rMax, eps, stopThreshFactor);
         double stopThresh = eps / stopThreshFactor;
@@ -139,7 +147,7 @@ public class PACLearner {
 
         while (true) {
             deltaT = computeDeltaT(rMax, horizon);
-            if (deltaT <= stopThresh) {
+            if (deltaT <= stopThresh  || numUnknownSlots == 0) {
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 if (!robustSol.found) {
                     if (zeroSum) throw new PrismException("No NE found but zero-sum property should always have an NE");
@@ -156,7 +164,7 @@ public class PACLearner {
             }
 
             int numSamples = computeNumSamples(deltaCov);
-            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
+//            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 sampleTrajectory();
 
@@ -415,6 +423,7 @@ public class PACLearner {
         empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
         empiricalMC.setGenStrat(true);
         empiricalMC.setSilentPrecomputations(true);
+        empiricalMC.setVerbosity(0);
 
         robustSolveL1CSG(property); // solve once so that the model checker records the target states
         targets = zeroSum ? new BitSet[]{empiricalMC.getTarget()} : empiricalMC.getTargets();
@@ -458,7 +467,7 @@ public class PACLearner {
             }
 
             double value = vals[init];
-            if (Double.isNaN(value) || Double.isInfinite(value)) {
+            if (Double.isNaN(value)) { // infinity is a possible valid value for e.g. unbounded reachability reward
                 System.err.println("Warning: robust solve returned invalid value: " + value);
                 return new SolveOutcome(false, null, value);
             }
@@ -499,13 +508,33 @@ public class PACLearner {
         sim.setStrategyEnforced(true);
     }
 
+    private double computeReachProb() throws PrismException {
+        UMDPModelChecker mc = new UMDPModelChecker(this.prism);
+        mc.setGenStrat(false); // we just want the reachability probabilities
+        mc.setPrecomp(true);
+        mc.setSilentPrecomputations(true);
+        mc.setVerbosity(0);
+
+        // the initial empirical game allows full simplex
+        BitSet target = new BitSet();
+        for (BitSet t : targets) {
+            if (t != null) target.or(t);
+        }
+        ModelCheckerResult res = mc.computeReachProbs(empiricalGame, target, MinMax.min().setMinUnc(true));
+
+        if (res == null || res.soln == null) {
+            throw new PrismException("Reachability solver did not return a value.");
+        }
+        return DoubleStream.of(res.soln).min().orElse(0.0);
+    }
+
 
     public static void main(String[] args) throws Exception {
         Prism prism = new Prism();
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CASE_STUDY.TINY_ALOHA);
+        Experiment ex = new Experiment(Experiment.CASE_STUDY.VERY_SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
