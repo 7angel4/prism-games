@@ -2,6 +2,7 @@ package learning;
 
 import explicit.*;
 import explicit.rewards.MDPRewardsSimple;
+import org.apache.commons.math3.util.Precision;
 import parser.State;
 import parser.ast.Property;
 import parser.ast.PropertiesFile;
@@ -23,7 +24,6 @@ public class PACLearner {
     public static final double ZERO_SUM_STOP_THRESH = 2.0;
     private static final double TRANS_PROB_LB = 1e-6;
     private static final String DEFAULT_SMT_SOLVER = "Yices";
-    private static final double RADIUS_CHANGE_THRESH = 0.05;
 
     private static final class SolveOutcome {
         final boolean found;
@@ -101,7 +101,6 @@ public class PACLearner {
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
-//        System.out.println("Using effective horizon: " + spec.horizon);
         return runPacLoop(
                 spec.trueGame,
                 spec.propertiesFile,
@@ -135,10 +134,14 @@ public class PACLearner {
         this.trueGame = trueGame;
         initialiseRun(trueGame, solver, propertiesFile, property, zeroSum);
 
-        double pT = computeStopProb();
-        System.out.println("Stopping probability: " + pT);
-        this.horizon = finiteHorizon ? horizon : (int) Math.ceil(trueGame.getNumStates() / pT);
-        System.out.println("Effective horizon: " + this.horizon);
+        if (!finiteHorizon) {
+            double pT = computeStopProb();
+            System.out.println("Stopping probability: " + pT);
+            this.horizon = (int) Math.ceil(trueGame.getNumStates() / pT);
+            System.out.println("Effective horizon: " + this.horizon);
+        } else {
+            this.horizon = horizon;
+        }
 
         double pReach = computeMinReachProb();
         System.out.println("Lower bound on reachability probability: " + pReach);
@@ -539,6 +542,9 @@ public class PACLearner {
                 minProb = prob;
             }
         }
+        if (Precision.equals(minProb, 0.0)) {
+            System.out.println("Minimum reachability probability is 0");
+        }
         return minProb;
     }
 
@@ -549,7 +555,11 @@ public class PACLearner {
             if (t != null) target.or(t);
         }
         double[] sol = computeReachProbs(target, MinMax.max());
-        return DoubleStream.of(sol).min().orElse(0.0);
+        double pStop = DoubleStream.of(sol).min().orElse(0.0);
+        if (Precision.equals(pStop, 0.0)) {
+            throw new PrismException("Stopping probability for target is 0 - assumption violated");
+        }
+        return pStop;
     }
 
 
@@ -558,10 +568,11 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CASE_STUDY.MEDIUM_ACCESS2);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
+//        ex.propertyIndex = 4;
 
         PACLearner learner = new PACLearner(prism, 41);
         long start = System.nanoTime();
