@@ -45,7 +45,6 @@ public class Experiment
         public final int horizon;
         public final boolean finiteHorizon;
         public final String solverString;
-        public final ObjectiveSpec objective;
 
         public PacRunSpec(
                 CSGSimple<Double> trueGame,
@@ -57,8 +56,7 @@ public class Experiment
                 int horizon,
                 boolean finiteHorizon,
                 String solverString,
-                boolean zeroSum,
-                ObjectiveSpec objective
+                boolean zeroSum
         ) {
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
@@ -70,26 +68,9 @@ public class Experiment
             this.finiteHorizon = finiteHorizon;
             this.solverString = solverString;
             this.zeroSum = zeroSum;
-            this.objective = objective;
         }
     }
 
-    public static final class ObjectiveSpec {
-        public enum Type {
-            PROB_REACH,
-            REWARD_REACH
-        }
-
-        public final Type type;
-        public final int rewardIndex;   // only used for reward
-        public final Expression targetExpr;
-
-        public ObjectiveSpec(Type type, int rewardIndex, Expression targetExpr) {
-            this.type = type;
-            this.rewardIndex = rewardIndex;
-            this.targetExpr = targetExpr;
-        }
-    }
 
     public CaseStudy model;
     public String modelFile;
@@ -162,51 +143,8 @@ public class Experiment
         int propertyHorizon = derivePropertyHorizon(prop, pf);
         boolean finiteHorizon = propertyHorizon >= 0;
 //        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
-
-        ObjectiveSpec obj = extractObjective(prop);
         // TODO: check if the fallback horizon is sufficient for convergence of value iteration (currently just a heuristic)
-        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum, obj);
-    }
-
-    private ObjectiveSpec extractObjective(Property prop) throws PrismException {
-        ExpressionStrategy strat = findFirstStrategyExpression(prop.getExpression());
-        Expression inner = stripParentheses(strat.getOperand(0));
-
-        if (inner instanceof ExpressionMultiNash multi) {
-            // assume single-objective for now (or pick first)
-            ExpressionQuant q = multi.getOperand(0);
-            return extractFromQuant(q);
-        } else if (inner instanceof ExpressionQuant q) {
-            return extractFromQuant(q);
-        }
-
-        throw new PrismException("Unsupported property structure");
-    }
-
-    private ObjectiveSpec extractFromQuant(ExpressionQuant q) throws PrismException {
-
-        if (q instanceof ExpressionMultiNashProb probQ) {
-            ExpressionTemporal t = (ExpressionTemporal)
-                    Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
-
-            return new ObjectiveSpec(
-                    ObjectiveSpec.Type.PROB_REACH,
-                    -1,
-                    t.getOperand2()
-            );
-        }
-
-        if (q instanceof ExpressionMultiNashReward rewQ) {
-            ExpressionTemporal t = (ExpressionTemporal) rewQ.getExpression();
-
-            return new ObjectiveSpec(
-                    ObjectiveSpec.Type.REWARD_REACH,
-                    (int) rewQ.getRewardStructIndex(),
-                    t.getOperand2()
-            );
-        }
-
-        throw new PrismException("Unsupported quantifier type");
+        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum);
     }
 
     private boolean isZeroSumProperty(Property prop) {
