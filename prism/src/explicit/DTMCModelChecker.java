@@ -567,7 +567,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Start probabilistic reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("\nStarting probabilistic reachability...");
+		if (verbosity > 0)
+			mainLog.println("\nStarting probabilistic reachability...");
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
 		dtmc.checkForDeadlocks(target);
@@ -629,7 +630,8 @@ public class DTMCModelChecker extends ProbModelChecker
 		// Print results of precomputation
 		numYes = yes.cardinality();
 		numNo = no.cardinality();
-		mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
+		if (verbosity > 0)
+			mainLog.println("target=" + target.cardinality() + ", yes=" + numYes + ", no=" + numNo + ", maybe=" + (n - (numYes + numNo)));
 
 		// Compute probabilities (if needed)
 		if (numYes + numNo < n) {
@@ -664,7 +666,8 @@ public class DTMCModelChecker extends ProbModelChecker
 
 		// Finished probabilistic reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
+		if (verbosity > 0)
+			mainLog.println("Probabilistic reachability took " + timer / 1000.0 + " seconds.");
 
 		// Update time taken
 		res.timeTaken = timer / 1000.0;

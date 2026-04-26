@@ -264,20 +264,20 @@ public class LearningHelper {
         double value = res.soln[init];
 
         // Debug (optional but VERY useful)
-        System.out.println("\n=== DTMC VALUES ===");
-        for (int s = 0; s < res.soln.length; s++) {
-            System.out.println("state " + s + " -> " + res.soln[s]);
-        }
-
-        System.out.println("\nInitial state = " + init);
-        System.out.println("True value = " + value);
+//        System.out.println("\n=== DTMC VALUES ===");
+//        for (int s = 0; s < res.soln.length; s++) {
+//            System.out.println("state " + s + " -> " + res.soln[s]);
+//        }
+//
+//        System.out.println("\nInitial state = " + init);
+//        System.out.println("True value = " + value);
 
         return value;
     }
 
     protected DTMCSimple<Double> constructInducedDTMC(CSG<Double> game, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
         MDPSimple mdp = strategy.generateMDPEquilibria();
-        System.out.println("Induced MDP = " + mdp);
+//        System.out.println("Induced MDP = " + mdp);
         // convert to DTMC
         DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp.getNumStates());
         dtmc.setEvaluator(Evaluator.forDouble());

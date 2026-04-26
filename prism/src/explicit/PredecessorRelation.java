@@ -34,6 +34,7 @@ import java.util.Stack;
 
 import prism.PrismComponent;
 import common.IterableBitSet;
+import prism.PrismSettings;
 
 /**
  * A class for storing and accessing the predecessor relation of an explicit Model.
@@ -115,14 +116,18 @@ public class PredecessorRelation
 	public static PredecessorRelation forModel(PrismComponent parent, Model<?> model)
 	{
 		long timer = System.currentTimeMillis();
-		
-		parent.getLog().print("Calculating predecessor relation for "+model.getModelType().fullName()+"...  ");
-		parent.getLog().flush();
+		boolean verbose = parent.getSettings().getBoolean(PrismSettings.PRISM_VERBOSE);
+
+		if (verbose) {
+			parent.getLog().print("Calculating predecessor relation for " + model.getModelType().fullName() + "...  ");
+			parent.getLog().flush();
+		}
 
 		PredecessorRelation pre = new PredecessorRelation(model);
 		
 		timer = System.currentTimeMillis() - timer;
-		parent.getLog().println("done (" + timer / 1000.0 + " seconds)");
+		if (verbose)
+			parent.getLog().println("done (" + timer / 1000.0 + " seconds)");
 
 		return pre;
 	}

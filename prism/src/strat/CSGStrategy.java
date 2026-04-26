@@ -407,7 +407,6 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 	
 	public void localMixedProduct(Map<BitSet, Double> prods, BitSet prod, double v, int k, int p, int s) {
 		if (p < csgchoices.size() - 1) {
-			System.out.println("csgchoices from localMixedProduct(prods = " + prods + ", prod = " + prod + ", v=" + v + ", k=" + k + ", p=" + p + ", s=" + s + ") = " + csgchoices.toString());
 			Map<BitSet, Double> map = csgchoices.get(p).get(k).get(s);
 			if (map == null) {
 				// skip this player (treat as no constraint)
