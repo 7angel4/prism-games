@@ -103,6 +103,27 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 		maxNumDistrsOk = mdp.maxNumDistrsOk;
 	}
 
+	public MDPSimple(MDPSimple<Value> mdp, List<List<Distribution<Value>>> trans)
+	{
+		this(mdp.numStates);
+		copyFrom(mdp);
+		// Copy storage directly to avoid worrying about duplicate distributions (and for efficiency)
+		for (int s = 0; s < numStates; s++) {
+			List<Distribution<Value>> distrs = this.trans.get(s);
+			List<Distribution<Value>> newDistrs = trans.get(s);
+			for (Distribution<Value> distr : newDistrs) {
+				distrs.add(new Distribution<>(distr));
+			}
+		}
+		actions = new ChoiceActionsSimple(mdp.actions);
+		// Copy flags/stats too
+		allowDupes = mdp.allowDupes;
+		numDistrs = mdp.numDistrs;
+		numTransitions = mdp.numTransitions;
+		maxNumDistrs = mdp.maxNumDistrs;
+		maxNumDistrsOk = mdp.maxNumDistrsOk;
+	}
+
 	/**
 	 * Constructor: new MDP copied from an existing DTMC.
 	 */
@@ -144,9 +165,12 @@ public class MDPSimple<Value> extends MDPExplicit<Value> implements NondetModelS
 		maxNumDistrsOk = mdp.maxNumDistrsOk;
 	}
 
+
+
 	/**
 	 * Construct an MDPSimple object from an MDP object.
 	 */
+	// This should use copyFrom(mdp)?
 	public MDPSimple(MDP<Value> mdp)
 	{
 		this(mdp, p -> p);

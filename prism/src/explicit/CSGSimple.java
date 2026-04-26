@@ -47,6 +47,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 	/** Indices of actions owned by each player,
 	 * i.e., a BitSet of (1-indexed) action indices for each player. */
+	// player -> action indices
 	protected BitSet[] indexes;
 
 	/** Indices of the actions representing "idle" for each player. */
@@ -81,53 +82,15 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 	}
 
 
-	public CSGSimple(CSGSimple<Value> template, List<List<Distribution<Value>>> trans) {
-		super(template.getNumStates());
-		copyFrom(template);
-		setEvaluator(eval);
-		int numStates = getNumStates();
-		for (int s = 0; s < getNumStates(); s++) {
-			for (int c = 0; c < getNumChoices(); c++) {
-				setTrans(s, c, trans.get(s).get(c));
-			}
-		}
-
-		setPlayerNames(template.getPlayerNames());
-		copyGameInfo(template);
-
-		for (int i = 0; i < numStates; i++) {
-			int numChoices = template.getNumChoices(i);
-			for (int j = 0; j < numChoices; j++) {
-				Object action = template.getAction(i, j);
-				Distribution<Value> distr = new Distribution<>(eval);
-				Iterator<Map.Entry<Integer, Value>> iter = template.getTransitionsIterator(i, j);
-				while (iter.hasNext()) {
-					Map.Entry<Integer, Value> e = iter.next();
-					distr.set(e.getKey(), e.getValue());
-				}
-				if (!distr.isEmpty()) {
-					if (action != null) {
-						super.addActionLabelledChoice(i, distr, action);
-					} else {
-						addChoice(i, distr);
-					}
-				}
-			}
-		}
-	}
-
-
-
-	private void copyGameInfo(CSG<Value> template) {
-		for (int s = 0; s < template.getNumStates(); s++) {
-			transIndexes.add(s, null);
-		}
-		for (int s = 0; s < template.getNumStates(); s++) {
-			transIndexes.set(s, template.getTransIndexes(s));
-		}
-		indexes = template.getIndexes();
-		playerInfo = new PlayerInfo(template.getPlayerInfo());
-		idles = template.getIdles();
+	public CSGSimple(CSGSimple<Value> csg, List<List<Distribution<Value>>> trans)
+	{
+		super(csg, trans);
+		this.actionList = csg.getActionList();        // ActionList
+		// initialise transIndexes (copies player info)
+		transIndexes = csg.getTransIndexes();
+		indexes = csg.getIndexes();
+		playerInfo = new PlayerInfo(csg.playerInfo);
+		idles = csg.getIdles();
 	}
 
 
