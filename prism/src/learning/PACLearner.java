@@ -1,8 +1,7 @@
 package learning;
 
 import explicit.*;
-import explicit.Model;
-import explicit.rewards.MCRewards;
+import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
 import explicit.rewards.Rewards;
 import org.apache.commons.math3.util.Precision;
@@ -19,6 +18,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.DoubleStream;
+
 
 public class PACLearner {
 
@@ -86,6 +86,7 @@ public class PACLearner {
 
     private Map<State, Integer> stateToIndex;
     BitSet[] targets;
+    List<CSGRewards<Double>> rewards;
     SimulatorEngine sim;
     private int episode;
 
@@ -134,7 +135,7 @@ public class PACLearner {
         final double deltaCov= confidence / 2.0;
         episode = 1;
         this.trueGame = trueGame;
-        initialiseRun(trueGame, solver, propertiesFile, property, zeroSum);
+        initialiseRun(solver, propertiesFile, property, zeroSum);
 
         if (!finiteHorizon) {
             double pT = computeStopProb();
@@ -302,8 +303,8 @@ public class PACLearner {
         return w;
     }
 
-    private void initialiseRun(CSGSimple<Double> template, String solver, PropertiesFile propertiesFile, Property property, boolean zeroSum) throws PrismException {
-        int numStates = template.getNumStates();
+    private void initialiseRun(String solver, PropertiesFile propertiesFile, Property property, boolean zeroSum) throws PrismException {
+        int numStates = trueGame.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
         slotCounts = new long[numStates][];
@@ -312,7 +313,7 @@ public class PACLearner {
         numUnknownSlots = 0;
 
         for (int s = 0; s < numStates; s++) {
-            int numChoices = template.getNumChoices(s);
+            int numChoices = trueGame.getNumChoices(s);
 
             known[s] = new boolean[numChoices];
             numUnknownSlots += numChoices;
@@ -323,7 +324,7 @@ public class PACLearner {
             for (int c = 0; c < numChoices; c++) {
                 transitionCounts[s][c] = new long[numStates];
 
-                Iterator<Integer> successors = template.getSuccessorsIterator(s, c);
+                Iterator<Integer> successors = trueGame.getSuccessorsIterator(s, c);
                 List<Integer> succs = new ArrayList<>();
                 while (successors.hasNext()) {
                     int succ = successors.next();
@@ -343,15 +344,15 @@ public class PACLearner {
 
         prevNumUnknownSlots = numUnknownSlots;
 
-        empiricalGame = new L1CSGSimple<>(template, trans);
+        empiricalGame = new L1CSGSimple<>(trueGame, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
         String chosenSolver = (solver == null || solver.isBlank()) ? DEFAULT_SMT_SOLVER : solver;
         prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
 
         stateToIndex = new HashMap<>();
-        for (int i = 0; i < trueGame.getStatesList().size(); i++) {
-            stateToIndex.put(trueGame.getStatesList().get(i), i);
+        for (int i = 0; i < this.trueGame.getStatesList().size(); i++) {
+            stateToIndex.put(this.trueGame.getStatesList().get(i), i);
         }
 
         initialiseMC(propertiesFile, property, zeroSum);
@@ -436,6 +437,11 @@ public class PACLearner {
 
         robustSolveL1CSG(property); // solve once so that the model checker records the target states
         targets = zeroSum ? new BitSet[]{empiricalMC.getTarget()} : empiricalMC.getTargets();
+        if (zeroSum) {
+            rewards = new ArrayList<>();
+            rewards.add((CSGRewards<Double>) empiricalMC.getReward());
+        } else
+            rewards = empiricalMC.getRewards();
     }
 
     private SolveOutcome robustSolveL1CSG(Property property) {
@@ -566,184 +572,150 @@ public class PACLearner {
     }
 
 
-    private DTMCSimple<Double> constructInducedDTMC(CSGSimple<Double> csg,
-                                                    CSGStrategy<Double> strat) throws PrismException {
+    private DTMCSimple<Double> constructInducedDTMC(CSGSimple<Double> game, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
 
-        int numStates = csg.getNumStates();
-
-        DTMCSimple<Double> dtmc = new DTMCSimple<>();
+        MDPSimple mdp = strategy.generateMDPEquilibria();
+        System.out.println("Induced MDP = " + mdp);
+        // convert to DTMC
+        DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp.getNumStates());
         dtmc.setEvaluator(Evaluator.forDouble());
-        dtmc.addStates(numStates);
-        dtmc.setStatesList(csg.getStatesList());
 
-        for (int s = 0; s < numStates; s++) {
+        dtmc.setStatesList(mdp.getStatesList());
+        dtmc.setConstantValues(game.getConstantValues());
+        dtmc.setVarList(game.getVarList());
 
-            if (csg.isInitialState(s)) {
-                dtmc.addInitialState(s);
-            }
+        for (Map.Entry<String, BitSet> entry : game.getLabelToStatesMap().entrySet()) {
+            dtmc.addLabel(entry.getKey(), (BitSet) entry.getValue().clone());
+        }
 
-            Map<Integer, Double> probs = new HashMap<>();
+        dtmc.addInitialState(mdp.getFirstInitialState());
 
-            Map<BitSet, Double> prods = new HashMap<>();
-
-            boolean defined = true;
-            for (int p = 0; p < targets.length; p++) { // targets.length = numCoalitions
-                if (strat.getChoiceDistribution(p, 0, s) == null) {
-                    defined = false;
-                    break;
-                }
-            }
-
-            if (!defined) {
-                dtmc.addToProbability(s, s, 1.0); // absorbing fallback
-                continue;
-            }
-
-            strat.localMixedProduct(prods, new BitSet(), 1.0, 0, 0, s);
-
-            if (prods.isEmpty()) {
-                throw new PrismException("No strategy defined at state " + s);
-            }
-
-            int numChoices = csg.getNumChoices(s);
-
-            for (int c = 0; c < numChoices; c++) {
-
-                BitSet joint = csg.choiceToIndexes(s, c);
-
-                Double jointProb = prods.get(joint);
-                if (jointProb == null || jointProb == 0.0) continue;
-
-                Iterator<Map.Entry<Integer, Double>> it =
-                        csg.getTransitionsIterator(s, c);
-
-                while (it.hasNext()) {
-                    var e = it.next();
-                    int sp = e.getKey();
-                    double p = e.getValue();
-
-                    probs.merge(sp, jointProb * p, Double::sum);
-                }
-            }
-
-            if (probs.isEmpty()) {
-                // fallback: self-loop
-                dtmc.addToProbability(s, s, 1.0);
-                continue;
-            }
-
-            double sum = probs.values().stream().mapToDouble(Double::doubleValue).sum();
-            if (Math.abs(sum - 1.0) > 1e-8) {
-                throw new PrismException("Probabilities at state " + s + " sum to " + sum);
-            }
-
-            for (var e : probs.entrySet()) {
+        for (int s = 0; s < mdp.getNumStates(); s++) {
+            if (mdp.getNumChoices(s) == 0) continue;
+            Distribution<Double> distr = mdp.getChoice(s, 0);
+            for (Map.Entry<Integer, Double> e : distr) {
                 dtmc.addToProbability(s, e.getKey(), e.getValue());
             }
         }
-
-        dtmc.findDeadlocks(true);
+//        System.out.println("DTMC = " + dtmc);
         return dtmc;
     }
 
-    private BitSet computeTargetSet(DTMCSimple<Double> dtmc,
-                                    Expression targetExpr,
-                                    PropertiesFile propertiesFile) throws PrismException {
+    private BitSet constructDTMCTarget(DTMCSimple<Double> dtmc) {
+        BitSet csgTarget = new BitSet();
+        for (int p = 0; p < targets.length; p++) {
+            csgTarget.or(targets[p]);
+        }
+
+        BitSet dtmcTarget = new BitSet(); //
+        for (State s : dtmc.getStatesList()) {
+            int dtmcStateIndex = stateToIndex.get(s);
+            if (csgTarget.get(dtmcStateIndex)) continue; // already added from another player's dtmcTarget
+            dtmcTarget.set(dtmcStateIndex);
+        }
+        return dtmcTarget;
+    }
+
+    private MDPRewardsSimple<Double> constructDTMCRewards(DTMCSimple<Double> dtmc, List<CSGRewards<Double>> rewards)
+    {
+        MDPRewardsSimple<Double> dtmcRewards =
+                new MDPRewardsSimple<>(dtmc.getNumStates());
+
+        int numStates = dtmc.getNumStates();
+
+        for (int s = 0; s < numStates; s++) {
+
+            State state = dtmc.getStatesList().get(s);
+            int orig = stateToIndex.get(state);  // map back to CSG state
+
+            // =========================
+            // State reward aggregation
+            // =========================
+            double stateRew = 0.0;
+
+            if (rewards != null) {
+                for (CSGRewards<Double> r : rewards) {
+                    if (r != null) {
+                        stateRew += r.getStateReward(orig);
+                    }
+                }
+            }
+
+            dtmcRewards.setStateReward(s, stateRew);
+
+            // =========================
+            // Transition reward (DTMC = 1 choice)
+            // =========================
+            if (dtmc.getNumTransitions(s) > 0) {
+
+                double transRew = 0.0;
+
+                if (rewards != null) {
+                    for (CSGRewards<Double> r : rewards) {
+                        if (r != null) {
+                            // ⚠️ IMPORTANT: use choice 0 (DTMC collapsed MDP)
+                            transRew += r.getTransitionReward(orig, 0);
+                        }
+                    }
+                }
+
+                dtmcRewards.setTransitionReward(s, 0, transRew);
+            }
+        }
+
+        return dtmcRewards;
+    }
+
+
+    public double computeTrueValue(CSGStrategy<Double> strategy, Experiment.PacRunSpec spec)
+            throws PrismException, InvalidStrategyStateException
+    {
+        DTMCSimple<Double> dtmc = constructInducedDTMC(spec.trueGame, strategy);
+        dtmc.findDeadlocks(true);
 
         DTMCModelChecker mc = new DTMCModelChecker(prism);
-        mc.setModelCheckingInfo(
-                prism.getModelInfo(),
-                propertiesFile,
-                prism.getRewardGenerator()
-        );
+        mc.setSilentPrecomputations(true);
+        mc.setVerbosity(0);
 
-        StateValues sv = mc.checkExpression(dtmc, targetExpr, null);
-
-        BitSet bs = sv.getBitSet();
-        if (bs == null) {
-            throw new PrismException("Target expression did not evaluate to a BitSet");
+        ModelCheckerResult res;
+        BitSet dtmcTarget = constructDTMCTarget(dtmc);
+        if (rewards != null) {
+            MDPRewardsSimple<Double> dtmcRewards = constructDTMCRewards(dtmc, rewards);
+            res = mc.computeReachRewards(dtmc, dtmcRewards, dtmcTarget);
+        } else {
+            res = mc.computeReachProbs(dtmc, dtmcTarget);
         }
 
-        return bs;
-    }
 
-    private double computeTrueValue(CSGStrategy<Double> strat, Experiment.PacRunSpec spec) throws PrismException {
-
-        DTMCSimple<Double> dtmc = constructInducedDTMC(trueGame, strat);
-
-        DTMCModelChecker mc = new DTMCModelChecker(prism);
-        mc.setModelCheckingInfo(prism.getModelInfo(),
-                spec.propertiesFile,
-                prism.getRewardGenerator());
-
-        BitSet target = computeTargetSet(dtmc, spec.objective.targetExpr, spec.propertiesFile);
-
-        if (spec.objective.type == Experiment.ObjectiveSpec.Type.PROB_REACH) {
-            return mc.computeReachProbs(dtmc, target)
-                    .soln[dtmc.getFirstInitialState()];
+        if (res == null || res.soln == null) {
+            throw new PrismException("DTMC reachability failed");
         }
 
-        if (spec.objective.type == Experiment.ObjectiveSpec.Type.REWARD_REACH) {
-            MCRewards<Double> rewards = (MCRewards<Double>) mc.constructExpectedRewards(dtmc, spec.objective.rewardIndex);
+        int init = dtmc.getFirstInitialState();
+        double value = res.soln[init];
 
-            return mc.computeReachRewards(dtmc, rewards, target)
-                    .soln[dtmc.getFirstInitialState()];
+        // Debug (optional but VERY useful)
+        System.out.println("\n=== DTMC VALUES ===");
+        for (int s = 0; s < res.soln.length; s++) {
+            System.out.println("state " + s + " -> " + res.soln[s]);
         }
 
-        throw new PrismException("Unknown objective type");
+        System.out.println("\nInitial state = " + init);
+        System.out.println("True value = " + value);
+
+        return value;
     }
-
-    private Expression stripGameOperators(Expression expr) {
-        while (true) {
-            // Handle multi-Nash
-            if (expr instanceof ExpressionMultiNash multi) {
-                int n = multi.getNumOperands();
-                if (n == 0) {
-                    throw new RuntimeException("Empty ExpressionMultiNash");
-                }
-                // Build sum of operands
-                Expression result = multi.getOperand(0);
-                for (int i = 1; i < n; i++) {
-                    result = Expression.Plus(result, multi.getOperand(i));
-                }
-                expr = result;
-                continue;
-            }
-
-            // Strip <<...>> coalition operator
-            if (expr instanceof ExpressionStrategy strat) {
-                expr = strat.getOperand(0);
-                continue;
-            }
-
-            // Strip parentheses
-            if (expr instanceof ExpressionUnaryOp un &&
-                    un.getOperator() == ExpressionUnaryOp.PARENTH) {
-                expr = un.getOperand();
-                continue;
-            }
-            break;
-        }
-        return expr;
-    }
-
-    private double computeDTMCReward(DTMCModelChecker mc, DTMCSimple<Double> dtmc, BitSet target, int rewardIndex) throws PrismException {
-        Rewards<Double> rewards = mc.constructExpectedRewards(dtmc, rewardIndex);
-        ModelCheckerResult res = mc.computeReachRewards(dtmc, (MCRewards<Double>) rewards, target);
-        return res.soln[dtmc.getFirstInitialState()];
-    }
-
 
     public static void main(String[] args) throws Exception {
         Prism prism = new Prism();
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.VERY_SIMPLE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
-        ex.propertyIndex = 1;
+        ex.propertyIndex = 4;
 
         PACLearner learner = new PACLearner(prism, 41);
         long start = System.nanoTime();

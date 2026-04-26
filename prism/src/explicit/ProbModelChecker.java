@@ -107,6 +107,8 @@ public class ProbModelChecker extends NonProbModelChecker
 
 	private BitSet[] targets; // for nonzero-sum objectives
 	private BitSet target; // for zero-sum objectives
+	private List<CSGRewards<Double>> rewards;
+	private Rewards reward; // for zero-sum objectives
 
 	// Delay between occasional updates for slow processes, e.g. numerical solution (milliseconds)
 	public static final int UPDATE_DELAY = 5000;
@@ -688,7 +690,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	{
 		ModelCheckerResult res = new ModelCheckerResult();
 		List<ExpressionQuant> formulae = expr.getOperands();
-		List<CSGRewards<Double>> rewards = new ArrayList<>();
+		rewards = new ArrayList<>();
 		BitSet[] remain = new BitSet[coalitions.size()];
 		targets = new BitSet[coalitions.size()];
 		BitSet bounded  = new BitSet();
@@ -1659,6 +1661,7 @@ public class ProbModelChecker extends NonProbModelChecker
 		
 		// Model check the operand for all states
 		target = checkExpression(model, expr.getOperand2(), null).getBitSet();
+		reward = modelRewards;
 
 		// Compute/return the rewards
 		ModelCheckerResult res = null;
@@ -1994,5 +1997,13 @@ public class ProbModelChecker extends NonProbModelChecker
 
 	public BitSet getTarget() {
 		return target;
+	}
+
+	public List<CSGRewards<Double>> getRewards() {
+		return rewards;
+	}
+
+	public Rewards<Double> getReward() {
+		return reward;
 	}
 }
