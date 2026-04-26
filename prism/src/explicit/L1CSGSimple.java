@@ -126,23 +126,6 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
         return sb.toString();
     }
 
-    /**
-     * Extract the coalition-action BitSet from a joint action index array.
-     * Players outside the coalition are ignored by the BitSet membership test.
-     */
-    private BitSet extractCoalitionActionIndexes(int[] jointIndexes, BitSet coalitionActions) {
-        BitSet bs = new BitSet();
-        for (int p = 0; p < jointIndexes.length; p++) {
-            int idx = jointIndexes[p];
-            if (idx < 0) {
-                idx = getIdleForPlayer(p);
-            }
-            if (coalitionActions.get(idx)) {
-                bs.set(idx);
-            }
-        }
-        return bs;
-    }
 
     @Override
     public boolean filterNEforRNE(double[][] eqVal,
@@ -371,6 +354,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             return result;
         }
     }
+
 
     /**
      * Default evaluator for double-based CSGs.

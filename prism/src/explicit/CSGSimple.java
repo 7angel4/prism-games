@@ -28,8 +28,10 @@
 package explicit;
 
 import java.util.*;
-import java.util.function.Function;
 
+import explicit.rewards.CSGRewards;
+import explicit.rewards.MDPRewardsSimple;
+import prism.Evaluator;
 import prism.JointAction;
 import prism.PlayerInfo;
 import prism.PlayerInfoOwner;
@@ -91,6 +93,135 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		indexes = csg.getIndexes();
 		playerInfo = new PlayerInfo(csg.playerInfo);
 		idles = csg.getIdles();
+	}
+
+
+	private final class DevGainMDP extends MDPSimple<Double> {
+
+		private final MDPRewardsSimple<Double> rewards;
+
+		DevGainMDP(CSGSimple<Value> csg,
+				   int agent,
+				   List<Map<BitSet, Double>> strat,
+				   CSGRewards<Double> csgRewards,
+				   BitSet[] actionIndexes)
+		{
+			super(csg.getNumStates());
+
+			this.rewards = (csgRewards == null)
+					? null
+					: new MDPRewardsSimple<>(csg.getNumStates());
+
+			Map<BitSet, Double> agentStrat = strat.get(agent);
+			Map<BitSet, Double> otherStrat = strat.get(1 - agent);
+
+			BitSet agentActions = actionIndexes[agent];
+			BitSet otherActions = actionIndexes[1 - agent];
+
+			List<BitSet> agentActs = new ArrayList<>(agentStrat.keySet());
+
+			for (int s = 0; s < csg.getNumStates(); s++) {
+
+				for (BitSet a_i : agentActs) {
+
+					double rew = 0.0;
+					Distribution<Double> distr = new Distribution<>(Evaluator.forDouble());
+
+					for (int choice = 0; choice < csg.getNumChoices(s); choice++) {
+
+						int[] joint = csg.getIndexes(s, choice);
+
+						BitSet a = extractCoalitionActionIndexes(joint, agentActions);
+						BitSet b = extractCoalitionActionIndexes(joint, otherActions);
+
+						if (!a.equals(a_i)) continue;
+
+						double pOther = otherStrat.getOrDefault(b, 0.0);
+						if (pOther == 0.0) continue;
+
+						if (csgRewards != null) {
+							rew += pOther * csgRewards.getTransitionReward(s, choice);
+						}
+
+						Distribution<Value> nominal = csg.getChoice(s, choice);
+						for (Map.Entry<Integer, Value> e : nominal) {
+							distr.add(e.getKey(),
+									pOther * ((Number) e.getValue()).doubleValue());
+						}
+					}
+
+					int idx = addActionLabelledChoice(s, distr, a_i);
+
+					if (rewards != null) {
+						rewards.setTransitionReward(s, idx, rew);
+					}
+				}
+			}
+		}
+
+		private double[] solve() {
+			int n = this.getNumStates();
+			double[] v = new double[n];
+			double[] newV = new double[n];
+
+			final int MAX_ITERS = 10000;
+			final double TOL = 1e-10;
+
+			for (int it = 0; it < MAX_ITERS; it++) {
+				if (this.rewards == null) {
+					this.mvMultMinMax(v, false, newV, null, false, null);
+				} else {
+					this.mvMultRewMinMax(v, this.rewards, false, newV, null, false, null);
+				}
+
+				double diff = 0.0;
+				for (int s = 0; s < n; s++) {
+					diff = Math.max(diff, Math.abs(newV[s] - v[s]));
+					v[s] = newV[s];
+				}
+
+				if (diff < TOL) break;
+			}
+
+			return v;
+		}
+	}
+
+	/**
+	 * Extract the coalition-action BitSet from a joint action index array.
+	 * Players outside the coalition are ignored by the BitSet membership test.
+	 */
+	// also used in L1CSGSimple
+	protected BitSet extractCoalitionActionIndexes(int[] jointIndexes, BitSet coalitionActions) {
+		BitSet bs = new BitSet();
+		for (int p = 0; p < jointIndexes.length; p++) {
+			int idx = jointIndexes[p];
+			if (idx < 0) {
+				idx = getIdleForPlayer(p);
+			}
+			if (coalitionActions.get(idx)) {
+				bs.set(idx);
+			}
+		}
+		return bs;
+	}
+
+	// max_{\sigma_i'} (over deviator i's other strategies)
+	public double computeDeviationValue(int player, List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> rewards, BitSet[] actionIndexes, int s) {
+		DevGainMDP mdp = new DevGainMDP(this, player, strat,
+				rewards == null ? null : rewards.get(player),
+				actionIndexes);
+		return mdp.solve()[s];
+	}
+
+	// max_{i} (over players)
+	public double computeNashMargin(List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> rewards, BitSet[] actionIndexes, int s) {
+		double max = 0.0;
+		for (int p = 0; p < strat.size(); p++) {
+			double dev = computeDeviationValue(p, strat, rewards, actionIndexes, s);
+			max = Math.max(max, dev);
+		}
+		return max;
 	}
 
 
