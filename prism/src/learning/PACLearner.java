@@ -3,7 +3,6 @@ package learning;
 import explicit.*;
 import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
-import org.apache.commons.math3.util.Precision;
 import parser.ast.*;
 import prism.*;
 import strat.*;
@@ -67,7 +66,7 @@ public class PACLearner {
      * For finite-horizon properties, this is the property's upper bound.
      * For unbounded properties, this is the fallback rollout cap.
      */
-    private int horizon;
+    private int effHorizon;
 
     public PACLearner(Prism prism, int seed) throws PrismException {
         this.prism = prism;
@@ -112,10 +111,10 @@ public class PACLearner {
         if (!finiteHorizon) {
             double pT = computeStopProb();
             System.out.println("Stopping probability: " + pT);
-            this.horizon = (int) Math.ceil(trueGame.getNumStates() / pT);
-            System.out.println("Effective horizon: " + this.horizon);
+            this.effHorizon = (int) Math.ceil(trueGame.getNumStates() / pT);
+            System.out.println("Effective horizon: " + this.effHorizon);
         } else {
-            this.horizon = horizon;
+            this.effHorizon = horizon;
         }
 
         double pReach = computeMinReachProb();
@@ -127,7 +126,7 @@ public class PACLearner {
         double deltaT;
 
         while (true) {
-            deltaT = computeDeltaT(rMax, horizon);
+            deltaT = computeDeltaT(rMax, effHorizon);
             if (deltaT <= stopThresh  || numUnknownSlots == 0) {
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
@@ -150,7 +149,7 @@ public class PACLearner {
             int numSamples = computeNumSamples(deltaCov, episode, pReach);
 //            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
-                helper.sampleTrajectory(horizon, this::updateCount);
+                helper.sampleTrajectory(effHorizon, this::updateCount);
 
             update(deltaContain);
 //            printEpisodeResult(episode, deltaT);
@@ -175,7 +174,7 @@ public class PACLearner {
         int numStates = trueGame.getNumStates();
         int numChoices = trueGame.getActions().size();
 
-        double c = -stopThreshFactor * stopThreshFactor * rMax * rMax * Math.pow(horizon, 4.0) / (eps * eps);
+        double c = -stopThreshFactor * stopThreshFactor * rMax * rMax * Math.pow(effHorizon, 4.0) / (eps * eps);
         double inner = Math.sqrt(deltaContain / (2.0 * (Math.pow(2, numStates) - 2.0) * numStates * numChoices)) / c;
         double n = c * helper.lambertWm1(inner);
         nMin = Math.max(1L, Math.round(n));
@@ -357,7 +356,7 @@ public class PACLearner {
         mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
 
-        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, horizon, MinMax.max().setMinUnc(true));
+        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, effHorizon, MinMax.max().setMinUnc(true));
 
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
