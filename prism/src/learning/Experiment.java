@@ -426,7 +426,7 @@ public class Experiment
             case VERY_SIMPLE -> {
                 this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-                this.propertyIndex = 4;
+                this.propertyIndex = 1;
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;

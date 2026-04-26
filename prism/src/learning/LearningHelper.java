@@ -3,7 +3,6 @@ package learning;
 import explicit.*;
 import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
-import param.Function;
 import parser.State;
 import parser.ast.Property;
 import prism.Evaluator;
@@ -14,10 +13,7 @@ import strat.CSGStrategy;
 import strat.InvalidStrategyStateException;
 import strat.Strategy;
 
-import java.util.BitSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class LearningHelper {
     protected Map<State, Integer> stateToIndex;
@@ -26,9 +22,9 @@ public class LearningHelper {
     protected SimulatorEngine sim;
 
     public static final class SolveOutcome {
-        final boolean found;
-        final CSGStrategy<Double> strategy;
-        final double value;
+        private final boolean found;
+        private final CSGStrategy<Double> strategy;
+        private final double value;
 
         public SolveOutcome(boolean found, CSGStrategy<Double> strategy, double value) {
             this.found = found;
@@ -38,10 +34,25 @@ public class LearningHelper {
 
         @Override
         public String toString() {
-            return "SolveOutcome{" +
-                    "found=" + found +
-                    ", value=" + value +
+            int numWhitespaces = getClass().getSimpleName().length() + 1;
+            return getClass().getSimpleName() + "{" +
+                    "found = " + found +
+                    ", value = " + value + ", " +
+//                    String.format("\n%1$"+ numWhitespaces +"s", "") +
+                    "strategy = " + strategy +
                     '}';
+        }
+
+        public boolean foundRNE() {
+            return found;
+        }
+
+        public CSGStrategy<Double> getStrategy() {
+            return strategy;
+        }
+
+        public double getValue() {
+            return value;
         }
     }
 
@@ -182,7 +193,7 @@ public class LearningHelper {
 
             double value = vals[init];
             if (Double.isNaN(value)) { // infinity is a possible valid value for e.g. unbounded reachability reward
-                System.err.println("Warning: robust solve returned invalid value: " + value);
+                System.err.println("Warning: solve returned invalid value: " + value);
                 return new SolveOutcome(false, null, value);
             }
 
@@ -346,4 +357,18 @@ public class LearningHelper {
     }
 
 
+    // for computing the deviation gain
+    List<Map<BitSet, Double>> extractNEStrategy(CSGStrategy<Double> strategy, int s) {
+        int numPlayers = strategy.getModel().getIndexes().length;
+        List<Map<BitSet, Double>> result = new ArrayList<>();
+        for (int p = 0; p < numPlayers; p++) {
+            Map<BitSet, Double> dist =
+                    strategy.getChoiceDistribution(p, 0, s);
+            if (dist == null) {
+                throw new RuntimeException("Strategy missing for player " + p + " at state " + s);
+            }
+            result.add(dist);
+        }
+        return result;
+    }
 }

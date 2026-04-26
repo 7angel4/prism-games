@@ -9,10 +9,7 @@ import prism.*;
 import strat.*;
 import learning.LearningHelper.SolveOutcome;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.DoubleStream;
 
 
@@ -407,7 +404,22 @@ public class PACLearner {
         return helper.computeCSGValue(prism, trueGame, strategy);
     }
 
-    private void printResult(long duration, PacResult result, Experiment.PacRunSpec spec) throws PrismException, InvalidStrategyStateException {
+    public double computeTrueNashMargin(CSGStrategy<Double> strategy) throws Exception {
+        int s0 = trueGame.getFirstInitialState();
+        // extract per-player strategies
+        List<Map<BitSet, Double>> strat = helper.extractNEStrategy(strategy, s0);
+        // compute equilibrium value in true game
+        double eqVal = helper.computeCSGValue(prism, trueGame, strategy);
+        double maxMargin = 0.0;
+        for (int p = 0; p < strat.size(); p++) {
+            double devVal = trueGame.computeDeviationValue(p, strat, helper.rewards, trueGame.getIndexes(), s0);
+            maxMargin = Math.max(maxMargin, devVal - eqVal);
+        }
+
+        return maxMargin;
+    }
+
+    private void printResult(long duration, PacResult result, Experiment.PacRunSpec spec) throws PrismException, InvalidStrategyStateException, Exception {
         System.out.println("\n---------------------------------------");
         System.out.println("Epsilon: " + spec.epsilon);
         System.out.println("Confidence: " + spec.confidence);
@@ -430,8 +442,12 @@ public class PACLearner {
         } else {
             double trueRobustValue = computeTrueValue(result.robustSol.getStrategy());
             System.out.println("True value of robust strategy: " + trueRobustValue);
+            double trueRobustDevGain = computeTrueNashMargin(result.robustSol.getStrategy());
+            System.out.println("Deviation gain of robust strategy: " + trueRobustDevGain);
             double truePointValue = computeTrueValue(result.pointSol.getStrategy());
             System.out.println("True value of point strategy: " + truePointValue);
+            double truePointDevGain = computeTrueNashMargin(result.pointSol.getStrategy());
+            System.out.println("Deviation gain of point strategy: " + truePointDevGain);
         }
 
         // compare to true value
