@@ -68,6 +68,48 @@ public class DTMCSimple<Value> extends DTMCExplicit<Value> implements ModelSimpl
 	}
 
 	/**
+	 * Construct a DTMC from an MDP that has exactly one choice per state.
+	 * Each state's single distribution is taken as the DTMC transition.
+	 */
+	public DTMCSimple(MDPSimple<Value> mdp)
+	{
+		this(mdp.getNumStates());
+
+		copyFrom(mdp);
+		setEvaluator(mdp.getEvaluator());
+
+		int numStates = getNumStates();
+
+		for (int s = 0; s < numStates; s++) {
+
+			int numChoices = mdp.getNumChoices(s);
+
+			if (numChoices == 0) {
+				// deadlock state → handled later by findDeadlocks()
+				continue;
+			}
+
+			if (numChoices > 1) {
+				throw new IllegalArgumentException(
+						"Cannot convert MDP to DTMC: state " + s +
+								" has " + numChoices + " choices (expected 1)"
+				);
+			}
+
+			// Get the single distribution
+			Distribution<Value> distr = mdp.getChoice(s, 0);
+
+			Iterator<Map.Entry<Integer, Value>> it = distr.iterator();
+
+			while (it.hasNext()) {
+				Map.Entry<Integer, Value> e = it.next();
+
+				addToProbability(s, e.getKey(), e.getValue());
+			}
+		}
+	}
+
+	/**
 	 * Copy constructor.
 	 */
 	public DTMCSimple(DTMCSimple<Value> dtmc)
