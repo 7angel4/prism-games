@@ -69,6 +69,10 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
 //        setTrans(s, i, distr);
 //    }
 
+    public CSGSimple<Value> getCentreCSG() {
+        return new CSGSimple<>(this, this.trans);
+    }
+
     @Override
     public void setCentre(int s, int i, int succ, Value p) {
         getChoice(s, i).set(succ, p);

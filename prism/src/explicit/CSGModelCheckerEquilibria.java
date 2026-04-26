@@ -1527,9 +1527,11 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		dominating = new BitSet[numCoalitions];
 		mainLog.println();
 		findMaxRowsCols(csg);
-		
-		mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
-		mainLog.println("Checking whether all objctives are reachable...");
+
+		if (verbosity > 0) {
+			mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
+			mainLog.println("Checking whether all objectives are reachable...");
+		}
 		
 		if (assumptionCheck) {
    			for (i = 0; i < targets.length; i++) {

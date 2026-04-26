@@ -63,7 +63,7 @@ public class UMDPModelChecker extends ProbModelChecker
 	{
 		super(parent);
 		mcMDP = new MDPModelChecker(this);
-		this.silentPrecomputations = (parent instanceof CSGModelChecker) ? ((CSGModelChecker) parent).silentPrecomputations : false;
+//		this.silentPrecomputations = (parent instanceof CSGModelChecker) ? ((CSGModelChecker) parent).silentPrecomputations : false;
 		mcMDP.inheritSettings(this);
 	}
 

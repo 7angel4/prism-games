@@ -69,6 +69,10 @@ public class Experiment
             this.solverString = solverString;
             this.zeroSum = zeroSum;
         }
+
+        public String del() {
+            return null;
+        }
     }
 
 
@@ -98,9 +102,8 @@ public class Experiment
         return this;
     }
 
-    public Experiment setSolverString(String solverString) {
+    public void setSolverString(String solverString) {
         this.solverString = solverString;
-        return this;
     }
 
     private void addParameters(Object... nameValuePairs) {
@@ -423,7 +426,7 @@ public class Experiment
             case VERY_SIMPLE -> {
                 this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-                this.propertyIndex = 1;
+                this.propertyIndex = 4;
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;
@@ -448,92 +451,5 @@ public class Experiment
         return this;
     }
 
-
-//    private void validateSupportedProperty(
-//            Property prop,
-//            CSGSimple<Double> trueGame,
-//            PropertiesFile pf,
-//            Prism prism
-//    ) throws PrismException {
-//
-//        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-//        if (stratExpr == null) {
-//            throw new PrismException("Could not find an ExpressionStrategy inside property " + propertyIndex);
-//        }
-//
-//        Expression inner = stripParentheses(stratExpr.getOperand(0));
-//
-//        // ================= MULTI-OBJECTIVE (general-sum) =================
-//        if (inner instanceof ExpressionMultiNash multiNash) {
-//            for (ExpressionQuant q : multiNash.getOperands()) {
-//                validateSingleObjective(q, trueGame, pf, prism);
-//            }
-//            return;
-//        }
-//
-//        // ================= SINGLE OBJECTIVE =================
-//        // (zero-sum OR single-player OR anything not MultiNash)
-//        validateSingleObjective(inner, trueGame, pf, prism);
-//    }
-//
-//
-//    private void validateSingleObjective(
-//            Expression expr,
-//            CSGSimple<Double> trueGame,
-//            PropertiesFile pf,
-//            Prism prism
-//    ) throws PrismException {
-//
-//        // ---------- probabilistic objective ----------
-//        if (expr instanceof ExpressionProb prob) {
-//
-//            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(prob.getExpression());
-//
-//            if (!(path instanceof ExpressionTemporal temporal)) {
-//                throw new PrismException("Expected temporal formula, got " + path.getClass().getSimpleName());
-//            }
-//
-//            validateTemporalFormula(temporal, trueGame, pf, prism);
-//        }
-//    }
-//
-//    private void validateTemporalFormula(
-//            ExpressionTemporal temporal,
-//            CSGSimple<Double> trueGame,
-//            PropertiesFile pf,
-//            Prism prism
-//    ) throws PrismException {
-//
-//        switch (temporal.getOperator()) {
-//
-//            case ExpressionTemporal.P_F -> {
-//                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-//            }
-//
-//            case ExpressionTemporal.P_U -> {
-//                evaluateStateFormulaToBitSet(prism, trueGame, pf, temporal.getOperand2());
-//
-//                Expression guard = temporal.getOperand1();
-//                if (!Expression.isTrue(guard)) {
-//                    evaluateStateFormulaToBitSet(prism, trueGame, pf, guard);
-//                }
-//            }
-//
-//            default -> throw new PrismException(
-//                    "Unsupported temporal operator: " + temporal.getOperatorSymbol());
-//        }
-//    }
-//
-//    private BitSet evaluateStateFormulaToBitSet(
-//            Prism prism,
-//            CSGSimple<Double> trueGame,
-//            PropertiesFile pf,
-//            Expression stateFormula
-//    ) throws PrismException {
-//        StateModelChecker mc = StateModelChecker.createModelChecker(trueGame.getModelType(), prism);
-//        mc.setModelCheckingInfo(prism.getModelInfo(), pf, prism.getRewardGenerator());
-//        StateValues sv = mc.checkExpression(trueGame, stateFormula, null);
-//        return (BitSet) sv.getBitSet().clone();
-//    }
 
 }

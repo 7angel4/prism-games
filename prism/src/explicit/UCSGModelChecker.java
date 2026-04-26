@@ -143,6 +143,7 @@ public class UCSGModelChecker extends ProbModelChecker
 		ucsg.checkLowerBoundsArePositive();
 		UCSGModelCheckerEquilibria csgeq = new UCSGModelCheckerEquilibria(this.mcCSG);
 		csgeq.inheritSettings(this.mcCSG);
+		csgeq.mdpmc.inheritSettings(this.mcCSG);
 		return csgeq.computeReachEquilibria(ucsg, coalitions, null, targets, remain, eqType, crit, min);
 	}
 

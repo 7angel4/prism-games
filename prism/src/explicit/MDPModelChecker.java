@@ -2099,7 +2099,9 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Start expected reachability
 		timer = System.currentTimeMillis();
-		mainLog.println("Starting expected reachability (" + (min ? "min" : "max") + ")...");
+		if (verbosity > 0) {
+			mainLog.println("Starting expected reachability (" + (min ? "min" : "max") + ")...");
+		}
 
 		// Check for deadlocks in non-target state (because breaks e.g. prob1)
 		mdp.checkForDeadlocks(target);
@@ -2148,7 +2150,8 @@ public class MDPModelChecker extends ProbModelChecker
 		// Print results of precomputation
 		numTarget = target.cardinality();
 		numInf = inf.cardinality();
-		mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
+		if (verbosity > 0)
+			mainLog.println("target=" + numTarget + ", inf=" + numInf + ", rest=" + (n - (numTarget + numInf)));
 
 		// If required, generate strategy for "inf" states.
 		if (genStrat || mdpSolnMethod == MDPSolnMethod.POLICY_ITERATION) {
@@ -2180,19 +2183,21 @@ public class MDPModelChecker extends ProbModelChecker
 			boolean doZeroMECCheckForMin = true;
 			if (min & doZeroMECCheckForMin) {
 				StopWatch zeroMECTimer = new StopWatch(mainLog);
-				zeroMECTimer.start("checking for zero-reward ECs");
-				mainLog.println("For Rmin, checking for zero-reward ECs...");
-				BitSet unknown = (BitSet) inf.clone();
-				unknown.flip(0, mdp.getNumStates());
-				unknown.andNot(target);
-				quotient = ZeroRewardECQuotient.getQuotient(this, mdp, unknown, mdpRewards);
-	
-				if (quotient == null) {
-					zeroMECTimer.stop("no zero-reward ECs found, proceeding normally");
-				} else {
-					zeroMECTimer.stop("built quotient MDP with " + quotient.getNumberOfZeroRewardMECs() + " zero-reward MECs");
-					if (strat != null) {
-						throw new PrismException("Constructing a strategy for Rmin in the presence of zero-reward ECs is currently not supported");
+				if (!silentPrecomputations) {
+					zeroMECTimer.start("checking for zero-reward ECs");
+					mainLog.println("For Rmin, checking for zero-reward ECs...");
+					BitSet unknown = (BitSet) inf.clone();
+					unknown.flip(0, mdp.getNumStates());
+					unknown.andNot(target);
+					quotient = ZeroRewardECQuotient.getQuotient(this, mdp, unknown, mdpRewards);
+
+					if (quotient == null) {
+						zeroMECTimer.stop("no zero-reward ECs found, proceeding normally");
+					} else {
+						zeroMECTimer.stop("built quotient MDP with " + quotient.getNumberOfZeroRewardMECs() + " zero-reward MECs");
+						if (strat != null) {
+							throw new PrismException("Constructing a strategy for Rmin in the presence of zero-reward ECs is currently not supported");
+						}
 					}
 				}
 			}
@@ -2220,7 +2225,8 @@ public class MDPModelChecker extends ProbModelChecker
 
 		// Finished expected reachability
 		timer = System.currentTimeMillis() - timer;
-		mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
+		if (verbosity > 0)
+			mainLog.println("Expected reachability took " + timer / 1000.0 + " seconds.");
 
 		// Update time taken
 		res.timeTaken = timer / 1000.0;
@@ -2306,7 +2312,9 @@ public class MDPModelChecker extends ProbModelChecker
 		// Start value iteration
 		timer = System.currentTimeMillis();
 		String description = (min ? "min" : "max") + (topological ? ", topological" : "" ) + ", with " + iterationMethod.getDescriptionShort();
-		mainLog.println("Starting value iteration (" + description + ")...");
+
+		if (verbosity > 0)
+			mainLog.println("Starting value iteration (" + description + ")...");
 
 		ExportIterations iterationsExport = null;
 		if (settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {

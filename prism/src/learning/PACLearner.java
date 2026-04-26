@@ -26,20 +26,21 @@ public class PACLearner {
     public static final class PacResult {
         public final boolean noExactNE;
         public final int episodes;
-        public final double robustValue;
         public final double deltaT;
-        public final CSGStrategy<Double> robustStrategy;
+        public final SolveOutcome robustSol;
+        public final SolveOutcome pointSol;
 
         public PacResult(boolean noExactNE,
                          int episodes,
-                         double robustValue,
                          double deltaT,
-                         CSGStrategy<Double> robustStrategy) {
+                         SolveOutcome robustSol,
+                         SolveOutcome pointSol
+                         ) {
             this.noExactNE = noExactNE;
             this.episodes = episodes;
-            this.robustValue = robustValue;
             this.deltaT = deltaT;
-            this.robustStrategy = robustStrategy;
+            this.robustSol = robustSol;
+            this.pointSol = pointSol;
         }
     }
 
@@ -57,7 +58,8 @@ public class PACLearner {
     private long nMin;
     private double maxRadius = L1CSGSimple.INIT_RADIUS;
     private MDPRewardsSimple<Double> explorationRewards;
-    private UCSGModelChecker empiricalMC;
+    private UCSGModelChecker robustMC;
+    private CSGModelChecker pointMC;
     private Strategy<Double> explorationStrat;
 
     private int episode;
@@ -131,21 +133,24 @@ public class PACLearner {
             deltaT = computeDeltaT(rMax, horizon);
             if (deltaT <= stopThresh  || numUnknownSlots == 0) {
                 SolveOutcome robustSol = robustSolveL1CSG(property);
-                if (!robustSol.found) {
+                SolveOutcome pointSol = solvePointModel(property);
+                if (!robustSol.foundRNE()) {
                     if (zeroSum) throw new PrismException("No NE found but zero-sum property should always have an NE");
-                    return new PacResult(true, episode, robustSol.value, deltaT, robustSol.strategy);
+                    return new PacResult(true, episode, deltaT, robustSol, pointSol);
                 } else {
-                    return new PacResult(false, episode, robustSol.value, deltaT, robustSol.strategy);
+                    return new PacResult(false, episode, deltaT, robustSol, pointSol);
                 }
             }
 
-            if (episode == 1 || prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if radii of the worst slots change
+            if (episode == 1) {
+                solveExplorationRMDP();
+            } else if (prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if radii of the worst slots change
                 System.out.println("Episode " + episode + ": Resolving exploration RMDP");
                 solveExplorationRMDP();
                 prevNumUnknownSlots = numUnknownSlots;
             }
 
-            int numSamples = computeNumSamples(deltaCov, pReach);
+            int numSamples = computeNumSamples(deltaCov, episode, pReach);
 //            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
             for (int i = 0; i < numSamples; i++)
                 helper.sampleTrajectory(horizon, this::updateCount);
@@ -156,7 +161,7 @@ public class PACLearner {
         }
     }
 
-    private int computeNumSamples(double deltaCov, double pReach) {
+    private int computeNumSamples(double deltaCov, int episode, double pReach) {
         double deltaEpisode = deltaCov / (episode * (episode + 1.0));
         return (int) Math.ceil(- Math.log(deltaEpisode) * Math.min(numUnknownSlots, 1.0 / pReach));
 //        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
@@ -228,7 +233,7 @@ public class PACLearner {
         prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
 
         helper.setStateToIndex(trueGame);
-        initialiseMC(propertiesFile, property, zeroSum);
+        initialiseMCs(propertiesFile, property, zeroSum);
         prism.loadModelIntoSimulator();
         helper.sim = prism.getSimulator();
     }
@@ -291,29 +296,47 @@ public class PACLearner {
         return 0.5 * rMax * horizon * horizon * maxRadius;
     }
 
-    private void initialiseMC(PropertiesFile propertiesFile, Property property, boolean zeroSum) throws PrismException {
-        StateModelChecker mc = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
-        if (!(mc instanceof UCSGModelChecker)) {
-            throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + mc.getClass().getSimpleName());
+    private void initialiseMCs(PropertiesFile propertiesFile, Property property, boolean zeroSum) throws PrismException {
+        StateModelChecker ucsgMC = explicit.StateModelChecker.createModelChecker(empiricalGame.getModelType(), prism);
+        if (!(ucsgMC instanceof UCSGModelChecker)) {
+            throw new PrismException("Expected a UCSGModelChecker for robust solving, but got " + ucsgMC.getClass().getSimpleName());
         }
 
-        empiricalMC = (UCSGModelChecker) mc;
-        empiricalMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-        empiricalMC.setGenStrat(true);
-        empiricalMC.setSilentPrecomputations(true);
-        empiricalMC.setVerbosity(0);
-
+        robustMC = (UCSGModelChecker) ucsgMC;
+        robustMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        robustMC.setGenStrat(true);
+        robustMC.setSilentPrecomputations(true);
+        robustMC.setVerbosity(0);
         robustSolveL1CSG(property); // solve once so that the model checker records the target states
-        helper.targets = zeroSum ? new BitSet[]{empiricalMC.getTarget()} : empiricalMC.getTargets();
+
+        StateModelChecker csgMC = explicit.StateModelChecker.createModelChecker(empiricalGame.getCentreCSG().getModelType(), prism);
+        if (!(csgMC instanceof CSGModelChecker)) {
+            throw new PrismException("Expected a CSGModelChecker for solving point model, but got " + csgMC.getClass().getSimpleName());
+        }
+
+        pointMC = (CSGModelChecker) csgMC;
+        pointMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
+        pointMC.setGenStrat(true);
+        pointMC.setSilentPrecomputations(true);
+        pointMC.setVerbosity(0);
+        solvePointModel(property); // solve once so that the model checker records the target states
+
+        helper.targets = zeroSum ? new BitSet[]{robustMC.getTarget()} : robustMC.getTargets();
         if (zeroSum) {
             helper.rewards = new ArrayList<>();
-            helper.rewards.add((CSGRewards<Double>) empiricalMC.getReward());
+            helper.rewards.add((CSGRewards<Double>) robustMC.getReward());
         } else
-            helper.rewards = empiricalMC.getRewards();
+            helper.rewards = robustMC.getRewards();
+
+
+    }
+
+    private SolveOutcome solvePointModel(Property property) {
+        return helper.getSolveOutcome(pointMC, empiricalGame.getCentreCSG(), property);
     }
 
     private SolveOutcome robustSolveL1CSG(Property property) {
-        return helper.getSolveOutcome(empiricalMC, empiricalGame, property);
+        return helper.getSolveOutcome(robustMC, empiricalGame, property);
     }
 
     private SolveOutcome solveTrueGame(PropertiesFile propertiesFile, Property property) throws PrismException {
@@ -368,10 +391,14 @@ public class PACLearner {
 
     private double computeStopProb() throws PrismException {
         // target is now union of the players' targets
-        double[] sol = helper.computeReachProbs(prism, empiricalGame, helper.getTargetUnion(), MinMax.max());
-        double pStop = DoubleStream.of(sol).min().orElse(0.0);
-        if (Precision.equals(pStop, 0.0)) {
-            throw new PrismException("Stopping probability for target is 0 - assumption violated");
+        BitSet target = helper.getTargetUnion();
+        double[] sol = helper.computeReachProbs(prism, empiricalGame, target, MinMax.max());
+        double pStop = DoubleStream.of(sol)
+                .filter(x -> x > 0)
+                .min()
+                .orElse(Double.NaN);
+        if (pStop == Double.NaN) {
+            throw new PrismException("Stopping probability assumption violated");
         }
         return pStop;
     }
@@ -380,17 +407,51 @@ public class PACLearner {
         return helper.computeCSGValue(prism, trueGame, strategy);
     }
 
+    private void printResult(long duration, PacResult result, Experiment.PacRunSpec spec) throws PrismException, InvalidStrategyStateException {
+        System.out.println("\n---------------------------------------");
+        System.out.println("Epsilon: " + spec.epsilon);
+        System.out.println("Confidence: " + spec.confidence);
+        System.out.println();
+        System.out.println("Execution time: " + duration  / 1e6 + " ms");
+        System.out.println("Episodes=" + result.episodes);
+        System.out.println("DeltaT=" + result.deltaT);
+        System.out.println("nMin=" + this.nMin);
+
+        System.out.println("\n---------------------------------------");
+        System.out.println("Robust " + result.robustSol); // prints "Robust SolveOutcome{...}"
+        System.out.println("Point " + result.pointSol);
+
+        System.out.println("\nEvaluating returned strategies in true CSG...");
+        // evaluate robust vs. point policy in true game
+        if (result.robustSol.getStrategy() == null) {
+            System.out.println("No strategy returned (only supported for infinite-horizon properties). Skipping true value computation.");
+        } else if (result.noExactNE) {
+            System.out.println("No exact NE found. Skipping true value computation.");
+        } else {
+            double trueRobustValue = computeTrueValue(result.robustSol.getStrategy());
+            System.out.println("True value of robust strategy: " + trueRobustValue);
+            double truePointValue = computeTrueValue(result.pointSol.getStrategy());
+            System.out.println("True value of point strategy: " + truePointValue);
+        }
+
+        // compare to true value
+        System.out.println("\n---------------------------------------");
+        SolveOutcome trueSol = solveTrueGame(spec.propertiesFile, spec.property);
+        System.out.println("True " + trueSol);
+        System.out.println("---------------------------------------");
+
+    }
+
 
     public static void main(String[] args) throws Exception {
         Prism prism = new Prism();
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.VERY_SIMPLE);
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
-        ex.propertyIndex = 2;
 
         PACLearner learner = new PACLearner(prism, 41);
         long start = System.nanoTime();
@@ -398,29 +459,15 @@ public class PACLearner {
         long end = System.nanoTime();
         long duration = end - start;
 
-        System.out.println("\n---------------------------------------");
-
-        System.out.println("Execution time: " + duration  / 1e6 + " milliseconds");
-
-        System.out.println("noExactNE=" + res.noExactNE);
-        System.out.println("episodes=" + res.episodes);
-        System.out.println("robustValue=" + res.robustValue);
-        System.out.println("deltaT=" + res.deltaT);
-        System.out.println("nMin=" + learner.nMin);
-
-        System.out.println("---------------------------------------");
-        SolveOutcome trueSol = learner.solveTrueGame(spec.propertiesFile, spec.property);
-        System.out.println("True value: " + trueSol);
-
-        System.out.println("---------------------------------------");
+        learner.printResult(duration, res, spec);
 
         // check true value of the returned policy
-        if (res.robustStrategy == null) {
+        if (res.robustSol.getStrategy() == null) {
             System.out.println("No robust strategy returned, skipping true value computation.");
         } else if (res.noExactNE) {
             System.out.println("No exact NE found, so returned strategy may not be valid. Skipping true value computation.");
         } else {
-            double trueValue = learner.computeTrueValue(res.robustStrategy);
+            double trueValue = learner.computeTrueValue(res.robustSol.getStrategy());
             System.out.println("True value of returned strategy: " + trueValue);
         }
     }
