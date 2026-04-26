@@ -1528,8 +1528,9 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 		mainLog.println();
 		findMaxRowsCols(csg);
 
+		String solver = setSolver(eqType);
 		if (verbosity > 0) {
-			mainLog.println("Starting equilibria computation (solver=" + setSolver(eqType) + ")...");
+			mainLog.println("Starting equilibria computation (solver=" + solver + ")...");
 			mainLog.println("Checking whether all objectives are reachable...");
 		}
 		
@@ -1689,9 +1690,11 @@ public class CSGModelCheckerEquilibria extends CSGModelChecker
 			}
 			k++;
 		}
-		mainLog.println("\nValue iteration converged after " + k + " iterations.");
-		mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
-		mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
+		if (verbosity > 0) {
+			mainLog.println("\nValue iteration converged after " + k + " iterations.");
+			mainLog.println("\nPrecomputation took " + timePrecomp / 1000.0 + " seconds.");
+			mainLog.println("Coalition results (initial state): (" + sol[0][csg.getFirstInitialState()] + "," + sol[1][csg.getFirstInitialState()] + ")");
+		}
 		res.soln = r;
 		if (genStrat) 	{
 			switch (eqType) {

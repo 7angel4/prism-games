@@ -797,7 +797,8 @@ public class MDPModelChecker extends ProbModelChecker
 				+ (topological ? ", topological": "" )
 				+ ", with " + iterationMethod.getDescriptionShort();
 
-		mainLog.println("Starting value iteration (" + description + ")...");
+		if (verbosity > 0)
+			mainLog.println("Starting value iteration (" + description + ")...");
 
 		ExportIterations iterationsExport = null;
 		if (settings != null && settings.getBoolean(PrismSettings.PRISM_EXPORT_ITERATIONS)) {
