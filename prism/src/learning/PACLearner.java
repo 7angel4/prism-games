@@ -715,7 +715,7 @@ public class PACLearner {
         ex.setSolverString("Yices");
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
-        ex.propertyIndex = 4;
+        ex.propertyIndex = 2;
 
         PACLearner learner = new PACLearner(prism, 41);
         long start = System.nanoTime();
@@ -740,7 +740,13 @@ public class PACLearner {
         System.out.println("---------------------------------------");
 
         // check true value of the returned policy
-        double trueValue = learner.computeTrueValue(res.robustStrategy, spec);
-        System.out.println("True value of returned strategy: " + trueValue);
+        if (res.robustStrategy == null) {
+            System.out.println("No robust strategy returned, skipping true value computation.");
+        } else if (res.noExactNE) {
+            System.out.println("No exact NE found, so returned strategy may not be valid. Skipping true value computation.");
+        } else {
+            double trueValue = learner.computeTrueValue(res.robustStrategy, spec);
+            System.out.println("True value of returned strategy: " + trueValue);
+        }
     }
 }
