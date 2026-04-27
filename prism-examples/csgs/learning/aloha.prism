@@ -1,0 +1,37 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+    [tx1] true -> true;
+    [wait1] true -> true;
+endmodule
+
+module m2 = m1[tx1=tx2,wait1=wait2] endmodule
+
+module channel
+    s : [0..2] init 0; // 0=idle,1=success,2=collision
+
+    // both transmit → collision
+    [tx1,tx2] s=0 -> (s'=2);
+
+    // one transmits → success
+    [tx1,wait2] s=0 -> (s'=1);
+    [wait1,tx2] s=0 -> (s'=1);
+
+    // both wait → stay idle
+    [wait1,wait2] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+
+    // absorbing
+    [] s=1 -> (s'=1);
+    [] s=2 -> (s'=2);
+endmodule
+
+rewards "r1"
+    s=1 : 1;
+endrewards
+
+rewards "r2"
+    s=1 : 1;
+endrewards
