@@ -1,6 +1,7 @@
 package learning;
 
 import explicit.CSGSimple;
+import explicit.MinMax;
 import parser.Values;
 import parser.ast.*;
 import prism.*;
@@ -20,13 +21,14 @@ public class Experiment {
     public static final class PacRunSpec {
         public final CSGSimple<Double> trueGame;
         public final PropertiesFile propertiesFile;
-        public final Property property;
-        public final boolean zeroSum;
 
         public final double epsilon; // if negative, will be derived from rMax
         public final double confidence;
         public final double rMax;
 
+        public final Property property;
+        public final boolean zeroSum;
+        public final MinMax minMax;
         public final int horizon;
         public final boolean finiteHorizon;
         public final boolean useRewards;
@@ -43,7 +45,8 @@ public class Experiment {
                 boolean finiteHorizon,
                 String solver,
                 boolean zeroSum,
-                boolean useRewards
+                boolean useRewards,
+                MinMax minMax
         ) {
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
@@ -56,6 +59,7 @@ public class Experiment {
             this.solver = solver;
             this.zeroSum = zeroSum;
             this.useRewards = useRewards;
+            this.minMax = minMax;
         }
     }
 
@@ -117,6 +121,7 @@ public class Experiment {
         boolean useRewards = isRewardProperty(prop);
         int horizon = derivePropertyHorizon(prop.getExpression(), pf);
         boolean finiteHorizon = horizon >= 0;
+        MinMax minMax = deriveMinMax(prop);
 
         double rMax = deriveRMax(mf);
         double eps = (this.epsilon < 0) ? rMax / 10.0 : this.epsilon;
@@ -132,13 +137,53 @@ public class Experiment {
                 finiteHorizon,
                 solverString,
                 zeroSum,
-                useRewards
+                useRewards,
+                minMax
         );
     }
 
     // ===============================
     // Property analysis
     // ===============================
+
+    private MinMax deriveMinMax(Property prop) throws PrismException {
+        ExpressionStrategy strat = findStrategy(prop.getExpression());
+        if (strat == null) {
+            throw new PrismException("No strategy operator found in property");
+        }
+
+        Expression inner = stripParentheses(strat.getOperand(0));
+
+        // ---------- ZERO-SUM ----------
+        if (inner instanceof ExpressionProb prob) return minMaxFromRelOp(prob.getRelOp());
+        if (inner instanceof ExpressionReward rew) return minMaxFromRelOp(rew.getRelOp());
+        return null; // should not use minMax for general-sum properties
+    }
+
+    private MinMax minMaxFromRelOp(RelOp relOp) throws PrismException {
+        if (relOp == null) {
+            throw new PrismException("RelOp is null");
+        }
+
+        if (relOp.isMax()) {
+            return MinMax.max();
+        }
+
+        if (relOp.isMin()) {
+            return MinMax.min();
+        }
+
+        // fallback for bounds (rare but safe)
+        if (relOp.isLowerBound()) {
+            return MinMax.min();
+        }
+
+        if (relOp.isUpperBound()) {
+            return MinMax.max();
+        }
+
+        throw new PrismException("Unsupported RelOp: " + relOp);
+    }
 
     private boolean isRewardProperty(Property prop) {
         ExpressionStrategy strat = findStrategy(prop.getExpression());

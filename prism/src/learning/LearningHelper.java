@@ -240,135 +240,117 @@ public class LearningHelper {
 
     // For evaluation of the robust strategy output in the true game
 
-    public double computeCSGValue(Prism prism, CSG<Double> csg, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
-        DTMCSimple<Double> dtmc = constructInducedDTMC(csg, strategy);
-        dtmc.findDeadlocks(true);
+    // ============================
+    // CORE: STRATEGY EVALUATION
+    // ============================
 
+    public double computeCSGValue(
+            Prism prism,
+            CSG<Double> csg,
+            CSGStrategy<Double> strategy
+    ) throws PrismException, InvalidStrategyStateException {
+
+        // 1) Generate induced MDP from strategy
+        MDPSimple<Double> mdp = strategy.generateMDP();
+        mdp.findDeadlocks(true);
+
+        // 2) Collapse MDP → DTMC
+        DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp);
+
+        // 3) Model check DTMC
         DTMCModelChecker mc = new DTMCModelChecker(prism);
         mc.setSilentPrecomputations(true);
-        mc.setVerbosity(0);
+
+        BitSet target = constructDTMCTarget(dtmc);
 
         ModelCheckerResult res;
-        BitSet dtmcTarget = constructDTMCTarget(dtmc);
         if (spec.useRewards) {
-            MDPRewardsSimple<Double> dtmcRewards = constructDTMCRewards(dtmc, rewards);
-            res = mc.computeReachRewards(dtmc, dtmcRewards, dtmcTarget);
+            MDPRewardsSimple<Double> rew = constructDTMCRewards(dtmc);
+            res = mc.computeReachRewards(dtmc, rew, target);
         } else {
-            res = mc.computeReachProbs(dtmc, dtmcTarget);
+            res = mc.computeReachProbs(dtmc, target);
         }
 
         if (res == null || res.soln == null) {
-            throw new PrismException("DTMC reachability failed");
+            throw new PrismException("DTMC evaluation failed");
         }
 
-        int init = dtmc.getFirstInitialState();
-        double value = res.soln[init];
-
-        // Debug (optional but VERY useful)
-//        System.out.println("\n=== DTMC VALUES ===");
-//        for (int s = 0; s < res.soln.length; s++) {
-//            System.out.println("state " + s + " -> " + res.soln[s]);
-//        }
-//
-//        System.out.println("\nInitial state = " + init);
-//        System.out.println("True value = " + value);
-
-        return value;
+        return res.soln[dtmc.getFirstInitialState()];
     }
-
-
-    protected DTMCSimple<Double> constructInducedDTMC(CSG<Double> game, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
-        MDPSimple mdp = strategy.generateMDP();
-//        System.out.println("Induced MDP = " + mdp);
-        // convert to DTMC
-        DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp.getNumStates());
-        dtmc.setEvaluator(Evaluator.forDouble());
-
-        dtmc.setStatesList(mdp.getStatesList());
-        dtmc.setConstantValues(game.getConstantValues());
-        dtmc.setVarList(game.getVarList());
-
-        for (Map.Entry<String, BitSet> entry : game.getLabelToStatesMap().entrySet()) {
-            dtmc.addLabel(entry.getKey(), (BitSet) entry.getValue().clone());
-        }
-
-        dtmc.addInitialState(mdp.getFirstInitialState());
-
-        for (int s = 0; s < mdp.getNumStates(); s++) {
-            if (mdp.getNumChoices(s) == 0) continue;
-            Distribution<Double> distr = mdp.getChoice(s, 0);
-            for (Map.Entry<Integer, Double> e : distr) {
-                dtmc.addToProbability(s, e.getKey(), e.getValue());
-            }
-        }
-//        System.out.println("DTMC = " + dtmc);
-        return dtmc;
-    }
-
 
     protected BitSet constructDTMCTarget(DTMCSimple<Double> dtmc) {
-        BitSet dtmcTarget = new BitSet();
-        List<State> dtmcStates = dtmc.getStatesList();
 
-        // use the SAME target structure as the model checker
         BitSet csgTarget = getTargetUnion();
+        BitSet mapped = new BitSet();
 
-        for (int i = 0; i < dtmcStates.size(); i++) {
-            Integer orig = stateToIndex.get(dtmcStates.get(i));
+        List<State> states = dtmc.getStatesList();
+        for (int i = 0; i < states.size(); i++) {
+            Integer orig = stateToIndex.get(states.get(i));
             if (orig != null && csgTarget.get(orig)) {
-                dtmcTarget.set(i);
+                mapped.set(i);
             }
         }
 
-        return dtmcTarget;
+        return mapped;
     }
 
-    protected MDPRewardsSimple<Double> constructDTMCRewards(DTMCSimple<Double> dtmc, List<CSGRewards<Double>> rewards)
-    {
-        MDPRewardsSimple<Double> dtmcRewards = new MDPRewardsSimple<>(dtmc.getNumStates());
-        int numStates = dtmc.getNumStates();
+    protected MDPRewardsSimple<Double> constructDTMCRewards(DTMCSimple<Double> dtmc) {
 
-        for (int s = 0; s < numStates; s++) {
+        MDPRewardsSimple<Double> rew = new MDPRewardsSimple<>(dtmc.getNumStates());
 
-            State state = dtmc.getStatesList().get(s);
-            int orig = stateToIndex.get(state);  // map back to CSG state
-            // State reward aggregation
-            double stateRew = 0.0;
+        for (int s = 0; s < dtmc.getNumStates(); s++) {
+
+            int orig = stateToIndex.get(dtmc.getStatesList().get(s));
+
+            // ---- State rewards ----
+            double stateR = 0.0;
             if (rewards != null) {
                 for (CSGRewards<Double> r : rewards) {
                     if (r != null) {
-                        stateRew += r.getStateReward(orig);
+                        stateR += r.getStateReward(orig);
                     }
                 }
             }
-            dtmcRewards.setStateReward(s, stateRew);
+            rew.setStateReward(s, stateR);
 
-            // Transition reward (DTMC = 1 choice)
+            // ---- Transition rewards (EXPECTED VALUE) ----
             if (dtmc.getNumTransitions(s) > 0) {
-                double transRew = 0.0;
-                if (rewards != null) {
-                    for (CSGRewards<Double> r : rewards) {
-                        if (r != null) {
-                            // use choice 0 (DTMC collapsed MDP)
-                            transRew += r.getTransitionReward(orig, 0);
+
+                double tr = 0.0;
+
+                for (int t = 0; t < dtmc.getNumTransitions(s); t++) {
+
+                    double prob = dtmc.getTransitions(s).get(t);
+
+                    if (rewards != null) {
+                        for (CSGRewards<Double> r : rewards) {
+                            if (r != null) {
+                                tr += prob * r.getTransitionReward(orig, 0);
+                            }
                         }
                     }
                 }
-                dtmcRewards.setTransitionReward(s, 0, transRew);
+
+                // DTMC has single choice index 0
+                rew.setTransitionReward(s, 0, tr);
             }
         }
-        return dtmcRewards;
+
+        return rew;
     }
 
+    // ============================
+    // STRATEGY EXTRACTION
+    // ============================
 
-    // for computing the deviation gain
     List<Map<BitSet, Double>> extractNEStrategy(CSGStrategy<Double> strategy, int s) {
         List<Map<BitSet, Double>> result = new ArrayList<>();
         int numPlayers = spec.zeroSum ? 1 : strategy.getNumModelPlayers();
+
         for (int p = 0; p < numPlayers; p++) {
             Map<BitSet, Double> dist = strategy.getChoiceDistribution(p, 0, s);
             if (dist == null) {
-                throw new RuntimeException("Strategy missing for player " + p + " at state " + s);
+                throw new RuntimeException("Missing strategy for player " + p);
             }
             result.add(dist);
         }
