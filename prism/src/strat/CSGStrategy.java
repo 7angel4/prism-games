@@ -80,11 +80,11 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		this.type = type;
 	}
 
-	public CSGStrategy(CSG<Value> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
+	public CSGStrategy(CSG<Value> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, BitSet[] targets, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = null;
-		this.targets = null;
+		this.targets = (BitSet[]) targets.clone();
 		this.no = no;
 		this.yes = yes;
 		this.inf = inf;
@@ -253,7 +253,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		}
 		else {
 			BitSet[] reach = new BitSet[targets.length];
-			for (p = 0; p < 2; p++) {
+			for (p = 0; p < targets.length; p++) {
 				reach[p] = new BitSet();
 				for (i = 0; i < model.getNumStates(); i++) {
 					if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_CE_P) {

@@ -119,6 +119,8 @@ public class CSGModelChecker extends ProbModelChecker
 
 
 	protected long timerVal;
+	
+	BitSet[] targets;
 
 
 	/**
@@ -146,6 +148,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeNextProbs(CSG<?> csg, BitSet target, boolean min1, boolean min2, Coalition coalition) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();
@@ -192,7 +195,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, new BitSet(), target, new BitSet(), targets, CSGStrategyType.ZERO_SUM);
 		return res;
 	}
 
@@ -211,6 +214,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeBoundedReachProbs(CSG<Double> csg, BitSet remain, BitSet target, int k, boolean min1, boolean min2, Coalition coalition,
 			boolean genAdv) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = null;
 		BitSet no = new BitSet();
@@ -278,6 +282,7 @@ public class CSGModelChecker extends ProbModelChecker
 	 */
 	public ModelCheckerResult computeReachProbs(CSG<?> csg, BitSet target, boolean min1, boolean min2, int bound, Coalition coalition) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = null;
 		BitSet no, yes;
@@ -362,6 +367,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeUntilProbs(CSG<?> csg, BitSet remain, BitSet target, int bound, boolean min1, boolean min2, Coalition coalition)
 			throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = null;
 		BitSet no, tmp, yes;
@@ -533,7 +539,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, no, yes, new BitSet(), targets, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -725,6 +731,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewards(CSG<Double> csg, CSGRewards<Double> rewards, BitSet target, int unreachingSemantics, boolean min1, boolean min2,
 			Coalition coalition) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		switch (unreachingSemantics) {
 		case R_INFINITY:
@@ -751,6 +758,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsInfinity(CSG<?> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2)
 			throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = new ModelCheckerResult();
 		BitSet inf;
@@ -881,6 +889,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsCumulative(CSG<?> csg, Coalition coalition, CSGRewards<Double> rewards, BitSet target, boolean min1, boolean min2,
 			boolean genAdv) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		// TODO: confirm that the case min1==min2 is not handled  
 		ModelCheckerResult res = new ModelCheckerResult();
 		BitSet inf;
@@ -975,6 +984,7 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsValIter(CSG<?> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
+		if (targets == null) targets = new BitSet[]{target};
 		if (genStrat && bounded) {
 			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
 		}
@@ -1063,7 +1073,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, new BitSet(), target, inf, targets, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
