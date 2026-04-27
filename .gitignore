@@ -43,3 +43,9 @@ prism/\.settings/
 prism/etc/jars/.gradle/
 prism/etc/jars/build/
 prism/etc/jars/local-libs/
+
+
+prism-examples/csgs/learning/~$results.xlsx
+.idea/
+out/production/
+*.iml
