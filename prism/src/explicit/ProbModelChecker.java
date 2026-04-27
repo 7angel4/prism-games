@@ -1992,7 +1992,7 @@ public class ProbModelChecker extends NonProbModelChecker
 	}
 
 	public BitSet[] getTargets() {
-		return targets;
+		return targets != null ? targets : new BitSet[]{target};
 	}
 
 	public BitSet getTarget() {

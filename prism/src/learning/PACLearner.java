@@ -16,8 +16,8 @@ public class PACLearner {
 
     public static final double NASH_STOP_THRESH = 4.0;
     public static final double ZERO_SUM_STOP_THRESH = 2.0;
-    private static final double TRANS_PROB_LB = 1e-6;
     private static final String DEFAULT_SMT_SOLVER = "Yices";
+    private static final double TRANS_PROB_LB = 1e-5;
 
     public static final class PacResult {
         public final boolean noExactNE;
@@ -58,6 +58,8 @@ public class PACLearner {
     private CSGModelChecker pointMC;
     private Strategy<Double> explorationStrat;
 
+    private double trueValue = Double.NaN;
+
     private int episode;
     private final LearningHelper helper = new LearningHelper();
 
@@ -79,6 +81,7 @@ public class PACLearner {
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
+        helper.spec = spec;
         return runPacLoop(
                 spec.trueGame,
                 spec.propertiesFile,
@@ -87,13 +90,13 @@ public class PACLearner {
                 spec.confidence,
                 spec.rMax,
                 spec.horizon,
-                spec.solverString,
+                spec.solver,
                 spec.zeroSum,
                 spec.finiteHorizon
         );
     }
 
-    public PacResult runPacLoop(
+    private PacResult runPacLoop(
             CSGSimple<Double> trueGame,
             PropertiesFile propertiesFile,
             Property property,
@@ -110,7 +113,7 @@ public class PACLearner {
         final double deltaCov= confidence / 2.0;
         episode = 1;
         this.trueGame = trueGame;
-        initialiseRun(solver, propertiesFile, property, zeroSum, finiteHorizon);
+        initialiseRun(solver, propertiesFile, property, zeroSum);
 
         if (!finiteHorizon) {
             double pT = computeStopProb();
@@ -185,7 +188,7 @@ public class PACLearner {
     }
 
 
-    private void initialiseRun(String solver, PropertiesFile propertiesFile, Property property, boolean zeroSum, boolean finiteHorizon) throws PrismException {
+    private void initialiseRun(String solver, PropertiesFile propertiesFile, Property property, boolean zeroSum) throws PrismException {
         int numStates = trueGame.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
@@ -233,7 +236,6 @@ public class PACLearner {
         prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
 
         helper.setStateToIndex(trueGame);
-        helper.finiteHorizon = finiteHorizon;
         initialiseMCs(propertiesFile, property, zeroSum);
         prism.loadModelIntoSimulator();
         helper.sim = prism.getSimulator();
@@ -285,7 +287,7 @@ public class PACLearner {
 
                 empiricalGame.getSuccessorsIterator(s, c).forEachRemaining(succ -> {
                     double pHat = transitionCounts[sFinal][cFinal][succ] / (double) saCount;
-                    pHat = Math.max(TRANS_PROB_LB, pHat);
+                    pHat = Math.max(L1CSGSimple.TRANS_PROB_LB, pHat);
                     empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
                     explorationRMDP.setCentre(sFinal, cFinal, succ, pHat);
                 });
@@ -322,7 +324,7 @@ public class PACLearner {
         pointMC.setVerbosity(0);
         solvePointModel(property); // solve once so that the model checker records the target states
 
-        helper.targets = zeroSum ? new BitSet[]{robustMC.getTarget()} : robustMC.getTargets();
+        helper.targets = robustMC.getTargets();
         if (zeroSum) {
             helper.rewards = new ArrayList<>();
             helper.rewards.add((CSGRewards<Double>) robustMC.getReward());
@@ -392,9 +394,9 @@ public class PACLearner {
     private double computeStopProb() throws PrismException {
         // target is now union of the players' targets
         BitSet target = helper.getTargetUnion();
-        double[] sol = helper.computeReachProbs(prism, empiricalGame, target, MinMax.max());
+        double[] sol = helper.computeReachProbs(prism, empiricalGame, target, MinMax.minMin(true, true));
         double pStop = DoubleStream.of(sol)
-                .filter(x -> x > 0)
+                .filter(x -> x > TRANS_PROB_LB)
                 .min()
                 .orElse(Double.NaN);
         if (pStop == Double.NaN) {
@@ -405,17 +407,37 @@ public class PACLearner {
 
     private void verifyInTrueGame(SolveOutcome sol) throws Exception {
         if (sol.getStrategy() == null) {
-            String reason = helper.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
+            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("No strategy returned (" + reason + "). Skipping true value computation.");
         } else if (!sol.foundRNE()) {
             System.out.println("No exact NE found. Skipping true value computation.");
         } else {
-            double trueValue = helper.computeCSGValue(prism, trueGame, sol.getStrategy());
+            trueValue = helper.computeCSGValue(prism, trueGame, sol.getStrategy());
             System.out.println("True value of learned strategy: " + trueValue);
             System.out.println("Value gap: " + (trueValue - sol.getValue()));
-            double trueDevGain = helper.computeNashMargin(prism, trueGame, sol.getStrategy());
+            double trueDevGain = computeNashMargin(sol);
             System.out.println("Max deviation gain of learned strategy: " + trueDevGain);
         }
+    }
+
+    protected double computeNashMargin(SolveOutcome sol) throws Exception {
+        double eqVal = helper.computeCSGValue(prism, trueGame, sol.getStrategy());
+        // for zero-sum this is just true value - value under the given strategy
+        if (helper.spec.zeroSum) {
+            if (trueValue == Double.NaN) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
+            return trueValue - sol.getValue();
+        }
+        int s0 = trueGame.getFirstInitialState();
+        // extract per-player strategies
+        List<Map<BitSet, Double>> strat = helper.extractNEStrategy(sol.getStrategy(), s0);
+        // compute equilibrium value in true game
+        double maxMargin = 0.0;
+        for (int p = 0; p < strat.size(); p++) {
+            double devVal = trueGame.computeDeviationValue(p, strat, helper.rewards, trueGame.getIndexes(), s0);
+            maxMargin = Math.max(maxMargin, devVal - eqVal);
+        }
+
+        return maxMargin;
     }
 
 
@@ -435,8 +457,7 @@ public class PACLearner {
         System.out.println("Evaluating robust strategy in true CSG...");
         verifyInTrueGame(result.robustSol);
 
-        System.out.println();
-
+        System.out.println("\n---------------------------------------");
         System.out.println("Point " + result.pointSol);
         System.out.println("Evaluating point strategy in true CSG...");
         verifyInTrueGame(result.pointSol);
@@ -457,7 +478,7 @@ public class PACLearner {
 
         Experiment ex = new Experiment(Experiment.CaseStudy.VERY_SIMPLE);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 6;
+        ex.propertyIndex = 5;
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 

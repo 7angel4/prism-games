@@ -20,7 +20,7 @@ public class LearningHelper {
     protected BitSet[] targets;
     protected List<CSGRewards<Double>> rewards;
     protected SimulatorEngine sim;
-    protected boolean finiteHorizon;
+    protected Experiment.PacRunSpec spec;
 
     public static final class SolveOutcome {
         private final boolean found;
@@ -276,23 +276,9 @@ public class LearningHelper {
         return value;
     }
 
-    protected double computeNashMargin(Prism prism, CSGSimple<Double> game, CSGStrategy<Double> strategy) throws Exception {
-        int s0 = game.getFirstInitialState();
-        // extract per-player strategies
-        List<Map<BitSet, Double>> strat = extractNEStrategy(strategy, s0);
-        // compute equilibrium value in true game
-        double eqVal = computeCSGValue(prism, game, strategy);
-        double maxMargin = 0.0;
-        for (int p = 0; p < strat.size(); p++) {
-            double devVal = game.computeDeviationValue(p, strat, rewards, game.getIndexes(), s0);
-            maxMargin = Math.max(maxMargin, devVal - eqVal);
-        }
-
-        return maxMargin;
-    }
 
     protected DTMCSimple<Double> constructInducedDTMC(CSG<Double> game, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
-        MDPSimple mdp = strategy.generateMDPEquilibria();
+        MDPSimple mdp = strategy.generateMDP();
 //        System.out.println("Induced MDP = " + mdp);
         // convert to DTMC
         DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp.getNumStates());
@@ -375,11 +361,10 @@ public class LearningHelper {
 
     // for computing the deviation gain
     List<Map<BitSet, Double>> extractNEStrategy(CSGStrategy<Double> strategy, int s) {
-        int numPlayers = strategy.getModel().getIndexes().length;
         List<Map<BitSet, Double>> result = new ArrayList<>();
+        int numPlayers = spec.zeroSum ? 1 : strategy.getNumModelPlayers();
         for (int p = 0; p < numPlayers; p++) {
-            Map<BitSet, Double> dist =
-                    strategy.getChoiceDistribution(p, 0, s);
+            Map<BitSet, Double> dist = strategy.getChoiceDistribution(p, 0, s);
             if (dist == null) {
                 throw new RuntimeException("Strategy missing for player " + p + " at state " + s);
             }

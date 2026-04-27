@@ -104,13 +104,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 				   int agent,
 				   List<Map<BitSet, Double>> strat,
 				   CSGRewards<Double> csgRewards,
-				   BitSet[] actionIndexes)
-		{
+				   BitSet[] actionIndexes) {
 			super(csg.getNumStates());
-
-			this.rewards = (csgRewards == null)
-					? null
-					: new MDPRewardsSimple<>(csg.getNumStates());
+			this.rewards = (csgRewards == null) ? null : new MDPRewardsSimple<>(csg.getNumStates());
 
 			Map<BitSet, Double> agentStrat = strat.get(agent);
 			Map<BitSet, Double> otherStrat = strat.get(1 - agent);
@@ -121,12 +117,9 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 			List<BitSet> agentActs = new ArrayList<>(agentStrat.keySet());
 
 			for (int s = 0; s < csg.getNumStates(); s++) {
-
 				for (BitSet a_i : agentActs) {
-
 					double rew = 0.0;
 					Distribution<Double> distr = new Distribution<>(Evaluator.forDouble());
-
 					for (int choice = 0; choice < csg.getNumChoices(s); choice++) {
 
 						int[] joint = csg.getIndexes(s, choice);
@@ -138,15 +131,13 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 						double pOther = otherStrat.getOrDefault(b, 0.0);
 						if (pOther == 0.0) continue;
-
 						if (csgRewards != null) {
 							rew += pOther * csgRewards.getTransitionReward(s, choice);
 						}
 
 						Distribution<Value> nominal = csg.getChoice(s, choice);
 						for (Map.Entry<Integer, Value> e : nominal) {
-							distr.add(e.getKey(),
-									pOther * ((Number) e.getValue()).doubleValue());
+							distr.add(e.getKey(), pOther * ((Number) e.getValue()).doubleValue());
 						}
 					}
 
@@ -208,20 +199,8 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 
 	// max_{\sigma_i'} (over deviator i's other strategies)
 	public double computeDeviationValue(int player, List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> rewards, BitSet[] actionIndexes, int s) {
-		DevGainMDP mdp = new DevGainMDP(this, player, strat,
-				rewards == null ? null : rewards.get(player),
-				actionIndexes);
+		DevGainMDP mdp = new DevGainMDP(this, player, strat, rewards == null ? null : rewards.get(player), actionIndexes);
 		return mdp.solve()[s];
-	}
-
-	// max_{i} (over players)
-	public double computeNashMargin(List<Map<BitSet, Double>> strat, List<CSGRewards<Double>> rewards, BitSet[] actionIndexes, int s) {
-		double max = 0.0;
-		for (int p = 0; p < strat.size(); p++) {
-			double dev = computeDeviationValue(p, strat, rewards, actionIndexes, s);
-			max = Math.max(max, dev);
-		}
-		return max;
 	}
 
 

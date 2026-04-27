@@ -80,11 +80,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		this.type = type;
 	}
 
-	public CSGStrategy(CSG<Value> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, BitSet[] targets, CSGStrategyType type) {
+	public CSGStrategy(CSG<Value> model, List<List<List<Map<BitSet, Double>>>> csgchoices, BitSet no, BitSet yes, BitSet inf, CSGStrategyType type) {
 		this.model = model;
 		this.csgchoices = csgchoices;
 		this.prechoices = null;
-		this.targets = (BitSet[]) targets.clone();
 		this.no = no;
 		this.yes = yes;
 		this.inf = inf;
@@ -229,6 +228,11 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		out.print("*/\n");
 		mainLog.println("Additional info on transitions and states added to file.");
 	}
+
+	public MDPSimple generateMDP() throws PrismException, InvalidStrategyStateException {
+		return type.equals(CSGStrategyType.ZERO_SUM)? generateMDPZeroSum() : generateMDPEquilibria();
+	}
+
 
 	public MDPSimple generateMDPEquilibria() throws PrismException, InvalidStrategyStateException {
 		MDPSimple mdp = new MDPSimple();
@@ -764,6 +768,41 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				mdp.addActionLabelledChoice(n, d, label);
 			}
 		}	
+	}
+
+	public MDPSimple generateMDPZeroSum() throws PrismException {
+		MDPSimple mdp = new MDPSimple();
+
+		Map<Integer, Integer> onmap = new HashMap<>();
+		List<State> statelist = new ArrayList<>();
+		BitSet explored = new BitSet();
+
+		int s = model.getFirstInitialState();
+		State initial = model.getStatesList().get(s);
+
+		int n = mdp.addState();
+		mdp.addInitialState(n);
+		mdp.setVarList(model.getVarList());
+
+		statelist.add(n, initial);
+		onmap.put(s, n);
+
+		// === terminal shortcut (same idea as equilibria version) ===
+		if ((yes == null || yes.isEmpty()) &&
+				(no == null || no.isEmpty()) &&
+				(inf == null || inf.isEmpty())) {
+
+			Distribution d = new Distribution();
+			d.add(n, 1.0);
+			mdp.addActionLabelledChoice(n, d, "CSG: trivial");
+
+		} else {
+			// === recurse exactly like equilibria ===
+			generateMDPZeroSum(mdp, onmap, statelist, explored, 0, 0, s);
+		}
+
+		mdp.setStatesList(statelist);
+		return mdp;
 	}
 	
 	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {

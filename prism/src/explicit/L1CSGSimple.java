@@ -36,7 +36,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     protected final Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
 
     private static final double EPS = 1e-15;
-    private static final double PROB_LB = 1e-6;
+    public static final double TRANS_PROB_LB = 1e-6;
 
     private boolean minUncertainty = true;
 
@@ -546,8 +546,8 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
         boolean minimize = minMax.isMinUnc();
 
         // bounds for each coordinate
-        double lower = PROB_LB;
-        double upper = 1.0 - (n - 1) * PROB_LB;
+        double lower = TRANS_PROB_LB;
+        double upper = 1.0 - (n - 1) * TRANS_PROB_LB;
 
         int low = 0;
         int high = n - 1;

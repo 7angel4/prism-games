@@ -195,7 +195,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.timeTaken = timer / 1000.0;
 		res.timePre = 0.0;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, new BitSet(), target, new BitSet(), targets, CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, new BitSet(), target, new BitSet(), CSGStrategyType.ZERO_SUM);
 		return res;
 	}
 
@@ -539,7 +539,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, no, yes, new BitSet(), targets, CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, no, yes, new BitSet(), CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}
@@ -1073,7 +1073,7 @@ public class CSGModelChecker extends ProbModelChecker
 		res.soln = nsol;
 		res.numIters = k;
 		if (genStrat)
-			res.strat = csg.getStrategy(lstrat, new BitSet(), target, inf, targets, CSGStrategyType.ZERO_SUM);
+			res.strat = csg.getStrategy(lstrat, new BitSet(), target, inf, CSGStrategyType.ZERO_SUM);
 		res.timeTaken = timer / 1000.0;
 		return res;
 	}

@@ -44,7 +44,7 @@ public class Experiment
 
         public final int horizon;
         public final boolean finiteHorizon;
-        public final String solverString;
+        public final String solver;
 
         public PacRunSpec(
                 CSGSimple<Double> trueGame,
@@ -55,7 +55,7 @@ public class Experiment
                 double rMax,
                 int horizon,
                 boolean finiteHorizon,
-                String solverString,
+                String solver,
                 boolean zeroSum
         ) {
             this.trueGame = trueGame;
@@ -66,7 +66,7 @@ public class Experiment
             this.rMax = rMax;
             this.horizon = horizon;
             this.finiteHorizon = finiteHorizon;
-            this.solverString = solverString;
+            this.solver = solver;
             this.zeroSum = zeroSum;
         }
 
@@ -145,7 +145,7 @@ public class Experiment
         boolean zeroSum = isZeroSumProperty(prop);
         int propertyHorizon = derivePropertyHorizon(prop, pf);
         boolean finiteHorizon = propertyHorizon >= 0;
-//        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
+        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
         // TODO: check if the fallback horizon is sufficient for convergence of value iteration (currently just a heuristic)
         return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum);
     }
@@ -176,51 +176,56 @@ public class Experiment
             throws PrismException {
 
         ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-        if (stratExpr == null)
+        if (stratExpr == null) {
             throw new PrismException("No strategy expression found");
+        }
 
         Expression inner = stripParentheses(stratExpr.getOperand(0));
 
-        // ===== ZERO-SUM (single objective) =====
-        if (!(inner instanceof ExpressionMultiNash multi)) {
-            if (!(inner instanceof ExpressionQuant q)) {
-                throw new PrismException("Expected quantifier expression");
+        // ===== ZERO-SUM CASE (single coalition) ===================
+        // ---- Probabilistic objective ----
+        if (inner instanceof ExpressionProb probQ) {
+            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+            if (path instanceof ExpressionTemporal t) {
+                return deriveTemporalHorizon(t, pf);
             }
-
-            if (q instanceof ExpressionMultiNashProb probQ) {
-                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
-                if (path instanceof ExpressionTemporal t) {
-                    return deriveTemporalHorizon(t, pf);
-                }
-            } else if (q instanceof ExpressionMultiNashReward) {
-                return deriveRewardHorizon(q, pf);
-            }
-
             return -1;
         }
-
-        // ===== GENERAL-SUM =====
-        int horizon = -1;
-
-        for (ExpressionQuant q : multi.getOperands()) {
-
-            if (q instanceof ExpressionMultiNashProb probQ) {
-                Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
-                if (!(path instanceof ExpressionTemporal t))
-                    throw new PrismException("Expected temporal formula");
-
-                int h = deriveTemporalHorizon(t, pf);
-                if (h < 0) return -1;
-                horizon = Math.max(horizon, h);
-
-            } else if (q instanceof ExpressionMultiNashReward) {
-                int h = deriveRewardHorizon(q, pf);
-                if (h < 0) return -1;
-                horizon = Math.max(horizon, h);
-            }
+        // ---- Reward objective ----
+        if (inner instanceof ExpressionReward rewQ) {
+            return deriveRewardHorizon(rewQ, pf);
         }
 
-        return horizon;
+        // ===== GENERAL-SUM CASE (multi-coalition Nash) ============
+        if (inner instanceof ExpressionMultiNash multi) {
+            int horizon = -1;
+            for (ExpressionQuant q : multi.getOperands()) {
+                // ---- Probabilistic objective ----
+                if (q instanceof ExpressionMultiNashProb probQ) {
+                    Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+                    if (!(path instanceof ExpressionTemporal t)) {
+                        throw new PrismException("Expected temporal formula");
+                    }
+                    int h = deriveTemporalHorizon(t, pf);
+                    if (h < 0) return -1;
+                    horizon = Math.max(horizon, h);
+                }
+                // ---- Reward objective ----
+                else if (q instanceof ExpressionMultiNashReward) {
+                    int h = deriveRewardHorizon(q, pf);
+                    if (h < 0) return -1;
+                    horizon = Math.max(horizon, h);
+                } else {
+                    throw new PrismException("Unsupported operand in multi-objective property: " + q);
+                }
+            }
+            return horizon;
+        }
+
+        // =========================================================
+        // ===== FALLBACK ==========================================
+        // =========================================================
+        return -1;
     }
 
     private int deriveTemporalHorizon(ExpressionTemporal temporal, PropertiesFile pf) throws PrismException, PrismLangException {
@@ -426,7 +431,7 @@ public class Experiment
             case VERY_SIMPLE -> {
                 this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-                this.propertyIndex = 1;
+                this.propertyIndex = 6;
 
                 this.epsilon = 0.5;
                 this.rMax = 1.0;

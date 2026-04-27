@@ -139,8 +139,8 @@ public interface CSG<Value> extends MDP<Value>, PlayerInfoOwner
 		}
 	}
 
-	public default Strategy<?> getStrategy(List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, BitSet[] targets, CSGStrategy.CSGStrategyType type) {
-		return new CSGStrategy(this, lstrat, no, yes, inf, targets, type);
+	public default Strategy<?> getStrategy(List<List<List<Map<BitSet, Double>>>> lstrat, BitSet no, BitSet yes, BitSet inf, CSGStrategy.CSGStrategyType type) {
+		return new CSGStrategy(this, lstrat, no, yes, inf, type);
 	}
 
 	public void setTrans(int s, int c, Distribution<Value> distr);
