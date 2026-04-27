@@ -69,9 +69,13 @@ public class PACLearner {
     private int effHorizon;
 
     public PACLearner(Prism prism, int seed) throws PrismException {
+        this(prism, seed, true);
+    }
+
+    public PACLearner(Prism prism, int seed, boolean genStrat) throws PrismException {
         this.prism = prism;
         this.prism.setSimulatorSeed(seed);
-//        this.prism.setGenStrat(true);
+        this.prism.setGenStrat(genStrat);
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
@@ -301,7 +305,7 @@ public class PACLearner {
 
         robustMC = (UCSGModelChecker) ucsgMC;
         robustMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-//        robustMC.setGenStrat(true);
+        robustMC.setGenStrat(prism.getGenStrat());
         robustMC.setSilentPrecomputations(true);
         robustMC.setVerbosity(0);
         robustSolveL1CSG(property); // solve once so that the model checker records the target states
@@ -313,7 +317,7 @@ public class PACLearner {
 
         pointMC = (CSGModelChecker) csgMC;
         pointMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-//        pointMC.setGenStrat(true);
+        pointMC.setGenStrat(prism.getGenStrat());
         pointMC.setSilentPrecomputations(true);
         pointMC.setVerbosity(0);
         solvePointModel(property); // solve once so that the model checker records the target states
@@ -343,7 +347,7 @@ public class PACLearner {
 
         CSGModelChecker trueMC = (CSGModelChecker) mc;
         trueMC.setModelCheckingInfo(prism.getModelInfo(), propertiesFile, prism.getRewardGenerator());
-//        trueMC.setGenStrat(true);
+        trueMC.setGenStrat(prism.getGenStrat());
         trueMC.setSilentPrecomputations(false);
 
         return helper.getSolveOutcome(trueMC, trueGame, property);
@@ -351,7 +355,7 @@ public class PACLearner {
 
     private void solveExplorationRMDP() throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
-//        mc.setGenStrat(true);
+        mc.setGenStrat(true);
         mc.setPrecomp(true);
         mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
@@ -457,7 +461,7 @@ public class PACLearner {
 
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 41);
+        PACLearner learner = new PACLearner(prism, 41, true);
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec);
         long end = System.nanoTime();
