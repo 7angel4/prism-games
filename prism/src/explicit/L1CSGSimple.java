@@ -36,6 +36,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     protected final Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
 
     private static final double EPS = 1e-15;
+    private static final double PROB_LB = 1e-6;
 
     private boolean minUncertainty = true;
 
@@ -501,7 +502,11 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
      * Build the extremal distribution under the L1 ball around the nominal distribution.
      * If val == null, returns the nominal distribution (this is enough for graph-only precomputation).
      */
-    private Distribution<Double> buildExtremeDistribution(Distribution<Value> distr, double radius, double[] val, MinMax minMax)
+    private Distribution<Double> buildExtremeDistribution(
+            Distribution<Value> distr,
+            double radius,
+            double[] val,
+            MinMax minMax)
     {
         if (distr == null || distr.isEmpty()) {
             return new Distribution<>(Evaluator.forDouble());
@@ -529,9 +534,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
         }
 
         Integer[] order = new Integer[n];
-        for (int i = 0; i < n; i++) {
-            order[i] = i;
-        }
+        for (int i = 0; i < n; i++) order[i] = i;
 
         Arrays.sort(order, Comparator.comparingDouble(i -> values[i]));
 
@@ -540,26 +543,36 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             return toDoubleDistribution(distr);
         }
 
-        boolean minimizeUncertainty = minMax.isMinUnc();
+        boolean minimize = minMax.isMinUnc();
 
-        if (minimizeUncertainty) {
-            // Move mass from high-value states to low-value states.
-            int low = 0;
-            int high = n - 1;
+        // bounds for each coordinate
+        double lower = PROB_LB;
+        double upper = 1.0 - (n - 1) * PROB_LB;
 
-            while (budget > EPS && low < high) {
-                while (low < high && p[order[low]] >= 1.0 - EPS) low++;
-                while (low < high && p[order[high]] <= EPS) high--;
-                if (low >= high) {
-                    break;
-                }
+        int low = 0;
+        int high = n - 1;
+
+        while (budget > EPS && low < high) {
+
+            if (minimize) {
+                // move mass from high → low
+
+                while (low < high && p[order[low]] >= upper - EPS) low++;
+                while (low < high && p[order[high]] <= lower + EPS) high--;
+
+                if (low >= high) break;
 
                 int from = order[high];
                 int to = order[low];
-                double delta = Math.min(budget, Math.min(p[from], 1.0 - p[to]));
+
+                double maxRemove = p[from] - lower;
+                double maxAdd = upper - p[to];
+
+                double delta = Math.min(budget, Math.min(maxRemove, maxAdd));
+
                 if (delta <= EPS) {
-                    if (p[from] <= EPS) high--;
-                    if (p[to] >= 1.0 - EPS) low++;
+                    if (p[from] <= lower + EPS) high--;
+                    if (p[to] >= upper - EPS) low++;
                     continue;
                 }
 
@@ -567,45 +580,80 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
                 p[to] += delta;
                 budget -= delta;
 
-                if (p[from] <= EPS) low++;
-                if (p[to] >= 1.0 - EPS) high--;
-            }
-        } else {
-            // Move mass from low-value states to high-value states.
-            int low = 0;
-            int high = n - 1;
+            } else {
+                // move mass from low → high
 
-            while (budget > EPS && low < high) {
-                while (low < high && p[order[low]] <= EPS) low++;
-                while (low < high && p[order[high]] >= 1.0 - EPS) high--;
-                if (low >= high) {
-                    break;
-                }
+                while (low < high && p[order[low]] <= lower + EPS) low++;
+                while (low < high && p[order[high]] >= upper - EPS) high--;
+
+                if (low >= high) break;
 
                 int from = order[low];
                 int to = order[high];
-                double delta = Math.min(budget, Math.min(p[from], 1.0 - p[to]));
+
+                double maxRemove = p[from] - lower;
+                double maxAdd = upper - p[to];
+
+                double delta = Math.min(budget, Math.min(maxRemove, maxAdd));
+
                 if (delta <= EPS) {
-                    if (p[from] <= EPS) low++;
-                    if (p[to] >= 1.0 - EPS) high--;
+                    if (p[from] <= lower + EPS) low++;
+                    if (p[to] >= upper - EPS) high--;
                     continue;
                 }
 
                 p[from] -= delta;
                 p[to] += delta;
                 budget -= delta;
+            }
 
-                if (p[from] <= EPS) low++;
-                if (p[to] >= 1.0 - EPS) high--;
+            if (p[order[low]] >= upper - EPS) low++;
+            if (p[order[high]] <= lower + EPS) high--;
+        }
+
+        // --- FINAL PROJECTION (CRUCIAL) ---
+
+        double sum = 0.0;
+        for (int i = 0; i < n; i++) {
+            p[i] = Math.max(lower, p[i]);
+            sum += p[i];
+        }
+
+        double excess = sum - 1.0;
+
+        if (excess > EPS) {
+            // remove excess while respecting lower bound
+            for (int i = 0; i < n; i++) {
+                double removable = p[i] - lower;
+                if (removable > 0) {
+                    double reduce = Math.min(removable, excess);
+                    p[i] -= reduce;
+                    excess -= reduce;
+                    if (excess <= EPS) break;
+                }
+            }
+        } else if (excess < -EPS) {
+            // distribute deficit safely
+            double deficit = -excess;
+            for (int i = 0; i < n; i++) {
+                double addable = upper - p[i];
+                if (addable > 0) {
+                    double inc = Math.min(addable, deficit);
+                    p[i] += inc;
+                    deficit -= inc;
+                    if (deficit <= EPS) break;
+                }
             }
         }
 
+        // build distribution
         Distribution<Double> out = new Distribution<>(Evaluator.forDouble());
         for (int i = 0; i < n; i++) {
             if (p[i] > EPS) {
                 out.add(stateIndex[i], p[i]);
             }
         }
+
         return out;
     }
 
