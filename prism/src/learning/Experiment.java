@@ -3,17 +3,13 @@ package learning;
 import explicit.CSGSimple;
 import parser.Values;
 import parser.ast.*;
-import prism.IntegerBound;
-import prism.Prism;
-import prism.PrismException;
-import prism.PrismLangException;
+import prism.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Method;
 
-public class Experiment
-{
+public class Experiment {
+
     public enum CaseStudy {
         ALOHA,
         VERY_SIMPLE,
@@ -58,12 +54,7 @@ public class Experiment
             this.solver = solver;
             this.zeroSum = zeroSum;
         }
-
-        public String del() {
-            return null;
-        }
     }
-
 
     public CaseStudy model;
     public String modelFile;
@@ -94,17 +85,8 @@ public class Experiment
         this.solverString = solverString;
     }
 
-    private void addParameters(Object... nameValuePairs) {
-        if (nameValuePairs.length % 2 != 0) {
-            throw new IllegalArgumentException("Parameter name/value pairs must be even.");
-        }
-        for (int i = 0; i < nameValuePairs.length; i += 2) {
-            String name = (String) nameValuePairs[i];
-            this.parameterValues.addValue(name, nameValuePairs[i + 1]);
-        }
-    }
-
     public PacRunSpec buildPacRunSpec(Prism prism) throws PrismException, FileNotFoundException {
+
         File mfFile = Prism.resolveFile(modelFile);
         File pfFile = Prism.resolveFile(propertiesFile);
 
@@ -114,121 +96,87 @@ public class Experiment
 
         PropertiesFile pf = prism.parsePropertiesFile(mf, pfFile);
 
+        // merge experiment constants into properties
+        pf.setSomeUndefinedConstants(parameterValues);
+
         int idx = propertyIndex - 1;
         if (idx < 0 || idx >= pf.getNumProperties()) {
             throw new PrismException("Property index out of range: " + propertyIndex);
         }
 
         Property prop = pf.getPropertyObject(idx);
-        System.out.println(prop);
-
-        // Merge experiment constants into the property constant environment.
-        // This lets a parameter like k be taken from the experiment, or from the props file.
-        applyExperimentConstantsToPropertiesFile(pf);
 
         prism.buildModelIfRequired();
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
         boolean zeroSum = isZeroSumProperty(prop);
-        int propertyHorizon = derivePropertyHorizon(prop, pf);
-        boolean finiteHorizon = propertyHorizon >= 0;
-//        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
+        int horizon = derivePropertyHorizon(prop.getExpression(), pf);
+        boolean finiteHorizon = horizon >= 0;
+
         double rMax = deriveRMax(mf);
-        // TODO: check if the fallback horizon is sufficient for convergence of value iteration (currently just a heuristic)
-        return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum);
+
+        return new PacRunSpec(
+                trueGame,
+                pf,
+                prop,
+                epsilon,
+                confidence,
+                rMax,
+                horizon,
+                finiteHorizon,
+                solverString,
+                zeroSum
+        );
     }
+
+    // ===============================
+    // Property analysis
+    // ===============================
 
     private boolean isZeroSumProperty(Property prop) {
-        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-        if (stratExpr == null) return false;
+        ExpressionStrategy strat = findStrategy(prop.getExpression());
+        if (strat == null) return false;
 
-        Expression inner = stripParentheses(stratExpr.getOperand(0));
-        if (!(inner instanceof ExpressionMultiNash multi)) {
-            return true;
+        Expression inner = stripParentheses(strat.getOperand(0));
+
+        if (inner instanceof ExpressionMultiNash multi) {
+            return multi.getOperands().size() == 1;
         }
-        return multi.getOperands().size() == 1;
+        return true;
     }
 
-    private void applyExperimentConstantsToPropertiesFile(PropertiesFile pf) {
-        if (pf == null) return;
+    private int derivePropertyHorizon(Expression expr, PropertiesFile pf) throws PrismException {
+        ExpressionStrategy strat = findStrategy(expr);
+        if (strat == null) return -1;
 
-        Values pfConstants = pf.getConstantValues();
-        if (pfConstants == null) return;
+        Expression inner = stripParentheses(strat.getOperand(0));
 
-        // Copy experiment parameters into the properties-file constant environment.
-        // Existing values with the same name are overwritten.
-        pfConstants.setValues(parameterValues);
-    }
-
-    private int derivePropertyHorizon(Property prop, PropertiesFile pf)
-            throws PrismException {
-
-        ExpressionStrategy stratExpr = findFirstStrategyExpression(prop.getExpression());
-        if (stratExpr == null) {
-            throw new PrismException("No strategy expression found");
+        // ZERO-SUM
+        if (inner instanceof ExpressionProb prob) {
+            return extractTemporal(prob.getExpression(), pf);
         }
 
-        Expression inner = stripParentheses(stratExpr.getOperand(0));
-
-        // ===== ZERO-SUM CASE =====
-        if (inner instanceof ExpressionProb probQ) {
-            // DO NOT canonicalise before extracting bounds
-            Expression raw = probQ.getExpression();
-
-            if (raw instanceof ExpressionTemporal t) {
-                int h = deriveTemporalHorizon(t, pf);
-                if (h >= 0) return h;
-            }
-
-            // fallback to canonical form if needed
-            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(raw);
-            if (path instanceof ExpressionTemporal t) {
-                return deriveTemporalHorizon(t, pf);
-            }
-
-            return -1;
+        if (inner instanceof ExpressionReward rew) {
+            return extractTemporal(rew.getExpression(), pf);
         }
 
-        if (inner instanceof ExpressionReward rewQ) {
-            return deriveRewardHorizon(rewQ, pf);
-        }
-
-        // ===== GENERAL-SUM CASE =====
+        // GENERAL-SUM
         if (inner instanceof ExpressionMultiNash multi) {
             int horizon = -1;
 
             for (ExpressionQuant q : multi.getOperands()) {
+                int h = -1;
 
-                if (q instanceof ExpressionMultiNashProb probQ) {
-                    Expression raw = probQ.getExpression();
-
-                    if (raw instanceof ExpressionTemporal t) {
-                        int h = deriveTemporalHorizon(t, pf);
-                        if (h < 0) return -1;
-                        horizon = Math.max(horizon, h);
-                        continue;
-                    }
-
-                    Expression path = Expression.convertSimplePathFormulaToCanonicalForm(raw);
-                    if (!(path instanceof ExpressionTemporal t)) {
-                        throw new PrismException("Expected temporal formula");
-                    }
-
-                    int h = deriveTemporalHorizon(t, pf);
-                    if (h < 0) return -1;
-                    horizon = Math.max(horizon, h);
+                if (q instanceof ExpressionMultiNashProb p) {
+                    h = extractTemporal(p.getExpression(), pf);
+                }
+                else if (q instanceof ExpressionMultiNashReward r) {
+                    h = extractTemporal(r.getExpression(), pf);
                 }
 
-                else if (q instanceof ExpressionMultiNashReward) {
-                    int h = deriveRewardHorizon(q, pf);
-                    if (h < 0) return -1;
-                    horizon = Math.max(horizon, h);
-                }
-
-                else {
-                    throw new PrismException("Unsupported operand: " + q);
-                }
+                if (h < 0) return -1;
+                horizon = Math.max(horizon, h);
             }
 
             return horizon;
@@ -237,203 +185,37 @@ public class Experiment
         return -1;
     }
 
-    private int deriveTemporalHorizon(ExpressionTemporal temporal, PropertiesFile pf) throws PrismException, PrismLangException {
-        switch (temporal.getOperator()) {
-            case ExpressionTemporal.P_F, ExpressionTemporal.P_U -> {
-                if (!temporal.hasBounds()) {
-                    return -1;
-                }
-                IntegerBound b = IntegerBound.fromExpressionTemporal(temporal, pf.getConstantValues(), true);
-                return extractUpperBound(b);
-            }
-            default -> throw new PrismException("Unsupported temporal operator: " + temporal.getOperatorSymbol());
-        }
-    }
-
-    private int deriveRewardHorizon(ExpressionQuant q, PropertiesFile pf) throws PrismException, PrismLangException {
-        String text = q.toString();
-
-        int open = text.indexOf('[');
-        int close = text.indexOf(']', open + 1);
-        if (open < 0 || close < 0 || close <= open + 1) {
-            return -1;
-        }
-
-        String inside = text.substring(open + 1, close).replace(" ", "").replace("\t", "");
-        int boundIdx = inside.indexOf("C<=");
-        if (boundIdx < 0) {
-            return -1; // unbounded reward property
-        }
-
-        String boundExpr = inside.substring(boundIdx + 3).trim();
-        if (boundExpr.isEmpty()) {
-            throw new PrismException("Empty cumulative reward bound in property: " + q);
-        }
-
-        Integer bound = resolveIntegerConstant(boundExpr, pf);
-        if (bound == null) {
-            throw new PrismException("Could not resolve numeric expression: " + boundExpr);
-        }
-
-        if (bound < 0) {
-            throw new PrismException("Reward horizon must be non-negative: " + boundExpr);
-        }
-
-        return bound;
-    }
-
-    private Integer resolveIntegerConstant(String nameOrNumber, PropertiesFile pf) throws PrismLangException {
-        String s = nameOrNumber.trim();
-
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException ignored) {
-            // not a literal
-        }
-
-        Object v = resolveValueByName(s, parameterValues);
-        if (v == null && pf != null && pf.getConstantValues() != null) {
-            v = resolveValueByName(s, pf.getConstantValues());
-        }
-
-        if (v == null) {
-            return null;
-        }
-        return coerceToInt(v);
-    }
-
-    private Object resolveValueByName(String name, Values values) throws PrismLangException {
-        if (values == null || !values.contains(name)) {
-            return null;
-        }
-        return values.getValueOf(name);
-    }
-
-    private Integer coerceToInt(Object v) {
-        if (v instanceof Integer i) {
-            return i;
-        }
-        if (v instanceof Long l) {
-            return Math.toIntExact(l);
-        }
-        if (v instanceof Double d) {
-            return (int) Math.round(d);
-        }
-        if (v instanceof Float f) {
-            return Math.round(f);
-        }
-        if (v instanceof String s) {
-            try {
-                return Integer.parseInt(s.trim());
-            } catch (NumberFormatException ignored) {
-                return null;
-            }
-        }
-        return null;
-    }
-
-    private int extractUpperBound(IntegerBound bound) throws PrismException {
-        String[] candidates = {
-                "getUpperBound",
-                "getUpper",
-                "getBound",
-                "getValue",
-                "getUpperValue",
-                "getIntBound"
-        };
-
-        for (String name : candidates) {
-            try {
-                Method m = bound.getClass().getMethod(name);
-                Object value = m.invoke(bound);
-                if (value instanceof Number n) {
-                    return n.intValue();
-                }
-                if (value instanceof String s) {
-                    return Integer.parseInt(s.trim());
-                }
-            } catch (ReflectiveOperationException ignored) {
-                // try next
-            }
-        }
-
-        Integer parsed = parseFirstInteger(bound.toString());
-        if (parsed != null) {
-            return parsed;
-        }
-
-        throw new PrismException("Could not extract an upper bound from IntegerBound: " + bound);
-    }
-
-    private Integer parseFirstInteger(String s) {
-        if (s == null) {
-            return null;
-        }
-
-        int i = 0;
-        while (i < s.length() && !Character.isDigit(s.charAt(i)) && s.charAt(i) != '-') {
-            i++;
-        }
-        if (i >= s.length()) {
-            return null;
-        }
-
-        int j = i + 1;
-        while (j < s.length() && Character.isDigit(s.charAt(j))) {
-            j++;
-        }
-
-        try {
-            return Integer.parseInt(s.substring(i, j));
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private ExpressionStrategy findFirstStrategyExpression(Expression expr) {
-        if (expr == null) {
-            return null;
-        }
-
-        if (expr instanceof ExpressionStrategy s) {
-            return s;
-        }
-
-        if (expr instanceof ExpressionProb p) {
-            return findFirstStrategyExpression(p.getExpression());
-        }
-
-        if (expr instanceof ExpressionReward r) {
-            return findFirstStrategyExpression(r.getExpression());
-        }
+    private int extractTemporal(Expression expr, PropertiesFile pf) throws PrismException {
 
         if (expr instanceof ExpressionTemporal t) {
-            ExpressionStrategy found = findFirstStrategyExpression(t.getOperand1());
-            if (found != null) {
-                return found;
-            }
-            return findFirstStrategyExpression(t.getOperand2());
+            return deriveTemporalHorizon(t, pf);
         }
 
-        if (expr instanceof ExpressionUnaryOp u) {
-            return findFirstStrategyExpression(u.getOperand());
+        Expression canonical = Expression.convertSimplePathFormulaToCanonicalForm(expr);
+        if (canonical instanceof ExpressionTemporal t) {
+            return deriveTemporalHorizon(t, pf);
         }
 
-        return null;
+        return -1;
     }
 
-    private Expression stripParentheses(Expression expr) {
-        Expression cur = expr;
-        while (cur instanceof ExpressionUnaryOp && Expression.isParenth(cur)) {
-            cur = ((ExpressionUnaryOp) cur).getOperand();
-        }
-        return cur;
+    private int deriveTemporalHorizon(ExpressionTemporal t, PropertiesFile pf) throws PrismException {
+
+        if (!t.hasBounds()) return -1;
+
+        Expression ub = t.getUpperBound();
+        if (ub == null) return -1;
+
+        return ub.evaluateInt(pf.getConstantValues());
     }
+
+    // ===============================
+    // Reward bound extraction
+    // ===============================
 
     private double deriveRMax(ModulesFile mf) {
-        if (mf == null || mf.getNumRewardStructs() == 0) {
-            return 1.0;
-        }
+
+        if (mf.getNumRewardStructs() == 0) return 1.0;
 
         Values consts = mf.getConstantValues();
         double rMax = 0.0;
@@ -442,61 +224,79 @@ public class Experiment
             for (int i = 0; i < rs.getNumItems(); i++) {
                 Expression expr = rs.getReward(i);
 
-                Double val = tryEvaluate(expr, consts);
-                if (val != null) {
+                try {
+                    double val = expr.evaluateDouble(consts);
                     rMax = Math.max(rMax, Math.abs(val));
-                } else {
-                    // non-constant reward → be conservative
-                    return 1.0;
+                } catch (Exception e) {
+                    return 1.0; // fallback if non-constant
                 }
             }
         }
+
         return rMax > 0 ? rMax : 1.0;
     }
 
-    private Double tryEvaluate(Expression expr, Values consts) {
-        try {Object val = expr.evaluate(consts);
-            if (val instanceof Number n) {
-                return n.doubleValue();
-            }
-        } catch (Exception ignored) {}
+    // ===============================
+    // AST utilities
+    // ===============================
+
+    private ExpressionStrategy findStrategy(Expression expr) {
+        if (expr instanceof ExpressionStrategy s) return s;
+
+        if (expr instanceof ExpressionUnaryOp u)
+            return findStrategy(u.getOperand());
+
+        if (expr instanceof ExpressionBinaryOp b) {
+            ExpressionStrategy s = findStrategy(b.getOperand1());
+            if (s != null) return s;
+            return findStrategy(b.getOperand2());
+        }
+
         return null;
     }
 
+    private Expression stripParentheses(Expression expr) {
+        while (expr instanceof ExpressionUnaryOp u &&
+                Expression.isParenth(expr)) {
+            expr = u.getOperand();
+        }
+        return expr;
+    }
+
+    // ===============================
+    // Model selection
+    // ===============================
 
     public Experiment setModel(CaseStudy model) {
         this.model = model;
         this.parameterValues = new Values();
-        this.confidence = 0.1;
 
         switch (model) {
             case ALOHA -> {
-                this.modelFile = "./prism-examples/csgs/learning/aloha.prism";
-                this.propertiesFile = "./prism-examples/csgs/learning/aloha.props";
-                this.propertyIndex = 1;
-                this.epsilon = 0.1;
+                modelFile = "./prism-examples/csgs/learning/aloha.prism";
+                propertiesFile = "./prism-examples/csgs/learning/aloha.props";
+                propertyIndex = 1;
+                epsilon = 0.1;
             }
             case VERY_SIMPLE -> {
-                this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
-                this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-                this.propertyIndex = 6;
-                this.epsilon = 0.1;
+                modelFile = "./prism-examples/csgs/learning/very_simple.prism";
+                propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
+                propertyIndex = 1;
+                epsilon = 0.1;
             }
             case SIMPLE -> {
-                this.modelFile = "./prism-examples/csgs/learning/simple.prism";
-                this.propertiesFile = "./prism-examples/csgs/learning/simple.props";
-                this.propertyIndex = 2;
-                this.epsilon = 0.5;
+                modelFile = "./prism-examples/csgs/learning/simple.prism";
+                propertiesFile = "./prism-examples/csgs/learning/simple.props";
+                propertyIndex = 2;
+                epsilon = 0.5;
             }
             case SAFE_RISKY -> {
-                this.modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
-                this.propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
-                this.propertyIndex = 2;
-                this.epsilon = 0.5;
+                modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
+                propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
+                propertyIndex = 2;
+                epsilon = 0.5;
             }
         }
         return this;
     }
-
-
 }
