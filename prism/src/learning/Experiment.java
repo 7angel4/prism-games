@@ -23,12 +23,13 @@ public class Experiment {
         public final Property property;
         public final boolean zeroSum;
 
-        public final double epsilon;
+        public final double epsilon; // if negative, will be derived from rMax
         public final double confidence;
         public final double rMax;
 
         public final int horizon;
         public final boolean finiteHorizon;
+        public final boolean useRewards;
         public final String solver;
 
         public PacRunSpec(
@@ -41,7 +42,8 @@ public class Experiment {
                 int horizon,
                 boolean finiteHorizon,
                 String solver,
-                boolean zeroSum
+                boolean zeroSum,
+                boolean useRewards
         ) {
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
@@ -53,6 +55,7 @@ public class Experiment {
             this.finiteHorizon = finiteHorizon;
             this.solver = solver;
             this.zeroSum = zeroSum;
+            this.useRewards = useRewards;
         }
     }
 
@@ -64,7 +67,7 @@ public class Experiment {
     public Values parameterValues = new Values();
     public String solverString = "";
 
-    public double epsilon = 0.5;
+    public double epsilon = -1.0; // if negative, will be derived from rMax
     public double confidence = 0.05;
 
     public Experiment(CaseStudy model) {
@@ -111,28 +114,52 @@ public class Experiment {
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
         boolean zeroSum = isZeroSumProperty(prop);
+        boolean useRewards = isRewardProperty(prop);
         int horizon = derivePropertyHorizon(prop.getExpression(), pf);
         boolean finiteHorizon = horizon >= 0;
 
         double rMax = deriveRMax(mf);
+        double eps = (this.epsilon < 0) ? rMax / 10.0 : this.epsilon;
 
         return new PacRunSpec(
                 trueGame,
                 pf,
                 prop,
-                epsilon,
+                eps,
                 confidence,
                 rMax,
                 horizon,
                 finiteHorizon,
                 solverString,
-                zeroSum
+                zeroSum,
+                useRewards
         );
     }
 
     // ===============================
     // Property analysis
     // ===============================
+
+    private boolean isRewardProperty(Property prop) {
+        ExpressionStrategy strat = findStrategy(prop.getExpression());
+        if (strat == null) return false;
+
+        Expression inner = stripParentheses(strat.getOperand(0));
+
+        // ZERO-SUM case
+        if (inner instanceof ExpressionReward) {
+            return true;
+        }
+        // GENERAL-SUM case (multi-objective)
+        if (inner instanceof ExpressionMultiNash multi) {
+            for (ExpressionQuant q : multi.getOperands()) {
+                if (q instanceof ExpressionMultiNashReward) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 
     private boolean isZeroSumProperty(Property prop) {
         ExpressionStrategy strat = findStrategy(prop.getExpression());
@@ -276,7 +303,6 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/learning/aloha.prism";
                 propertiesFile = "./prism-examples/csgs/learning/aloha.props";
                 propertyIndex = 1;
-                epsilon = 0.1;
             }
             case VERY_SIMPLE -> {
                 modelFile = "./prism-examples/csgs/learning/very_simple.prism";

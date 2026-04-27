@@ -250,7 +250,7 @@ public class LearningHelper {
 
         ModelCheckerResult res;
         BitSet dtmcTarget = constructDTMCTarget(dtmc);
-        if (rewards != null) {
+        if (spec.useRewards) {
             MDPRewardsSimple<Double> dtmcRewards = constructDTMCRewards(dtmc, rewards);
             res = mc.computeReachRewards(dtmc, dtmcRewards, dtmcTarget);
         } else {
@@ -307,17 +307,19 @@ public class LearningHelper {
 
 
     protected BitSet constructDTMCTarget(DTMCSimple<Double> dtmc) {
-        BitSet csgTarget = new BitSet();
-        for (int p = 0; p < targets.length; p++) {
-            csgTarget.or(targets[p]);
+        BitSet dtmcTarget = new BitSet();
+        List<State> dtmcStates = dtmc.getStatesList();
+
+        // use the SAME target structure as the model checker
+        BitSet csgTarget = getTargetUnion();
+
+        for (int i = 0; i < dtmcStates.size(); i++) {
+            Integer orig = stateToIndex.get(dtmcStates.get(i));
+            if (orig != null && csgTarget.get(orig)) {
+                dtmcTarget.set(i);
+            }
         }
 
-        BitSet dtmcTarget = new BitSet(); //
-        for (State s : dtmc.getStatesList()) {
-            int dtmcStateIndex = stateToIndex.get(s);
-            if (csgTarget.get(dtmcStateIndex)) continue; // already added from another player's dtmcTarget
-            dtmcTarget.set(dtmcStateIndex);
-        }
         return dtmcTarget;
     }
 
