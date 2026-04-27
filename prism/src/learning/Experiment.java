@@ -2,19 +2,7 @@ package learning;
 
 import explicit.CSGSimple;
 import parser.Values;
-import parser.ast.Expression;
-import parser.ast.ExpressionMultiNash;
-import parser.ast.ExpressionMultiNashProb;
-import parser.ast.ExpressionMultiNashReward;
-import parser.ast.ExpressionProb;
-import parser.ast.ExpressionQuant;
-import parser.ast.ExpressionReward;
-import parser.ast.ExpressionStrategy;
-import parser.ast.ExpressionTemporal;
-import parser.ast.ExpressionUnaryOp;
-import parser.ast.ModulesFile;
-import parser.ast.Property;
-import parser.ast.PropertiesFile;
+import parser.ast.*;
 import prism.IntegerBound;
 import prism.Prism;
 import prism.PrismException;
@@ -27,6 +15,7 @@ import java.lang.reflect.Method;
 public class Experiment
 {
     public enum CaseStudy {
+        ALOHA,
         VERY_SIMPLE,
         SIMPLE,
         SAFE_RISKY
@@ -86,7 +75,6 @@ public class Experiment
 
     public double epsilon = 0.5;
     public double confidence = 0.05;
-    public double rMax = 1.0;
 
     public Experiment(CaseStudy model) {
         setModel(model);
@@ -132,6 +120,7 @@ public class Experiment
         }
 
         Property prop = pf.getPropertyObject(idx);
+        System.out.println(prop);
 
         // Merge experiment constants into the property constant environment.
         // This lets a parameter like k be taken from the experiment, or from the props file.
@@ -141,11 +130,11 @@ public class Experiment
         @SuppressWarnings("unchecked")
         CSGSimple<Double> trueGame = (CSGSimple<Double>) prism.getBuiltModelExplicit();
 
-//        validateSupportedProperty(prop, trueGame, pf, prism);
         boolean zeroSum = isZeroSumProperty(prop);
         int propertyHorizon = derivePropertyHorizon(prop, pf);
         boolean finiteHorizon = propertyHorizon >= 0;
-        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
+//        System.out.println("finiteHorizon = " + finiteHorizon + ", propertyHorizon = " + propertyHorizon);
+        double rMax = deriveRMax(mf);
         // TODO: check if the fallback horizon is sufficient for convergence of value iteration (currently just a heuristic)
         return new PacRunSpec(trueGame, pf, prop, epsilon, confidence, rMax, propertyHorizon, finiteHorizon, solverString, zeroSum);
     }
@@ -182,49 +171,69 @@ public class Experiment
 
         Expression inner = stripParentheses(stratExpr.getOperand(0));
 
-        // ===== ZERO-SUM CASE (single coalition) ===================
-        // ---- Probabilistic objective ----
+        // ===== ZERO-SUM CASE =====
         if (inner instanceof ExpressionProb probQ) {
-            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+            // DO NOT canonicalise before extracting bounds
+            Expression raw = probQ.getExpression();
+
+            if (raw instanceof ExpressionTemporal t) {
+                int h = deriveTemporalHorizon(t, pf);
+                if (h >= 0) return h;
+            }
+
+            // fallback to canonical form if needed
+            Expression path = Expression.convertSimplePathFormulaToCanonicalForm(raw);
             if (path instanceof ExpressionTemporal t) {
                 return deriveTemporalHorizon(t, pf);
             }
+
             return -1;
         }
-        // ---- Reward objective ----
+
         if (inner instanceof ExpressionReward rewQ) {
             return deriveRewardHorizon(rewQ, pf);
         }
 
-        // ===== GENERAL-SUM CASE (multi-coalition Nash) ============
+        // ===== GENERAL-SUM CASE =====
         if (inner instanceof ExpressionMultiNash multi) {
             int horizon = -1;
+
             for (ExpressionQuant q : multi.getOperands()) {
-                // ---- Probabilistic objective ----
+
                 if (q instanceof ExpressionMultiNashProb probQ) {
-                    Expression path = Expression.convertSimplePathFormulaToCanonicalForm(probQ.getExpression());
+                    Expression raw = probQ.getExpression();
+
+                    if (raw instanceof ExpressionTemporal t) {
+                        int h = deriveTemporalHorizon(t, pf);
+                        if (h < 0) return -1;
+                        horizon = Math.max(horizon, h);
+                        continue;
+                    }
+
+                    Expression path = Expression.convertSimplePathFormulaToCanonicalForm(raw);
                     if (!(path instanceof ExpressionTemporal t)) {
                         throw new PrismException("Expected temporal formula");
                     }
+
                     int h = deriveTemporalHorizon(t, pf);
                     if (h < 0) return -1;
                     horizon = Math.max(horizon, h);
                 }
-                // ---- Reward objective ----
+
                 else if (q instanceof ExpressionMultiNashReward) {
                     int h = deriveRewardHorizon(q, pf);
                     if (h < 0) return -1;
                     horizon = Math.max(horizon, h);
-                } else {
-                    throw new PrismException("Unsupported operand in multi-objective property: " + q);
+                }
+
+                else {
+                    throw new PrismException("Unsupported operand: " + q);
                 }
             }
+
             return horizon;
         }
 
-        // =========================================================
-        // ===== FALLBACK ==========================================
-        // =========================================================
         return -1;
     }
 
@@ -421,6 +430,39 @@ public class Experiment
         return cur;
     }
 
+    private double deriveRMax(ModulesFile mf) {
+        if (mf == null || mf.getNumRewardStructs() == 0) {
+            return 1.0;
+        }
+
+        Values consts = mf.getConstantValues();
+        double rMax = 0.0;
+
+        for (RewardStruct rs : mf.getRewardStructs()) {
+            for (int i = 0; i < rs.getNumItems(); i++) {
+                Expression expr = rs.getReward(i);
+
+                Double val = tryEvaluate(expr, consts);
+                if (val != null) {
+                    rMax = Math.max(rMax, Math.abs(val));
+                } else {
+                    // non-constant reward → be conservative
+                    return 1.0;
+                }
+            }
+        }
+        return rMax > 0 ? rMax : 1.0;
+    }
+
+    private Double tryEvaluate(Expression expr, Values consts) {
+        try {Object val = expr.evaluate(consts);
+            if (val instanceof Number n) {
+                return n.doubleValue();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
 
     public Experiment setModel(CaseStudy model) {
         this.model = model;
@@ -428,29 +470,29 @@ public class Experiment
         this.confidence = 0.1;
 
         switch (model) {
+            case ALOHA -> {
+                this.modelFile = "./prism-examples/csgs/learning/aloha.prism";
+                this.propertiesFile = "./prism-examples/csgs/learning/aloha.props";
+                this.propertyIndex = 1;
+                this.epsilon = 0.1;
+            }
             case VERY_SIMPLE -> {
                 this.modelFile = "./prism-examples/csgs/learning/very_simple.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
                 this.propertyIndex = 6;
-
-                this.epsilon = 0.5;
-                this.rMax = 1.0;
+                this.epsilon = 0.1;
             }
             case SIMPLE -> {
                 this.modelFile = "./prism-examples/csgs/learning/simple.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/simple.props";
                 this.propertyIndex = 2;
-
                 this.epsilon = 0.5;
-                this.rMax = 1.0;
             }
             case SAFE_RISKY -> {
                 this.modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
                 this.propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 this.propertyIndex = 2;
-
                 this.epsilon = 0.5;
-                this.rMax = 10.0;
             }
         }
         return this;
