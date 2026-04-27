@@ -20,6 +20,7 @@ public class LearningHelper {
     protected BitSet[] targets;
     protected List<CSGRewards<Double>> rewards;
     protected SimulatorEngine sim;
+    protected boolean finiteHorizon;
 
     public static final class SolveOutcome {
         private final boolean found;
@@ -273,6 +274,21 @@ public class LearningHelper {
 //        System.out.println("True value = " + value);
 
         return value;
+    }
+
+    protected double computeNashMargin(Prism prism, CSGSimple<Double> game, CSGStrategy<Double> strategy) throws Exception {
+        int s0 = game.getFirstInitialState();
+        // extract per-player strategies
+        List<Map<BitSet, Double>> strat = extractNEStrategy(strategy, s0);
+        // compute equilibrium value in true game
+        double eqVal = computeCSGValue(prism, game, strategy);
+        double maxMargin = 0.0;
+        for (int p = 0; p < strat.size(); p++) {
+            double devVal = game.computeDeviationValue(p, strat, rewards, game.getIndexes(), s0);
+            maxMargin = Math.max(maxMargin, devVal - eqVal);
+        }
+
+        return maxMargin;
     }
 
     protected DTMCSimple<Double> constructInducedDTMC(CSG<Double> game, CSGStrategy<Double> strategy) throws PrismException, InvalidStrategyStateException {
