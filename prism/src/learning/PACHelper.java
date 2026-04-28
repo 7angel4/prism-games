@@ -34,11 +34,9 @@ public class PACHelper {
 
         @Override
         public String toString() {
-            int numWhitespaces = getClass().getSimpleName().length() + 1;
             return getClass().getSimpleName() + "{" +
                     "found = " + found +
                     ", value = " + value + ", " +
-//                    String.format("\n%1$"+ numWhitespaces +"s", "") +
                     "strategy = " + strategy +
                     '}';
         }

@@ -83,9 +83,10 @@ public class PACLearner {
         this.prism.setGenStrat(genStrat);
     }
 
-    public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex) throws PrismException {
+    public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws PrismException {
         helper.spec = spec;
-        logger = new Logger(modelFilePath, propertyIndex);
+        logger = new Logger(modelFilePath, propertyIndex, robustnessExperiment);
+
         return runPacLoop(
                 spec.trueGame,
                 spec.propertiesFile,
@@ -96,9 +97,12 @@ public class PACLearner {
                 spec.horizon,
                 spec.solver,
                 spec.zeroSum,
-                spec.finiteHorizon
-        );
+                spec.finiteHorizon,
+                spec.maxNumEpisodes,
+                robustnessExperiment
+                );
     }
+
 
     private PacResult runPacLoop(
             CSGSimple<Double> trueGame,
@@ -110,7 +114,9 @@ public class PACLearner {
             int horizon,
             String solver,
             boolean zeroSum,
-            boolean finiteHorizon
+            boolean finiteHorizon,
+            int maxNumEpisodes,
+            boolean robustnessExperiment
     ) throws PrismException {
 
         final double deltaContain = confidence / 2.0;
@@ -140,7 +146,7 @@ public class PACLearner {
         while (true) {
             deltaT = computeDeltaT(rMax, effHorizon);
 
-            if (deltaT <= stopThresh || numUnknownSlots == 0) {
+            if ((robustnessExperiment && episode > maxNumEpisodes) || (deltaT <= stopThresh || numUnknownSlots == 0)) {
                 logger.close(); // ===== NEW =====
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
@@ -324,7 +330,8 @@ public class PACLearner {
         robustMC.setGenStrat(prism.getGenStrat());
         robustMC.setSilentPrecomputations(true);
         robustMC.setVerbosity(0);
-        robustSolveL1CSG(property); // solve once so that the model checker records the target states
+        robustMC.checkExpression(empiricalGame, property.getExpression(), null, true);
+//        robustSolveL1CSG(property); // solve once so that the model checker records the target states
 
         StateModelChecker csgMC = explicit.StateModelChecker.createModelChecker(empiricalGame.getCentreCSG().getModelType(), prism);
         if (!(csgMC instanceof CSGModelChecker)) {
@@ -336,7 +343,8 @@ public class PACLearner {
         pointMC.setGenStrat(prism.getGenStrat());
         pointMC.setSilentPrecomputations(true);
         pointMC.setVerbosity(0);
-        solvePointModel(property); // solve once so that the model checker records the target states
+        pointMC.checkExpression(empiricalGame.getCentreCSG(), property.getExpression(), null, true);
+//        solvePointModel(property); // solve once so that the model checker records the target states
 
         helper.targets = robustMC.getTargets();
         if (zeroSum) {
@@ -413,7 +421,7 @@ public class PACLearner {
                 .filter(x -> x > TRANS_PROB_LB)
                 .min()
                 .orElse(Double.NaN);
-        if (pStop == Double.NaN) {
+        if (Double.isNaN(pStop)) {
             throw new PrismException("Stopping probability assumption violated");
         }
         return pStop;
@@ -490,14 +498,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 2;
+        ex.propertyIndex = 1;
+        ex.robustnessExperiment = true;
+        ex.maxNumEpisodes = 1000;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
         long start = System.nanoTime();
-        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex);
+        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
         long end = System.nanoTime();
         long duration = end - start;
 

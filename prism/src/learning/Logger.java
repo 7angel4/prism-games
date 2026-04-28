@@ -10,19 +10,24 @@ import java.io.PrintWriter;
 public class Logger {
     protected PrintWriter logWriter;
 
-    public Logger(String modelFilePath, int propertyIndex) {
+    public Logger(String modelFilePath, int propertyIndex, boolean robustnessExperiment) {
         try {
             Path modelPath = Paths.get(modelFilePath);
             // Extract filename and change extension
             String logFileName = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
             logFileName += ".csv";
-            // Build logs directory path
+
+            // Build all logs directory path
             Path logsDir = modelPath.getParent().resolve("logs");
             // Ensure logs directory exists
             Files.createDirectories(logsDir);
+            // Add subdir for each type of experiment
+            Path experimentDir = logsDir.resolve(robustnessExperiment ? "robustness" : "full");
+            Files.createDirectories(experimentDir);
+
 
             // სრული log file path
-            Path logFilePath = logsDir.resolve(logFileName);
+            Path logFilePath = experimentDir.resolve(logFileName);
             System.out.println("Logging to: " + logFilePath);
 
             logWriter = new PrintWriter(new FileWriter(logFilePath.toFile()));
