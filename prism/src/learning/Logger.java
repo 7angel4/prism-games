@@ -12,19 +12,20 @@ public class Logger {
 
     public Logger(String modelFilePath, int propertyIndex, boolean robustnessExperiment) {
         try {
+            String root = Paths.get("").toAbsolutePath().toString() + "/prism-examples/csgs/learning/";
+            Path rootDir = Paths.get(root);
             Path modelPath = Paths.get(modelFilePath);
             // Extract filename and change extension
             String logFileName = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
             logFileName += ".csv";
 
             // Build all logs directory path
-            Path logsDir = modelPath.getParent().resolve("logs");
+            Path logsDir = rootDir.resolve("logs");
             // Ensure logs directory exists
             Files.createDirectories(logsDir);
             // Add subdir for each type of experiment
             Path experimentDir = logsDir.resolve(robustnessExperiment ? "robustness" : "full");
             Files.createDirectories(experimentDir);
-
 
             // log file path
             Path logFilePath = experimentDir.resolve(logFileName);
