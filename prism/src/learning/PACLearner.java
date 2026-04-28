@@ -8,6 +8,10 @@ import prism.*;
 import strat.*;
 import learning.PACHelper.SolveOutcome;
 
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.DoubleStream;
 
@@ -427,7 +431,7 @@ public class PACLearner {
         return pStop;
     }
 
-    private void verifyInTrueGame(SolveOutcome sol) throws Exception {
+    private void verifyInTrueGame(SolveOutcome sol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws Exception {
         if (sol.getStrategy() == null) {
             String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("No strategy returned (" + reason + "). Skipping true value computation.");
@@ -439,6 +443,10 @@ public class PACLearner {
             System.out.println("Value gap: " + (trueValue - sol.getValue()));
             double trueDevGain = computeNashMargin(sol);
             System.out.println("Max deviation gain of learned strategy: " + trueDevGain);
+
+            if (exportStrat) {
+                sol.getStrategy().exportToFile(getStrategyExportFile(modelFilePath, propertyIndex, robustnessExperiment));
+            }
         }
     }
 
@@ -463,10 +471,10 @@ public class PACLearner {
     }
 
 
-    private void printResult(long duration, PacResult result, Experiment.PacRunSpec spec) throws PrismException, InvalidStrategyStateException, Exception {
+    private void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws PrismException, InvalidStrategyStateException, Exception {
         System.out.println("\n---------------------------------------");
-        System.out.println("Epsilon: " + spec.epsilon);
-        System.out.println("Confidence: " + spec.confidence);
+        System.out.println("Epsilon: " + helper.spec.epsilon);
+        System.out.println("Confidence: " + helper.spec.confidence);
         System.out.println();
         System.out.println("Execution time: " + duration  / 1e6 + " ms");
         System.out.println("Episodes=" + result.episodes);
@@ -477,16 +485,16 @@ public class PACLearner {
         System.out.println("Robust " + result.robustSol); // prints "Robust SolveOutcome{...}"
         // evaluate robust vs. point policy in true game
         System.out.println("Evaluating robust strategy in true CSG...");
-        verifyInTrueGame(result.robustSol);
+        verifyInTrueGame(result.robustSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment);
 
         System.out.println("\n---------------------------------------");
         System.out.println("Point " + result.pointSol);
         System.out.println("Evaluating point strategy in true CSG...");
-        verifyInTrueGame(result.pointSol);
+        verifyInTrueGame(result.pointSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment);
 
         // compare to true value
         System.out.println("\n---------------------------------------");
-        SolveOutcome trueSol = solveTrueGame(spec.propertiesFile, spec.property);
+        SolveOutcome trueSol = solveTrueGame(helper.spec.propertiesFile, helper.spec.property);
         System.out.println("True " + trueSol);
         System.out.println("---------------------------------------");
 
@@ -498,7 +506,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
         ex.robustnessExperiment = true;
@@ -511,6 +519,22 @@ public class PACLearner {
         long end = System.nanoTime();
         long duration = end - start;
 
-        learner.printResult(duration, res, spec);
+        learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
+        CSGStrategy strat = CSGStrategy.importFromFile(new File("/Users/angel/Desktop/prism-games/prism-examples/csgs/learning/strats/robustness/aloha1"), learner.trueGame);
+        System.out.println(strat);
+    }
+
+    private File getStrategyExportFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws Exception {
+        Path modelPath = Paths.get(modelFilePath);
+        // Extract filename and change extension
+        String filename = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
+
+        // Build all logs directory path
+        Path stratsDir = modelPath.getParent().resolve("strats");
+        // Ensure logs directory exists
+        Files.createDirectories(stratsDir);
+        Path experimentDir = stratsDir.resolve(robustnessExperiment ? "robustness" : "full");
+        Files.createDirectories(experimentDir);
+        return experimentDir.resolve(filename).toFile();
     }
 }

@@ -27,6 +27,7 @@
 
 package strat;
 
+import java.io.*;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -932,5 +933,123 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 
 	public BitSet[] getTargets() {
 		return targets;
+	}
+
+	public void exportToFile(File file) throws IOException {
+		try (PrintWriter out = new PrintWriter(new FileWriter(file))) {
+			out.println("CSG_STRATEGY");
+			out.println("type=" + type);
+			out.println("numPlayers=" + csgchoices.size());
+			out.println("numStates=" + model.getNumStates());
+			out.println("numMemory=" + csgchoices.get(0).size());
+			out.println();
+
+			for (int p = 0; p < csgchoices.size(); p++) {
+				out.println("PLAYER " + p);
+
+				List<List<Map<BitSet, Double>>> playerChoices = csgchoices.get(p);
+
+				for (int m = 0; m < playerChoices.size(); m++) {
+					out.println("MEMORY " + m);
+
+					List<Map<BitSet, Double>> states = playerChoices.get(m);
+
+					for (int s = 0; s < states.size(); s++) {
+						out.println("STATE " + s);
+
+						Map<BitSet, Double> dist = states.get(s);
+
+						if (dist == null || dist.isEmpty()) {
+							out.println("NULL");
+							continue;
+						}
+
+						for (Map.Entry<BitSet, Double> e : dist.entrySet()) {
+							BitSet bs = e.getKey();
+							double prob = e.getValue();
+
+							StringBuilder actionStr = new StringBuilder();
+							for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
+								actionStr.append("[")
+										.append(model.getActions().get(i - 1))
+										.append("]");
+							}
+
+							out.println(prob + " : " + actionStr);
+						}
+					}
+					out.println();
+				}
+				out.println();
+			}
+
+			out.println("END");
+		}
+	}
+
+	public static CSGStrategy<Double> importFromFile(File file, CSG<Double> model) throws IOException {
+		BufferedReader br = new BufferedReader(new FileReader(file));
+
+		List<List<List<Map<BitSet, Double>>>> csgchoices = new ArrayList<>();
+
+		String line;
+		int currentPlayer = -1, currentMemory = -1, currentState = -1;
+
+		while ((line = br.readLine()) != null) {
+			line = line.trim();
+
+			if (line.startsWith("PLAYER")) {
+				currentPlayer = Integer.parseInt(line.split(" ")[1]);
+				while (csgchoices.size() <= currentPlayer)
+					csgchoices.add(new ArrayList<>());
+			}
+
+			else if (line.startsWith("MEMORY")) {
+				currentMemory = Integer.parseInt(line.split(" ")[1]);
+				List<List<Map<BitSet, Double>>> player = csgchoices.get(currentPlayer);
+				while (player.size() <= currentMemory)
+					player.add(new ArrayList<>());
+			}
+
+			else if (line.startsWith("STATE")) {
+				currentState = Integer.parseInt(line.split(" ")[1]);
+				List<Map<BitSet, Double>> memory = csgchoices.get(currentPlayer).get(currentMemory);
+				while (memory.size() <= currentState)
+					memory.add(new HashMap<>());
+			}
+
+			else if (line.equals("NULL")) {
+				csgchoices.get(currentPlayer).get(currentMemory).set(currentState, null);
+			}
+
+			else if (line.contains(":")) {
+				String[] parts = line.split(":");
+				double prob = Double.parseDouble(parts[0].trim());
+				String actions = parts[1].trim();
+
+				BitSet bs = new BitSet();
+
+				// parse [a1][b2]...
+				String[] tokens = actions.split("\\]");
+				for (String t : tokens) {
+					if (t.isEmpty()) continue;
+					String act = t.replace("[", "").trim();
+
+					int idx = model.getActions().indexOf(act);
+					if (idx >= 0) {
+						bs.set(idx + 1); // maintain 1-indexing
+					}
+				}
+
+				csgchoices.get(currentPlayer)
+						.get(currentMemory)
+						.get(currentState)
+						.put(bs, prob);
+			}
+		}
+
+		br.close();
+
+		return new CSGStrategy<>(model, csgchoices, null, null, CSGStrategyType.EQUILIBRIA_P);
 	}
 }

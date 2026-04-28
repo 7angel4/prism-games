@@ -26,7 +26,7 @@ public class Logger {
             Files.createDirectories(experimentDir);
 
 
-            // სრული log file path
+            // log file path
             Path logFilePath = experimentDir.resolve(logFileName);
             System.out.println("Logging to: " + logFilePath);
 

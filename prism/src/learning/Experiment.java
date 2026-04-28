@@ -12,6 +12,7 @@ import java.io.FileNotFoundException;
 public class Experiment {
 
     public enum CaseStudy {
+        ALOHA,
         VERY_SIMPLE,
         SIMPLE,
         SAFE_RISKY,
@@ -364,8 +365,8 @@ public class Experiment {
                 epsilon = 0.5;
             }
             case SAFE_RISKY -> {
-                modelFile = "./prism-examples/csgs/learning/safe_risky2.prism";
-                propertiesFile = "./prism-examples/csgs/learning/safe_risky2.props";
+                modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
+                propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 propertyIndex = 1;
             }
             case NO_NE -> { // TODO: problematic, need to be able to initialise MCs without solving
@@ -379,6 +380,11 @@ public class Experiment {
                 propertiesFile = "./prism-examples/csgs/learning/traffic_merge.props";
                 propertyIndex = 2;
 //                epsilon = 0.2;
+            }
+            case ALOHA -> {
+                modelFile = "./prism-examples/csgs/learning/aloha.prism";
+                propertiesFile = "./prism-examples/csgs/learning/aloha.props";
+                propertyIndex = 1;
             }
         }
         return this;
