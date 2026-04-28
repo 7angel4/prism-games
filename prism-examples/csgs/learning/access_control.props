@@ -1,0 +1,13 @@
+const int k = 3;
+
+// 1. Bounded reachability
+<<p1>> Pmax=? [F<=k s=1]
+
+// 2. Bounded cumulative reward
+<<p1>> R{"r1"}max=? [C<=k]
+
+// 3. Unbounded reachability
+<<p1>> Pmax=? [F s=1]
+
+// 4. Reachability reward (now safe)
+<<p1>> R{"r1"}max=? [F s=1]

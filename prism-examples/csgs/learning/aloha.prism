@@ -21,7 +21,7 @@ module channel
     [wait1,tx2] s=0 -> (s'=1);
 
     // both wait → stay idle
-    [wait1,wait2] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+    [wait1,wait2] s=0 -> 0.4:(s'=1) + 0.6:(s'=2);
 
     // absorbing
     [] s=1 -> (s'=1);

@@ -1,0 +1,33 @@
+csg
+
+player car1 m1 endplayer
+player car2 m2 endplayer
+
+module m1
+    [go1] true -> true;
+    [wait1] true -> true;
+endmodule
+
+module m2 = m1[go1=go2,wait1=wait2] endmodule
+
+module road
+    s : [0..5] init 0; // chain
+
+    [go1,go2] s<4 -> 0.7:(s'=s+1) + 0.3:(s'=5); // crash
+    [wait1,wait2] s<4 -> (s'=s+1);
+    [go1,wait2] s<4 -> (s'=s+1);
+    [wait1,go2] s<4 -> (s'=s+1);
+
+    [] s>=4 -> (s'=s);
+endmodule
+
+label "goal" = s=4;
+label "crash" = s=5;
+
+rewards "time1"
+    !goal & !crash : 1;
+endrewards
+
+rewards "time2"
+    !goal & !crash : 1;
+endrewards
