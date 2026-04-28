@@ -173,8 +173,11 @@ public class PACLearner {
     }
 
     private int computeNumSamples(double deltaCov, int episode, double pReach) {
-        double deltaEpisode = deltaCov / (episode * (episode + 1.0));
-        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.min(numUnknownSlots, 1.0 / pReach));
+//        double invDeltaEpisode = (episode * (episode + 1.0)) / deltaCov;
+        double eps = 0.5; // or 0.1, 1.0, etc.
+        double logt = Math.log(episode + 1.0);
+        double invDeltaEpisode = (episode * Math.pow(logt, 1.0 + eps)) / deltaCov; // looser but simpler bound that still gives logarithmic dependence on 1/deltaCov
+        return (int) Math.ceil(Math.log(invDeltaEpisode) * Math.min(numUnknownSlots, 1.0 / pReach));
 //        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
     }
 
@@ -489,7 +492,7 @@ public class PACLearner {
 
         Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 1;
+        ex.propertyIndex = 2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
