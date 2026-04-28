@@ -305,7 +305,6 @@ public class Experiment {
                 }
             }
         }
-
         return rMax > 0 ? rMax : 1.0;
     }
 
@@ -371,7 +370,8 @@ public class Experiment {
             case TRAFFIC_MERGE -> {
                 modelFile = "./prism-examples/csgs/learning/traffic_merge.prism";
                 propertiesFile = "./prism-examples/csgs/learning/traffic_merge.props";
-                propertyIndex = 1;
+                propertyIndex = 2;
+//                epsilon = 0.2;
             }
         }
         return this;
