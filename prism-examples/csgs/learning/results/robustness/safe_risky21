@@ -1,0 +1,112 @@
+Parsing PRISM model file "./prism-examples/csgs/learning/safe_risky2.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [a1] [b1] [a2] [b2]
+Variables:   s
+Labels:      "goal1" "goal2"
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 6 states
+Reachable states exploration and model construction done in 0.01 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.049 seconds.
+
+Type:        CSG
+Players:     2
+States:      6 (1 initial)
+Transitions: 32
+Choices:     24
+Max/avg:     4/4.00
+Logging to: ./prism-examples/csgs/learning/logs/robustness/safe_risky21.csv
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+Disabling Prob1 precomputation to allow strategy generation
+
+Value iteration converged after 2 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+Disabling Prob1 precomputation to allow strategy generation
+
+Value iteration converged after 55 iterations.
+Stopping probability: 1.0
+Effective horizon: 6
+Lower bound on reachability probability: 1.0000000000287557E-6
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+Disabling Prob1 precomputation to allow strategy generation
+
+Value iteration converged after 26 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+Disabling Prob1 precomputation to allow strategy generation
+
+Value iteration converged after 28 iterations.
+
+---------------------------------------
+Epsilon: 0.1
+Confidence: 0.05
+
+Execution time: 6322.042292 ms
+Episodes=1001
+DeltaT=1.060866464759422
+nMin=11607265
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.4884177898873125, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 -> }
+Evaluating robust strategy in true CSG...
+
+Starting probabilistic reachability...
+target=1, yes=1, no=1, maybe=4
+Starting value iteration (with Jacobi)...
+Value iteration (with Jacobi) took 29 iterations, 203 multiplications and 0.005 seconds.
+Probabilistic reachability took 0.007 seconds.
+True value of learned strategy: 0.4885057330551421
+Value gap: 8.794316782961831E-5
+
+Starting probabilistic reachability...
+target=1, yes=1, no=1, maybe=4
+Starting value iteration (with Jacobi)...
+Value iteration (with Jacobi) took 29 iterations, 203 multiplications and 0.0 seconds.
+Probabilistic reachability took 0.0 seconds.
+Max deviation gain of learned strategy: 8.794316782961831E-5
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 0.5003860120231249, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 -> }
+Evaluating point strategy in true CSG...
+
+Starting probabilistic reachability...
+target=1, yes=1, no=1, maybe=4
+Starting value iteration (with Jacobi)...
+Value iteration (with Jacobi) took 29 iterations, 203 multiplications and 0.001 seconds.
+Probabilistic reachability took 0.001 seconds.
+True value of learned strategy: 0.5004826603222662
+Value gap: 9.664829914124429E-5
+
+Starting probabilistic reachability...
+target=1, yes=1, no=1, maybe=4
+Starting value iteration (with Jacobi)...
+Value iteration (with Jacobi) took 29 iterations, 203 multiplications and 0.0 seconds.
+Probabilistic reachability took 0.0 seconds.
+Max deviation gain of learned strategy: 9.664829914124429E-5
+
+---------------------------------------
+
+Starting probabilistic reachability (until)...
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+Disabling Prob1 precomputation to allow strategy generation
+target=1, yes=1, no=1, maybe=4
+
+Starting value iteration...
+
+Value iteration converged after 28 iterations.
+Precomputation took 0.0 seconds.
+True SolveOutcome{found = true, value = 0.49999974399999997, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 -> }
+---------------------------------------

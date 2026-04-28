@@ -1,0 +1,47 @@
+csg
+
+player sender1 m1 endplayer
+player sender2 m2 endplayer
+
+module m1
+    [tx1] true -> true;     // transmit
+    [wait1] true -> true;   // backoff
+endmodule
+
+module m2 = m1[tx1=tx2,wait1=wait2] endmodule
+
+module channel
+    s : [0..3] init 0;
+    // 0 = ready
+    // 1 = success1
+    // 2 = success2
+    // 3 = collision
+
+    // both transmit → collision
+    [tx1,tx2] s=0 -> (s'=3);
+
+    // one transmits → success
+    [tx1,wait2] s=0 -> (s'=1);
+    [wait1,tx2] s=0 -> (s'=2);
+
+    // both wait → try again
+    [wait1,wait2] s=0 -> (s'=0);
+
+    // resolve collision stochastically
+    [] s=3 -> 0.5:(s'=1) + 0.5:(s'=2);
+
+    // absorbing successes
+    [] s=1 -> (s'=1);
+    [] s=2 -> (s'=2);
+endmodule
+
+label "goal1" = s=1;
+label "goal2" = s=2;
+
+rewards "r1"
+    s=1 : 1;
+endrewards
+
+rewards "r2"
+    s=2 : 1;
+endrewards
