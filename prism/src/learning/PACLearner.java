@@ -487,7 +487,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);

@@ -12,10 +12,10 @@ import java.io.FileNotFoundException;
 public class Experiment {
 
     public enum CaseStudy {
-        ALOHA,
         VERY_SIMPLE,
         SIMPLE,
         SAFE_RISKY,
+        TRAFFIC_MERGE,
         NO_NE
     }
 
@@ -299,7 +299,7 @@ public class Experiment {
 
                 try {
                     double val = expr.evaluateDouble(consts);
-                    rMax = Math.max(rMax, Math.abs(val));
+                    rMax = Math.max(rMax, Math.abs(val)); // alow negative rewards
                 } catch (Exception e) {
                     return 1.0; // fallback if non-constant
                 }
@@ -345,11 +345,6 @@ public class Experiment {
         this.parameterValues = new Values();
 
         switch (model) {
-            case ALOHA -> {
-                modelFile = "./prism-examples/csgs/learning/aloha.prism";
-                propertiesFile = "./prism-examples/csgs/learning/aloha.props";
-                propertyIndex = 1;
-            }
             case VERY_SIMPLE -> {
                 modelFile = "./prism-examples/csgs/learning/very_simple.prism";
                 propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
@@ -367,9 +362,15 @@ public class Experiment {
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 propertyIndex = 2;
             }
-            case NO_NE -> {
+            case NO_NE -> { // TODO: problematic, need to be able to initialise MCs without solving
                 modelFile = "./prism-examples/csgs/learning/no_ne.prism";
                 propertiesFile = "./prism-examples/csgs/learning/no_ne.props";
+                propertyIndex = 1;
+                epsilon = 0.2;
+            }
+            case TRAFFIC_MERGE -> {
+                modelFile = "./prism-examples/csgs/learning/traffic_merge.prism";
+                propertiesFile = "./prism-examples/csgs/learning/traffic_merge.props";
                 propertyIndex = 1;
             }
         }
