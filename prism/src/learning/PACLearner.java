@@ -45,8 +45,9 @@ public class PACLearner {
     private long[][] slotCounts;
     private long[][][] transitionCounts; // indexed by [s][c], then maps successor state index to count; 3rd dimension might be sparse
     private boolean[][] known;
-    int numUnknownSlots;
-    int prevNumUnknownSlots;
+    private int numUnknownSlots;
+    private int prevNumUnknownSlots;
+    private int totalNumSlots; // for easier look up
 
     private CSGSimple<Double> trueGame;
     private L1CSGSimple<Double> empiricalGame;
@@ -63,9 +64,7 @@ public class PACLearner {
     private int episode;
     private final PACHelper helper = new PACHelper();
     private Logger logger;
-
-    private double avgRadius = 0.0;
-    private double coverage = 0.0;
+    private double totalRadius = 0.0;
 
     /**
      * The effective horizon
@@ -168,30 +167,9 @@ public class PACLearner {
                 helper.sampleTrajectory(effHorizon, this::updateCount);
 
             update(deltaContain);
-
-            // ===== NEW: compute + log stats =====
-            computeStats();
-            logger.logEpisode(episode, deltaT, numSamples, maxRadius, avgRadius, numUnknownSlots, coverage);
-
+            logger.logEpisode(episode, deltaT, numSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
             episode++;
         }
-    }
-
-    private void computeStats() {
-        double totalRadius = 0.0;
-        int totalSlots = 0;
-        int knownCount = 0;
-
-        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
-            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                totalRadius += empiricalGame.getRadius(s, c);
-                totalSlots++;
-                if (known[s][c]) knownCount++;
-            }
-        }
-
-        avgRadius = totalSlots > 0 ? totalRadius / totalSlots : 0.0;
-        coverage = totalSlots > 0 ? (double) knownCount / totalSlots : 0.0;
     }
 
     private int computeNumSamples(double deltaCov, int episode, double pReach) {
@@ -229,7 +207,6 @@ public class PACLearner {
 
         for (int s = 0; s < numStates; s++) {
             int numChoices = trueGame.getNumChoices(s);
-
             known[s] = new boolean[numChoices];
             numUnknownSlots += numChoices;
             trans.add(new ArrayList<>(numChoices));
@@ -258,6 +235,8 @@ public class PACLearner {
         }
 
         prevNumUnknownSlots = numUnknownSlots;
+        totalNumSlots = numUnknownSlots;
+        totalRadius = totalNumSlots * L1CSGSimple.INIT_RADIUS;
 
         empiricalGame = new L1CSGSimple<>(trueGame, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
@@ -297,10 +276,11 @@ public class PACLearner {
         for (int s = 0; s < numStates; s++) {
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts[s][c];
-                if (saCount == 0L) {
+                if (saCount == 0L) { // radius hasn't changed
                     maxRadius =  L1CSGSimple.INIT_RADIUS;
                     continue;
                 }
+                double oldRadius = empiricalGame.getRadius(s, c);
                 double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
                 double radius = helper.weissmanRadius(empiricalGame, saCount, deltaSlot);
                 if (radius > maxRadius) {
@@ -308,6 +288,7 @@ public class PACLearner {
                 }
                 empiricalGame.setRadius(s, c, radius);
                 explorationRMDP.setRadius(s, c, radius);
+                totalRadius += (radius - oldRadius);
 
                 updateExplorationReward(s, c);
                 updateKnown(s, c);
