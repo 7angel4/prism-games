@@ -15,7 +15,8 @@ public class Experiment {
         ALOHA,
         VERY_SIMPLE,
         SIMPLE,
-        SAFE_RISKY
+        SAFE_RISKY,
+        NO_NE
     }
 
     public static final class PacRunSpec {
@@ -365,7 +366,11 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 propertyIndex = 2;
-                epsilon = 0.5;
+            }
+            case NO_NE -> {
+                modelFile = "./prism-examples/csgs/learning/no_ne.prism";
+                propertiesFile = "./prism-examples/csgs/learning/no_ne.props";
+                propertyIndex = 1;
             }
         }
         return this;

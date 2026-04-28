@@ -6,7 +6,7 @@ import explicit.rewards.MDPRewardsSimple;
 import parser.ast.*;
 import prism.*;
 import strat.*;
-import learning.LearningHelper.SolveOutcome;
+import learning.PACHelper.SolveOutcome;
 
 import java.util.*;
 import java.util.stream.DoubleStream;
@@ -61,7 +61,11 @@ public class PACLearner {
     private double trueValue = Double.NaN;
 
     private int episode;
-    private final LearningHelper helper = new LearningHelper();
+    private final PACHelper helper = new PACHelper();
+    private Logger logger;
+
+    private double avgRadius = 0.0;
+    private double coverage = 0.0;
 
     /**
      * The effective horizon
@@ -80,8 +84,9 @@ public class PACLearner {
         this.prism.setGenStrat(genStrat);
     }
 
-    public PacResult runPacLoop(Experiment.PacRunSpec spec) throws PrismException {
+    public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex) throws PrismException {
         helper.spec = spec;
+        logger = new Logger(modelFilePath, propertyIndex);
         return runPacLoop(
                 spec.trueGame,
                 spec.propertiesFile,
@@ -110,9 +115,10 @@ public class PACLearner {
     ) throws PrismException {
 
         final double deltaContain = confidence / 2.0;
-        final double deltaCov= confidence / 2.0;
+        final double deltaCov = confidence / 2.0;
         episode = 1;
         this.trueGame = trueGame;
+
         initialiseRun(solver, propertiesFile, property, zeroSum);
 
         if (!finiteHorizon) {
@@ -134,9 +140,12 @@ public class PACLearner {
 
         while (true) {
             deltaT = computeDeltaT(rMax, effHorizon);
+
             if (deltaT <= stopThresh || numUnknownSlots == 0) {
+                logger.close(); // ===== NEW =====
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
+
                 if (!robustSol.foundRNE()) {
                     if (zeroSum) throw new PrismException("No NE found but zero-sum property should always have an NE");
                     return new PacResult(true, episode, deltaT, robustSol, pointSol);
@@ -147,21 +156,42 @@ public class PACLearner {
 
             if (episode == 1) {
                 solveExplorationRMDP();
-            } else if (prevNumUnknownSlots != numUnknownSlots) { // only re-solve the exploration RMDP if radii of the worst slots change
+            } else if (prevNumUnknownSlots != numUnknownSlots) {
                 System.out.println("Episode " + episode + ": Resolving exploration RMDP");
                 solveExplorationRMDP();
                 prevNumUnknownSlots = numUnknownSlots;
             }
 
             int numSamples = computeNumSamples(deltaCov, episode, pReach);
-//            System.out.println("Episode " + episode + ": Sampling " + numSamples + " trajectories with current exploration strategy...");
+
             for (int i = 0; i < numSamples; i++)
                 helper.sampleTrajectory(effHorizon, this::updateCount);
 
             update(deltaContain);
-//            printEpisodeResult(episode, deltaT);
+
+            // ===== NEW: compute + log stats =====
+            computeStats();
+            logger.logEpisode(episode, deltaT, numSamples, maxRadius, avgRadius, numUnknownSlots, coverage);
+
             episode++;
         }
+    }
+
+    private void computeStats() {
+        double totalRadius = 0.0;
+        int totalSlots = 0;
+        int knownCount = 0;
+
+        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
+            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
+                totalRadius += empiricalGame.getRadius(s, c);
+                totalSlots++;
+                if (known[s][c]) knownCount++;
+            }
+        }
+
+        avgRadius = totalSlots > 0 ? totalRadius / totalSlots : 0.0;
+        coverage = totalSlots > 0 ? (double) knownCount / totalSlots : 0.0;
     }
 
     private int computeNumSamples(double deltaCov, int episode, double pReach) {
@@ -476,14 +506,14 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
         long start = System.nanoTime();
-        PacResult res = learner.runPacLoop(spec);
+        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex);
         long end = System.nanoTime();
         long duration = end - start;
 
