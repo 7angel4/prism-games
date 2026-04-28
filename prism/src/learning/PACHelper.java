@@ -5,7 +5,6 @@ import explicit.rewards.CSGRewards;
 import explicit.rewards.MDPRewardsSimple;
 import parser.State;
 import parser.ast.Property;
-import prism.Evaluator;
 import prism.Prism;
 import prism.PrismException;
 import simulator.SimulatorEngine;
@@ -15,7 +14,7 @@ import strat.Strategy;
 
 import java.util.*;
 
-public class LearningHelper {
+public class PACHelper {
     protected Map<State, Integer> stateToIndex;
     protected BitSet[] targets;
     protected List<CSGRewards<Double>> rewards;
@@ -161,11 +160,6 @@ public class LearningHelper {
         return w;
     }
 
-    private void printEpisodeResult(int episode, double deltaT) {
-        System.out.println("Episode " + episode + ":  deltaT=" + deltaT);
-        System.out.println("---------------------------------------");
-    }
-
     protected void setStateToIndex(CSG<Double> csg) {
         stateToIndex = new HashMap<>();
         for (int i = 0; i < csg.getStatesList().size(); i++) {
@@ -238,12 +232,7 @@ public class LearningHelper {
     }
 
 
-    // For evaluation of the robust strategy output in the true game
-
-    // ============================
-    // CORE: STRATEGY EVALUATION
-    // ============================
-
+    // STRATEGY EVALUATION
     public double computeCSGValue(
             Prism prism,
             CSG<Double> csg,
@@ -295,13 +284,9 @@ public class LearningHelper {
     }
 
     protected MDPRewardsSimple<Double> constructDTMCRewards(DTMCSimple<Double> dtmc) {
-
         MDPRewardsSimple<Double> rew = new MDPRewardsSimple<>(dtmc.getNumStates());
-
         for (int s = 0; s < dtmc.getNumStates(); s++) {
-
             int orig = stateToIndex.get(dtmc.getStatesList().get(s));
-
             // ---- State rewards ----
             double stateR = 0.0;
             if (rewards != null) {
@@ -312,16 +297,11 @@ public class LearningHelper {
                 }
             }
             rew.setStateReward(s, stateR);
-
             // ---- Transition rewards (EXPECTED VALUE) ----
             if (dtmc.getNumTransitions(s) > 0) {
-
                 double tr = 0.0;
-
                 for (int t = 0; t < dtmc.getNumTransitions(s); t++) {
-
                     double prob = dtmc.getTransitions(s).get(t);
-
                     if (rewards != null) {
                         for (CSGRewards<Double> r : rewards) {
                             if (r != null) {
@@ -330,19 +310,14 @@ public class LearningHelper {
                         }
                     }
                 }
-
                 // DTMC has single choice index 0
                 rew.setTransitionReward(s, 0, tr);
             }
         }
-
         return rew;
     }
 
-    // ============================
     // STRATEGY EXTRACTION
-    // ============================
-
     List<Map<BitSet, Double>> extractNEStrategy(CSGStrategy<Double> strategy, int s) {
         List<Map<BitSet, Double>> result = new ArrayList<>();
         int numPlayers = spec.zeroSum ? 1 : strategy.getNumModelPlayers();
