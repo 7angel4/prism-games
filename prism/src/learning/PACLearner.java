@@ -431,7 +431,7 @@ public class PACLearner {
         return pStop;
     }
 
-    private void verifyInTrueGame(SolveOutcome sol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws Exception {
+    private void verifyInTrueGame(SolveOutcome sol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, boolean robustSol) throws Exception {
         if (sol.getStrategy() == null) {
             String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("No strategy returned (" + reason + "). Skipping true value computation.");
@@ -445,7 +445,7 @@ public class PACLearner {
             System.out.println("Max deviation gain of learned strategy: " + trueDevGain);
 
             if (exportStrat) {
-                sol.getStrategy().exportToFile(getStrategyExportFile(modelFilePath, propertyIndex, robustnessExperiment));
+                sol.getStrategy().exportToFile(getStrategyExportFile(modelFilePath, propertyIndex, robustnessExperiment, robustSol));
             }
         }
     }
@@ -485,12 +485,12 @@ public class PACLearner {
         System.out.println("Robust " + result.robustSol); // prints "Robust SolveOutcome{...}"
         // evaluate robust vs. point policy in true game
         System.out.println("Evaluating robust strategy in true CSG...");
-        verifyInTrueGame(result.robustSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment);
+        verifyInTrueGame(result.robustSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, true);
 
         System.out.println("\n---------------------------------------");
         System.out.println("Point " + result.pointSol);
         System.out.println("Evaluating point strategy in true CSG...");
-        verifyInTrueGame(result.pointSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment);
+        verifyInTrueGame(result.pointSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, false);
 
         // compare to true value
         System.out.println("\n---------------------------------------");
@@ -506,11 +506,11 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
-        ex.robustnessExperiment = true;
-        ex.maxNumEpisodes = 1000;
+        ex.robustnessExperiment = false;
+//        ex.maxNumEpisodes = 1000;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
@@ -520,18 +520,17 @@ public class PACLearner {
         long duration = end - start;
 
         learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
-        CSGStrategy strat = CSGStrategy.importFromFile(new File("/Users/angel/Desktop/prism-games/prism-examples/csgs/learning/strats/robustness/aloha1"), learner.trueGame);
-        System.out.println(strat);
     }
 
-    private File getStrategyExportFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws Exception {
+    private File getStrategyExportFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment, boolean robustSol) throws Exception {
         Path modelPath = Paths.get(modelFilePath);
         // Extract filename and change extension
         String filename = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
+        filename += (robustSol ? "" : "_point");
 
-        // Build all logs directory path
+        // Build all strats directory path
         Path stratsDir = modelPath.getParent().resolve("strats");
-        // Ensure logs directory exists
+        // Ensure strats directory exists
         Files.createDirectories(stratsDir);
         Path experimentDir = stratsDir.resolve(robustnessExperiment ? "robustness" : "full");
         Files.createDirectories(experimentDir);
