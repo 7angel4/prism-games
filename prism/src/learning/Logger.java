@@ -13,18 +13,17 @@ public class Logger {
     public Logger(String modelFilePath, int propertyIndex) {
         try {
             Path modelPath = Paths.get(modelFilePath);
-
             // Extract filename and change extension
             String logFileName = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
-
+            logFileName += ".csv";
             // Build logs directory path
             Path logsDir = modelPath.getParent().resolve("logs");
-
             // Ensure logs directory exists
             Files.createDirectories(logsDir);
 
             // სრული log file path
             Path logFilePath = logsDir.resolve(logFileName);
+            System.out.println("Logging to: " + logFilePath);
 
             logWriter = new PrintWriter(new FileWriter(logFilePath.toFile()));
             logWriter.println("episode,deltaT,maxRadius,avgRadius,numUnknownSlots,coverage,numSamples");
