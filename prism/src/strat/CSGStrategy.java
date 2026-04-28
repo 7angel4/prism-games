@@ -946,35 +946,26 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 
 			for (int p = 0; p < csgchoices.size(); p++) {
 				out.println("PLAYER " + p);
-
 				List<List<Map<BitSet, Double>>> playerChoices = csgchoices.get(p);
-
 				for (int m = 0; m < playerChoices.size(); m++) {
 					out.println("MEMORY " + m);
-
 					List<Map<BitSet, Double>> states = playerChoices.get(m);
-
 					for (int s = 0; s < states.size(); s++) {
 						out.println("STATE " + s);
-
 						Map<BitSet, Double> dist = states.get(s);
-
 						if (dist == null || dist.isEmpty()) {
 							out.println("NULL");
 							continue;
 						}
-
 						for (Map.Entry<BitSet, Double> e : dist.entrySet()) {
 							BitSet bs = e.getKey();
 							double prob = e.getValue();
-
 							StringBuilder actionStr = new StringBuilder();
 							for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
 								actionStr.append("[")
 										.append(model.getActions().get(i - 1))
 										.append("]");
 							}
-
 							out.println(prob + " : " + actionStr);
 						}
 					}
@@ -982,7 +973,6 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				}
 				out.println();
 			}
-
 			out.println("END");
 		}
 	}

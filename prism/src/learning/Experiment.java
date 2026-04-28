@@ -382,9 +382,10 @@ public class Experiment {
 //                epsilon = 0.2;
             }
             case ALOHA -> {
-                modelFile = "./prism-examples/csgs/learning/aloha.prism";
-                propertiesFile = "./prism-examples/csgs/learning/aloha.props";
+                modelFile = "./prism-examples/csgs/learning/robustness/aloha.prism";
+                propertiesFile = "./prism-examples/csgs/learning/robustness/aloha.props";
                 propertyIndex = 1;
+                maxNumEpisodes = 1000;
             }
         }
         return this;
