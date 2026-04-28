@@ -364,9 +364,9 @@ public class Experiment {
                 epsilon = 0.5;
             }
             case SAFE_RISKY -> {
-                modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
-                propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
-                propertyIndex = 2;
+                modelFile = "./prism-examples/csgs/learning/safe_risky2.prism";
+                propertiesFile = "./prism-examples/csgs/learning/safe_risky2.props";
+                propertyIndex = 1;
             }
             case NO_NE -> { // TODO: problematic, need to be able to initialise MCs without solving
                 modelFile = "./prism-examples/csgs/learning/no_ne.prism";

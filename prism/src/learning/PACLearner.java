@@ -330,7 +330,8 @@ public class PACLearner {
         robustMC.setGenStrat(prism.getGenStrat());
         robustMC.setSilentPrecomputations(true);
         robustMC.setVerbosity(0);
-        robustSolveL1CSG(property); // solve once so that the model checker records the target states
+        robustMC.checkExpression(empiricalGame, property.getExpression(), null, true);
+//        robustSolveL1CSG(property); // solve once so that the model checker records the target states
 
         StateModelChecker csgMC = explicit.StateModelChecker.createModelChecker(empiricalGame.getCentreCSG().getModelType(), prism);
         if (!(csgMC instanceof CSGModelChecker)) {
@@ -342,7 +343,8 @@ public class PACLearner {
         pointMC.setGenStrat(prism.getGenStrat());
         pointMC.setSilentPrecomputations(true);
         pointMC.setVerbosity(0);
-        solvePointModel(property); // solve once so that the model checker records the target states
+        pointMC.checkExpression(empiricalGame.getCentreCSG(), property.getExpression(), null, true);
+//        solvePointModel(property); // solve once so that the model checker records the target states
 
         helper.targets = robustMC.getTargets();
         if (zeroSum) {
@@ -500,7 +502,7 @@ public class PACLearner {
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
         ex.robustnessExperiment = true;
-        ex.maxNumEpisodes = 50000;
+        ex.maxNumEpisodes = 1000;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
