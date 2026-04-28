@@ -1,0 +1,158 @@
+Parsing PRISM model file "./prism-examples/csgs/learning/traffic_merge.prism"...
+
+Type:        CSG
+Players:     car1 car2
+Modules:     m1 m2 road
+Actions:     [] [go1] [wait1] [go2] [wait2]
+Variables:   s
+Labels:      "goal" "crash"
+Rewards:     "time1" "time2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 6 states
+Reachable states exploration and model construction done in 0.012 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.036 seconds.
+
+Type:        CSG
+Players:     2
+States:      6 (1 initial)
+Transitions: 28
+Choices:     24
+Max/avg:     4/4.00
+Logging to: ./prism-examples/csgs/learning/logs/traffic_merge1.csv
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.023 seconds.
+Constructing L1CSG-DFA product...
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.001 seconds.
+Constructing CSG-DFA product...
+Time for product construction: 0.008 seconds, product has , 2 players12 states (6 initial), 58 transitions, 48 choices, dist max/avg = 4/4.00.
+
+Skipping BSCC computation since acceptance is defined via goal states...
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Stopping probability: 1.0
+Effective horizon: 6
+Lower bound on reachability probability: 3.999994000119023E-6
+Slot (4,2) is now known. Remaining unknown slots: 23
+Episode 296439: Resolving exploration RMDP
+Slot (4,0) is now known. Remaining unknown slots: 22
+Episode 296444: Resolving exploration RMDP
+Slot (4,1) is now known. Remaining unknown slots: 21
+Episode 296525: Resolving exploration RMDP
+Slot (4,3) is now known. Remaining unknown slots: 20
+Episode 296539: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 19
+Episode 450348: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 18
+Episode 450408: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 17
+Episode 450412: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 16
+Episode 450431: Resolving exploration RMDP
+Slot (5,3) is now known. Remaining unknown slots: 15
+Episode 472793: Resolving exploration RMDP
+Slot (5,2) is now known. Remaining unknown slots: 14
+Episode 472982: Resolving exploration RMDP
+Slot (5,0) is now known. Remaining unknown slots: 13
+Episode 472984: Resolving exploration RMDP
+Slot (5,1) is now known. Remaining unknown slots: 12
+Episode 473047: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 11
+Episode 507531: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 10
+Episode 507538: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 9
+Episode 507611: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 8
+Episode 507617: Resolving exploration RMDP
+Slot (2,1) is now known. Remaining unknown slots: 7
+Episode 611298: Resolving exploration RMDP
+Slot (2,0) is now known. Remaining unknown slots: 6
+Episode 611332: Resolving exploration RMDP
+Slot (2,2) is now known. Remaining unknown slots: 5
+Episode 611424: Resolving exploration RMDP
+Slot (2,3) is now known. Remaining unknown slots: 4
+Episode 611983: Resolving exploration RMDP
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.007 seconds.
+Constructing L1CSG-DFA product...
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.001 seconds.
+Constructing CSG-DFA product...
+Time for product construction: 0.009 seconds, product has , 2 players12 states (6 initial), 58 transitions, 48 choices, dist max/avg = 4/4.00.
+
+Skipping BSCC computation since acceptance is defined via goal states...
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+
+---------------------------------------
+Epsilon: 0.1
+Confidence: 0.05
+
+Execution time: 8969063.774791 ms
+Episodes=754414
+DeltaT=0.024999998677565378
+nMin=49433708
+
+---------------------------------------
+Robust SolveOutcome{found = false, value = NaN, strategy = null}
+Evaluating robust strategy in true CSG...
+No strategy returned (strategy generation is disabled for Prob1 precomputation). Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 2.0, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 ->  $ s:6 ->  $ s:7 ->  $ s:8 ->  $ s:9 ->  $ s:10 ->  $ s:11 -> }
+Evaluating point strategy in true CSG...
+
+Starting probabilistic reachability...
+target=0, yes=0, no=5, maybe=0
+Probabilistic reachability took 0.005 seconds.
+True value of learned strategy: 0.0
+Value gap: -2.0
+
+Starting probabilistic reachability...
+target=0, yes=0, no=5, maybe=0
+Probabilistic reachability took 0.0 seconds.
+Max deviation gain of learned strategy: 0.0
+
+---------------------------------------
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.0 seconds.
+Constructing CSG-DFA product...
+Time for product construction: 0.0 seconds, product has , 2 players12 states (6 initial), 58 transitions, 48 choices, dist max/avg = 4/4.00.
+
+Skipping BSCC computation since acceptance is defined via goal states...
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting equilibria computation (solver=Yices 2.6.4)...
+Checking whether all objectives are reachable...
+
+
+Value iteration converged after 4 iterations.
+
+Precomputation took 0.001 seconds.
+Coalition results (initial state): (1.0,1.0)
+True SolveOutcome{found = true, value = 2.0, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 ->  $ s:6 ->  $ s:7 ->  $ s:8 ->  $ s:9 ->  $ s:10 ->  $ s:11 -> }
+---------------------------------------
