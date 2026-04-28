@@ -35,6 +35,8 @@ public class Experiment {
         public final boolean useRewards;
         public final String solver;
 
+        public final int maxNumEpisodes;
+
         public PacRunSpec(
                 CSGSimple<Double> trueGame,
                 PropertiesFile propertiesFile,
@@ -47,7 +49,8 @@ public class Experiment {
                 String solver,
                 boolean zeroSum,
                 boolean useRewards,
-                MinMax minMax
+                MinMax minMax,
+                int maxNumEpisodes
         ) {
             this.trueGame = trueGame;
             this.propertiesFile = propertiesFile;
@@ -61,6 +64,7 @@ public class Experiment {
             this.zeroSum = zeroSum;
             this.useRewards = useRewards;
             this.minMax = minMax;
+            this.maxNumEpisodes = maxNumEpisodes;
         }
     }
 
@@ -74,6 +78,8 @@ public class Experiment {
 
     public double epsilon = -1.0; // if negative, will be derived from rMax
     public double confidence = 0.05;
+    public int maxNumEpisodes = 1000;
+    public boolean robustnessExperiment = false;
 
     public Experiment(CaseStudy model) {
         setModel(model);
@@ -139,7 +145,8 @@ public class Experiment {
                 solverString,
                 zeroSum,
                 useRewards,
-                minMax
+                minMax,
+                maxNumEpisodes
         );
     }
 
