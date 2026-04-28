@@ -1,5 +1,0 @@
-// Probabilistic reachability
-<<p1:p2>> Pmax=? [ F s=1 ]
-
-// Reachability rewards (general-sum / Nash)
-<<p1:p2>> max=? ( R{"r1"}[F s=1] + R{"r2"}[F s=1] )

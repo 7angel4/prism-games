@@ -3,31 +3,39 @@ csg
 player car1 m1 endplayer
 player car2 m2 endplayer
 
+// Player 1 actions
 module m1
     [go1] true -> true;
     [wait1] true -> true;
 endmodule
 
+// Player 2 actions (renamed copy)
 module m2 = m1[go1=go2,wait1=wait2] endmodule
 
+// System dynamics
 module road
-    s : [0..5] init 0; // chain
+    s : [0..5] init 0; // 0-3 progress, 4 goal, 5 crash
 
-    [go1,go2] s<4 -> 0.7:(s'=s+1) + 0.3:(s'=5); // crash
+    // Progress states
+    [go1,go2]   s<4 -> 0.7:(s'=s+1) + 0.3:(s'=5); // crash risk
     [wait1,wait2] s<4 -> (s'=s+1);
-    [go1,wait2] s<4 -> (s'=s+1);
-    [wait1,go2] s<4 -> (s'=s+1);
+    [go1,wait2]   s<4 -> (s'=s+1);
+    [wait1,go2]   s<4 -> (s'=s+1);
 
-    [] s>=4 -> (s'=s);
+    // Absorbing states
+    [] s=4 -> (s'=4); // goal absorbing
+    [] s=5 -> (s'=5); // crash absorbing
 endmodule
 
-label "goal" = s=4;
+// Labels
+label "goal"  = s=4;
 label "crash" = s=5;
 
+// Rewards (time until termination)
 rewards "time1"
-    !goal & !crash : 1;
+    s<4 : 1;
 endrewards
 
 rewards "time2"
-    !goal & !crash : 1;
+    s<4 : 1;
 endrewards

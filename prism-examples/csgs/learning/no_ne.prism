@@ -4,30 +4,33 @@ player p1 m1 endplayer
 player p2 m2 endplayer
 
 module m1
-    [a1] true -> true;
-    [b1] true -> true;
+  [C1] true -> true; // continue
+  [S1] true -> true; // stop
 endmodule
 
-module m2 = m1[a1=a2,b1=b2] endmodule
+module m2 = m1[C1=C2, S1=S2] endmodule
 
 module game
-    s : [0..2] init 0;
+  s : [0..2] init 0;
 
-    // cyclic preferences (no pure NE)
-    [a1,a2] s=0 -> (s'=1);
-    [a1,b2] s=0 -> (s'=2);
-    [b1,a2] s=0 -> (s'=2);
-    [b1,b2] s=0 -> (s'=1);
+  // 0 = play, 1 = p1 wins, 2 = p2 wins
 
-    [] s>0 -> (s'=s);
+  // continue playing
+  [C1,C2] s=0 -> (s'=0);
+
+  // coordination outcomes
+  [S1,S2] s=0 -> (s'=1); // p1 wins
+  [S1,C2] s=0 -> (s'=2); // p2 wins
+  [C1,S2] s=0 -> (s'=2);
+
+  [] s=1 -> (s'=1);
+  [] s=2 -> (s'=2);
 endmodule
 
 rewards "r1"
-    s=1 : 1;
-    s=2 : 0;
+  s=1 : 1;
 endrewards
 
 rewards "r2"
-    s=1 : 0;
-    s=2 : 1;
+  s=2 : 1;
 endrewards

@@ -1,5 +1,0 @@
-// 1) Probabilistic reachability
-<<p1>> Pmax=? [ F s=1 ]
-
-// 2) Reachability reward (multi-objective sum)
-<<p1:p2>> min=? ( R{"r1"}[F s=1] + R{"r2"}[F s=1] )
