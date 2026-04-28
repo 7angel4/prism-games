@@ -1,0 +1,5 @@
+// minimise damage (defender)
+<<defender>> R{"defender"}min=? [ F s=2 ]
+
+// attacker maximises damage
+<<attacker>> R{"attacker"}max=? [ F s=2 ]

@@ -1,0 +1,2 @@
+// infinite-horizon reachability reward
+<<p1:p2>>max=? ( R{"r1"}[F s=3] + R{"r2"}[F s=3] )

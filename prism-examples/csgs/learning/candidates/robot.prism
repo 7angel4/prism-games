@@ -1,0 +1,33 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+    [go1] true -> true;
+    [stay1] true -> true;
+endmodule
+
+module m2 = m1[go1=go2,stay1=stay2] endmodule
+
+module env
+    s : [0..1] init 0; // 0=start,1=goal
+
+    // coordinated → small success prob
+    [go1,go2] s=0 -> 0.2:(s'=1) + 0.8:(s'=0);
+
+    // otherwise stuck
+    [stay1,stay2] s=0 -> (s'=0);
+    [go1,stay2] s=0 -> (s'=0);
+    [stay1,go2] s=0 -> (s'=0);
+
+    [] s=1 -> (s'=1);
+endmodule
+
+rewards "r1"
+    s=1 : 1;
+endrewards
+
+rewards "r2"
+    s=1 : 1;
+endrewards
