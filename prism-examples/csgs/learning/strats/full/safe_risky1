@@ -1,0 +1,31 @@
+CSG_STRATEGY
+type=EQUILIBRIA_P
+numPlayers=2
+numStates=4
+numMemory=1
+
+PLAYER 0
+MEMORY 0
+STATE 0
+1.0 : [a1]
+STATE 1
+NULL
+STATE 2
+NULL
+STATE 3
+1.0 : [null]
+
+
+PLAYER 1
+MEMORY 0
+STATE 0
+1.0 : [a2]
+STATE 1
+NULL
+STATE 2
+NULL
+STATE 3
+1.0 : [a2]
+
+
+END
