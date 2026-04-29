@@ -241,36 +241,37 @@ public class PACHelper {
         MDPSimple<Double> mdp = strategy.generateMDP(csg);
         mdp.findDeadlocks(true);
 
-        // 2) Collapse MDP → DTMC
-        DTMCSimple<Double> dtmc = new DTMCSimple<>(mdp);
+        // 2) Construct target set (mapped from CSG → MDP)
+        BitSet target = constructMDPTarget(mdp);
 
-        // 3) Model check DTMC
-        DTMCModelChecker mc = new DTMCModelChecker(prism);
+        // 3) Model check MDP directly
+        MDPModelChecker mc = new MDPModelChecker(prism);
         mc.setSilentPrecomputations(true);
 
-        BitSet target = constructDTMCTarget(dtmc);
-
         ModelCheckerResult res;
+        boolean min = spec.zeroSum ? !spec.minMax.isMin() : spec.minMax.isMinUnc();
+
         if (spec.useRewards) {
-            MDPRewardsSimple<Double> rew = constructDTMCRewards(dtmc);
-            res = mc.computeReachRewards(dtmc, rew, target);
+            MDPRewardsSimple<Double> rew = constructMDPRewards(mdp, csg);
+            res = mc.computeReachRewards(mdp, rew, target, !spec.minMax.isMin());
         } else {
-            res = mc.computeReachProbs(dtmc, target);
+            res = mc.computeReachProbs(mdp, target, !spec.minMax.isMin());
         }
 
         if (res == null || res.soln == null) {
-            throw new PrismException("DTMC evaluation failed");
+            throw new PrismException("MDP evaluation failed");
         }
 
-        return res.soln[dtmc.getFirstInitialState()];
+        return res.soln[mdp.getFirstInitialState()];
     }
 
-    protected BitSet constructDTMCTarget(DTMCSimple<Double> dtmc) {
+    protected BitSet constructMDPTarget(MDPSimple<Double> mdp) {
 
         BitSet csgTarget = getTargetUnion();
         BitSet mapped = new BitSet();
 
-        List<State> states = dtmc.getStatesList();
+        List<State> states = mdp.getStatesList();
+
         for (int i = 0; i < states.size(); i++) {
             Integer orig = stateToIndex.get(states.get(i));
             if (orig != null && csgTarget.get(orig)) {
@@ -281,11 +282,20 @@ public class PACHelper {
         return mapped;
     }
 
-    protected MDPRewardsSimple<Double> constructDTMCRewards(DTMCSimple<Double> dtmc) {
-        MDPRewardsSimple<Double> rew = new MDPRewardsSimple<>(dtmc.getNumStates());
-        for (int s = 0; s < dtmc.getNumStates(); s++) {
-            int orig = stateToIndex.get(dtmc.getStatesList().get(s));
-            // ---- State rewards ----
+    protected MDPRewardsSimple<Double> constructMDPRewards(
+            MDPSimple<Double> mdp,
+            CSG<Double> csg
+    ) {
+        MDPRewardsSimple<Double> rew = new MDPRewardsSimple<>(mdp.getNumStates());
+
+        List<State> mdpStates = mdp.getStatesList();
+
+        for (int s = 0; s < mdp.getNumStates(); s++) {
+
+            Integer orig = stateToIndex.get(mdpStates.get(s));
+            if (orig == null) continue;
+
+            // ---- STATE REWARD ----
             double stateR = 0.0;
             if (rewards != null) {
                 for (CSGRewards<Double> r : rewards) {
@@ -295,23 +305,52 @@ public class PACHelper {
                 }
             }
             rew.setStateReward(s, stateR);
-            // ---- Transition rewards (EXPECTED VALUE) ----
-            if (dtmc.getNumTransitions(s) > 0) {
-                double tr = 0.0;
-                for (int t = 0; t < dtmc.getNumTransitions(s); t++) {
-                    double prob = dtmc.getTransitions(s).get(t);
+
+            // ---- TRANSITION REWARD ----
+            int numChoices = mdp.getNumChoices(s);
+
+            for (int a = 0; a < numChoices; a++) {
+
+                double expectedReward = 0.0;
+
+                Distribution<Double> mdpDistr = mdp.getChoice(s, a);
+
+                // reconstruct expectation over original CSG choices
+                for (int c = 0; c < csg.getNumChoices(orig); c++) {
+
+                    Distribution<?> csgDistr = csg.getChoice(orig, c);
+                    if (csgDistr == null) continue;
+
+                    // measure how much this CSG choice contributes to MDP choice
+                    double weight = 0.0;
+
+                    for (Map.Entry<Integer, ?> e : csgDistr) {
+                        int succ = e.getKey();
+                        double p = ((Number) e.getValue()).doubleValue();
+
+                        if (mdpDistr.contains(succ)) {
+                            weight += Math.min(p, mdpDistr.get(succ));
+                        }
+                    }
+
+                    if (weight <= 1e-12) continue;
+
+                    double rVal = 0.0;
                     if (rewards != null) {
                         for (CSGRewards<Double> r : rewards) {
                             if (r != null) {
-                                tr += prob * r.getTransitionReward(orig, 0);
+                                rVal += r.getTransitionReward(orig, c);
                             }
                         }
                     }
+
+                    expectedReward += weight * rVal;
                 }
-                // DTMC has single choice index 0
-                rew.setTransitionReward(s, 0, tr);
+
+                rew.setTransitionReward(s, a, expectedReward);
             }
         }
+
         return rew;
     }
 

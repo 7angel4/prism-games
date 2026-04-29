@@ -170,47 +170,37 @@ public class Experiment {
         Expression inner = stripParentheses(strat.getOperand(0));
 
         // ---------- ZERO-SUM ----------
-        if (inner instanceof ExpressionProb prob) return minMaxFromRelOp(prob.getRelOp());
-        if (inner instanceof ExpressionReward rew) return minMaxFromRelOp(rew.getRelOp());
+        if (inner instanceof ExpressionProb prob) return minMaxFromRelOp(prob.getRelOp(), true);
+        if (inner instanceof ExpressionReward rew) return minMaxFromRelOp(rew.getRelOp(), true);
 
         // ---------- GENERAL-SUM ----------
         if (inner instanceof ExpressionMultiNash multi) {
-            // All operands must agree on direction (PRISM enforces this anyway)
-            ExpressionQuant first = multi.getOperands().get(0);
-            RelOp relOp = null;
-            if (first instanceof ExpressionMultiNashProb p) {
-                relOp = p.getRelOp();
-            } else if (first instanceof ExpressionMultiNashReward r) {
-                relOp = r.getRelOp();
-            } else {
-                throw new PrismException("Unsupported multi-nash operand");
+            RelOp relOp = multi.getRelOp();
+            if (relOp == null) {
+                throw new PrismException("MultiNash expression has no RelOp");
             }
-            return minMaxFromRelOp(relOp);
+            // For general-sum, direction applies to the aggregated objective
+            return minMaxFromRelOp(relOp, false);
         }
-
         throw new PrismException("Unsupported property type for min/max derivation");
     }
 
-    private MinMax minMaxFromRelOp(RelOp relOp) throws PrismException {
+    private MinMax minMaxFromRelOp(RelOp relOp, boolean zeroSum) throws PrismException {
         if (relOp == null) {
             throw new PrismException("RelOp is null");
         }
-
         if (relOp.isMax()) {
-            return MinMax.max();
+            return zeroSum ? MinMax.max() : MinMax.minMin(false, false).setMinUnc(true);
         }
-
         if (relOp.isMin()) {
-            return MinMax.min();
+            return zeroSum ? MinMax.min() : MinMax.minMin(true, true).setMinUnc(false);
         }
-
         // fallback for bounds (rare but safe)
         if (relOp.isLowerBound()) {
-            return MinMax.min();
+            return zeroSum ? MinMax.min() : MinMax.minMin(true, true).setMinUnc(false);
         }
-
         if (relOp.isUpperBound()) {
-            return MinMax.max();
+            return zeroSum ? MinMax.max() : MinMax.minMin(false, false).setMinUnc(true);
         }
 
         throw new PrismException("Unsupported RelOp: " + relOp);
@@ -400,8 +390,8 @@ public class Experiment {
             case TEST -> {
                 modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
                 propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
-                propertyIndex = 3;
-                addParameters("D", 2, "bcmax", 1, "q", 0.05);
+                propertyIndex = 2;
+                addParameters("D", 1, "bcmax", 1, "q", 0.05);
             }
         }
         return this;
