@@ -1,0 +1,65 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Wed Apr 29 22:55:56 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/aloha/aloha_backoff2.prism"...
+
+Type:        CSG
+Players:     usr1 usr2
+Modules:     user1 user2 timer
+Actions:     [] [wait1] [trans1] [try1] [sbc1] [boff1] [wait2] [trans2] [try2] [sbc2] [boff2]
+Variables:   s1 tr1 bc1 cd1 t1 s2 tr2 bc2 cd2 t2 t
+Rewards:     "time"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+Model constants: D=1,bcmax=1,q=0.05
+
+Computing reachable states... 214 states
+Reachable states exploration and model construction done in 0.019 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.068 seconds.
+
+Type:        CSG
+Players:     2
+States:      214 (1 initial)
+Transitions: 366
+Choices:     289
+Max/avg:     4/1.35
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/robustness/aloha_backoff21.csv
+Building reward structure...
+Max/avg (actions): (2,2)/(1.15,1.15)
+Max/avg (actions): (2,2)/(1.15,1.15)
+
+Value iteration converged after 1 iterations.
+
+Value iteration converged after 1 iterations.
+Building reward structure...
+Max/avg (actions): (2,2)/(1.15,1.15)
+Max/avg (actions): (2,2)/(1.15,1.15)
+
+Value iteration converged after 1 iterations.
+
+Value iteration converged after 1 iterations.
+Stopping probability: 1.0
+Effective horizon: 214
+Lower bound on reachability probability: 0.0
+Exception in thread "main" java.util.ConcurrentModificationException
+	at java.base/java.util.HashMap$HashIterator.nextNode(HashMap.java:1606)
+	at java.base/java.util.HashMap$KeyIterator.next(HashMap.java:1629)
+	at java.base/java.util.Iterator.forEachRemaining(Iterator.java:133)
+	at learning.PACLearner.update(PACLearner.java:315)
+	at learning.PACLearner.runPacLoop(PACLearner.java:182)
+	at learning.PACLearner.runPacLoop(PACLearner.java:97)
+	at learning.PACLearner.main(PACLearner.java:543)
