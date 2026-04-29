@@ -1,0 +1,60 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// Player 1 actions
+module m1
+    [c1] true -> true; // cooperate
+    [d1] true -> true; // defect
+endmodule
+
+// Player 2 actions
+module m2 = m1[c1=c2, d1=d2] endmodule
+
+module game
+    // 0 = start
+    // 1 = step1
+    // 2 = step2
+    // 3 = goal (success)
+    // 4 = trap/reset loop
+
+    s : [0..4] init 0;
+
+    // --- Step 0 → 1 ---
+    [c1,c2] s=0 -> (s'=1);
+    [c1,d2] s=0 -> (s'=4);
+    [d1,c2] s=0 -> (s'=4);
+    [d1,d2] s=0 -> (s'=4);
+
+    // --- Step 1 → 2 ---
+    [c1,c2] s=1 -> 0.9:(s'=2) + 0.1:(s'=4); // stochastic failure
+    [c1,d2] s=1 -> (s'=4);
+    [d1,c2] s=1 -> (s'=4);
+    [d1,d2] s=1 -> (s'=4);
+
+    // --- Step 2 → goal ---
+    [c1,c2] s=2 -> (s'=3);
+    [c1,d2] s=2 -> (s'=4);
+    [d1,c2] s=2 -> (s'=4);
+    [d1,d2] s=2 -> (s'=4);
+
+    // --- Trap: reset with probability ---
+    [] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
+
+    // --- Goal absorbing ---
+    [] s=3 -> (s'=3);
+endmodule
+
+// Labels
+label "goal" = s=3;
+label "trap" = s=4;
+
+// Rewards: only goal matters (sparse)
+rewards "r1"
+    s=3 : 1;
+endrewards
+
+rewards "r2"
+    s=3 : 0.8;
+endrewards
