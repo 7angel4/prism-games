@@ -381,7 +381,7 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/learning/no_ne.prism";
                 propertiesFile = "./prism-examples/csgs/learning/no_ne.props";
                 propertyIndex = 1;
-                epsilon = 0.5;
+//                epsilon = 0.5;
             }
             case HIDE_OR_RUN -> {
                 modelFile = "./prism-examples/csgs/learning/hide_or_run.prism";
