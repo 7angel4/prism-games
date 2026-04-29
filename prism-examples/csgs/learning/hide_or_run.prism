@@ -1,0 +1,32 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// Player 1: hide or run
+module m1
+    [hide1] true -> true;
+    [run1]  true -> true;
+endmodule
+
+// Player 2: wait or throw
+module m2 = m1[hide1=wait2, run1=throw2] endmodule
+
+module game
+    s : [0..3] init 0;
+    // 0 = hide
+    // 1 = home (target)
+    // 2 = safe
+    // 3 = wet
+
+    // Core dynamics
+    [hide1,wait2]  s=0 -> (s'=0);
+    [hide1,throw2] s=0 -> (s'=2);
+    [run1,wait2]   s=0 -> (s'=1);
+    [run1,throw2]  s=0 -> (s'=3);
+
+    // absorbing
+    [] s=1 -> (s'=1);
+    [] s=2 -> (s'=1);
+    [] s=3 -> (s'=3);
+endmodule

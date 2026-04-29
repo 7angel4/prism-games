@@ -1,0 +1,52 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+// Actions
+module m1
+    [a1] true -> true;
+    [b1] true -> true;
+endmodule
+
+module m2 = m1[a1=a2, b1=b2] endmodule
+
+// States:
+// 0 = A
+// 1 = B
+// 2 = C
+// 3 = done (absorbing)
+
+module game
+    s : [0..3] init 0;
+
+    // --- State A (0): prefers (a,a) ---
+    [a1,a2] s=0 -> 0.9:(s'=0) + 0.1:(s'=3);
+    [a1,b2] s=0 -> (s'=1);
+    [b1,a2] s=0 -> (s'=2);
+    [b1,b2] s=0 -> (s'=1);
+
+    // --- State B (1): prefers (b,b) ---
+    [a1,a2] s=1 -> (s'=2);
+    [a1,b2] s=1 -> (s'=1);
+    [b1,a2] s=1 -> (s'=0);
+    [b1,b2] s=1 -> 0.9:(s'=1) + 0.1:(s'=3);
+
+    // --- State C (2): prefers mismatch ---
+    [a1,a2] s=2 -> (s'=1);
+    [a1,b2] s=2 -> 0.9:(s'=2) + 0.1:(s'=3);
+    [b1,a2] s=2 -> 0.9:(s'=2) + 0.1:(s'=3);
+    [b1,b2] s=2 -> (s'=0);
+
+    // --- Terminal ---
+    [] s=3 -> (s'=3);
+endmodule
+
+rewards "r1"
+    s=0 : 1;  // P1 likes state A
+    s=1 : 1;  // also likes B
+endrewards
+
+rewards "r2"
+    s=2 : 1;  // P2 likes state C (conflicts with P1)
+endrewards
