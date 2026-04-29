@@ -394,7 +394,7 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/learning/mixed_ne.prism";
                 propertiesFile = "./prism-examples/csgs/learning/mixed_ne.props";
                 propertyIndex = 1;
-                epsilon = 0.2;
+//                epsilon = 0.2;
             }
             case TRAFFIC_MERGE -> {
                 modelFile = "./prism-examples/csgs/learning/traffic_merge.prism";
