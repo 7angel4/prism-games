@@ -1,5 +1,5 @@
 CSG_STRATEGY
-type=EQUILIBRIA_R
+type=EQUILIBRIA_P
 numPlayers=2
 numStates=1575
 numMemory=1
@@ -9,7 +9,7 @@ MEMORY 0
 STATE 0
 1.0 : [null]
 STATE 1
-1.0 : [null]
+1.0 : [wait1]
 STATE 2
 1.0 : [null]
 STATE 3
@@ -17,7 +17,7 @@ STATE 3
 STATE 4
 1.0 : [<0>]
 STATE 5
-1.0 : [wait1]
+1.0 : [null]
 STATE 6
 NULL
 STATE 7
@@ -53,19 +53,19 @@ NULL
 STATE 22
 NULL
 STATE 23
-1.0 : [wait1]
+1.0 : [null]
 STATE 24
 1.0 : [null]
 STATE 25
-1.0 : [wait1]
+1.0 : [null]
 STATE 26
 1.0 : [wait1]
 STATE 27
-1.0 : [null]
+1.0 : [wait1]
 STATE 28
 1.0 : [null]
 STATE 29
-1.0 : [null]
+1.0 : [wait1]
 STATE 30
 1.0 : [null]
 STATE 31
@@ -77,19 +77,19 @@ STATE 33
 STATE 34
 1.0 : [null]
 STATE 35
-1.0 : [wait1]
+1.0 : [null]
 STATE 36
-1.0 : [wait1]
+1.0 : [null]
 STATE 37
 1.0 : [wait1]
 STATE 38
-1.0 : [wait1]
+1.0 : [null]
 STATE 39
-1.0 : [wait1]
+1.0 : [null]
 STATE 40
-1.0 : [wait1]
+1.0 : [null]
 STATE 41
-1.0 : [wait1]
+1.0 : [null]
 STATE 42
 1.0 : [wait1]
 STATE 43
@@ -119,13 +119,13 @@ STATE 54
 STATE 55
 1.0 : [wait1]
 STATE 56
-1.0 : [null]
+1.0 : [wait1]
 STATE 57
-1.0 : [null]
+1.0 : [wait1]
 STATE 58
 1.0 : [null]
 STATE 59
-1.0 : [wait1]
+1.0 : [null]
 STATE 60
 1.0 : [null]
 STATE 61
@@ -155,7 +155,7 @@ STATE 72
 STATE 73
 1.0 : [<0>]
 STATE 74
-1.0 : [null]
+1.0 : [wait1]
 STATE 75
 1.0 : [null]
 STATE 76
@@ -167,7 +167,7 @@ STATE 78
 STATE 79
 1.0 : [null]
 STATE 80
-1.0 : [wait1]
+1.0 : [null]
 STATE 81
 1.0 : [wait1]
 STATE 82
@@ -177,11 +177,11 @@ STATE 83
 STATE 84
 1.0 : [wait1]
 STATE 85
-1.0 : [wait1]
+1.0 : [null]
 STATE 86
-1.0 : [wait1]
+1.0 : [null]
 STATE 87
-1.0 : [wait1]
+1.0 : [null]
 STATE 88
 1.0 : [wait1]
 STATE 89
@@ -3161,11 +3161,11 @@ NULL
 PLAYER 1
 MEMORY 0
 STATE 0
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 1
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 2
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 3
 1.0 : [trans2]
 STATE 4
@@ -3177,7 +3177,7 @@ NULL
 STATE 7
 1.0 : [wait2]
 STATE 8
-1.0 : [boff1]
+1.0 : [wait2]
 STATE 9
 1.0 : [boff1]
 STATE 10
@@ -3207,19 +3207,19 @@ NULL
 STATE 22
 NULL
 STATE 23
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 24
 1.0 : [wait2]
 STATE 25
-1.0 : [boff1]
+1.0 : [wait2]
 STATE 26
 1.0 : [boff1]
 STATE 27
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 28
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 29
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 30
 1.0 : [wait2]
 STATE 31
@@ -3273,13 +3273,13 @@ STATE 54
 STATE 55
 1.0 : [boff1]
 STATE 56
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 57
 1.0 : [wait2]
 STATE 58
 1.0 : [wait2]
 STATE 59
-1.0 : [boff1]
+1.0 : [wait2]
 STATE 60
 1.0 : [wait2]
 STATE 61
@@ -3995,7 +3995,7 @@ STATE 415
 STATE 416
 1.0 : [boff1]
 STATE 417
-1.0 : [boff1]
+1.0 : [wait2]
 STATE 418
 1.0 : [boff1]
 STATE 419
@@ -4101,7 +4101,7 @@ STATE 468
 STATE 469
 1.0 : [boff1]
 STATE 470
-1.0 : [boff1]
+1.0 : [wait2]
 STATE 471
 1.0 : [boff1]
 STATE 472
@@ -4319,19 +4319,19 @@ NULL
 STATE 578
 NULL
 STATE 579
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 580
 1.0 : [wait2]
 STATE 581
 1.0 : [wait2]
 STATE 582
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 583
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 584
 1.0 : [wait2]
 STATE 585
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 586
 1.0 : [wait2]
 STATE 587
@@ -4385,11 +4385,11 @@ STATE 610
 STATE 611
 1.0 : [wait2]
 STATE 612
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 613
 1.0 : [wait2]
 STATE 614
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 615
 1.0 : [wait2]
 STATE 616
@@ -4609,11 +4609,11 @@ STATE 722
 STATE 723
 1.0 : [wait2]
 STATE 724
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 725
 1.0 : [wait2]
 STATE 726
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 727
 1.0 : [wait2]
 STATE 728
@@ -4831,11 +4831,11 @@ NULL
 STATE 834
 1.0 : [wait2]
 STATE 835
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 836
 1.0 : [wait2]
 STATE 837
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 838
 1.0 : [wait2]
 STATE 839

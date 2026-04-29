@@ -7,11 +7,11 @@ numMemory=1
 PLAYER 0
 MEMORY 0
 STATE 0
-1.0 : [null]
+1.0 : [wait1]
 STATE 1
-1.0 : [null]
+1.0 : [wait1]
 STATE 2
-1.0 : [null]
+1.0 : [wait1]
 STATE 3
 1.0 : [<0>]
 STATE 4
@@ -53,7 +53,7 @@ NULL
 STATE 22
 NULL
 STATE 23
-1.0 : [wait1]
+1.0 : [null]
 STATE 24
 1.0 : [null]
 STATE 25
@@ -61,7 +61,7 @@ STATE 25
 STATE 26
 1.0 : [wait1]
 STATE 27
-1.0 : [null]
+1.0 : [wait1]
 STATE 28
 1.0 : [null]
 STATE 29
@@ -119,11 +119,11 @@ STATE 54
 STATE 55
 1.0 : [wait1]
 STATE 56
-1.0 : [null]
+1.0 : [wait1]
 STATE 57
-1.0 : [null]
+1.0 : [wait1]
 STATE 58
-1.0 : [null]
+1.0 : [wait1]
 STATE 59
 1.0 : [wait1]
 STATE 60
@@ -3161,11 +3161,11 @@ NULL
 PLAYER 1
 MEMORY 0
 STATE 0
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 1
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 2
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 3
 1.0 : [trans2]
 STATE 4
@@ -3215,7 +3215,7 @@ STATE 25
 STATE 26
 1.0 : [boff1]
 STATE 27
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 28
 1.0 : [wait2]
 STATE 29
@@ -3273,11 +3273,11 @@ STATE 54
 STATE 55
 1.0 : [boff1]
 STATE 56
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 57
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 58
-1.0 : [wait2]
+1.0 : [boff1]
 STATE 59
 1.0 : [boff1]
 STATE 60
