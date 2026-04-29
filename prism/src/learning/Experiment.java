@@ -12,12 +12,11 @@ import java.io.FileNotFoundException;
 public class Experiment {
 
     public enum CaseStudy {
-        ALOHA,
-        VERY_SIMPLE,
-        SIMPLE,
+//        VERY_SIMPLE,
         SAFE_RISKY,
         TRAFFIC_MERGE,
-        NO_NE
+        NO_NE,
+        TEST
     }
 
     public static final class PacRunSpec {
@@ -86,16 +85,23 @@ public class Experiment {
         setModel(model);
     }
 
-    public Experiment setValues(Values values) {
+    public void setValues(Values values) {
         this.parameterValues = values;
-        return this;
     }
 
-    public Experiment setSingleValue(String name, Object value) {
+    public void setSingleValue(String name, Object value) {
         this.parameterValues.setValue(name, value);
-        return this;
     }
 
+    private void addParameters(Object... nameValuePairs) {
+        if (nameValuePairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Parameter name/value pairs must be even.");
+        }
+        for (int i = 0; i < nameValuePairs.length; i += 2) {
+            String name = (String) nameValuePairs[i];
+            this.parameterValues.addValue(name, nameValuePairs[i + 1]);
+        }
+    }
     public void setSolverString(String solverString) {
         this.solverString = solverString;
     }
@@ -352,18 +358,12 @@ public class Experiment {
         this.parameterValues = new Values();
 
         switch (model) {
-            case VERY_SIMPLE -> {
-                modelFile = "./prism-examples/csgs/learning/very_simple.prism";
-                propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-                propertyIndex = 1;
-                epsilon = 0.1;
-            }
-            case SIMPLE -> {
-                modelFile = "./prism-examples/csgs/learning/simple.prism";
-                propertiesFile = "./prism-examples/csgs/learning/simple.props";
-                propertyIndex = 2;
-                epsilon = 0.5;
-            }
+//            case VERY_SIMPLE -> {
+//                modelFile = "./prism-examples/csgs/learning/very_simple.prism";
+//                propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
+//                propertyIndex = 1;
+//                epsilon = 0.1;
+//            }
             case SAFE_RISKY -> {
                 modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
@@ -381,11 +381,11 @@ public class Experiment {
                 propertyIndex = 2;
 //                epsilon = 0.2;
             }
-            case ALOHA -> {
-                modelFile = "./prism-examples/csgs/learning/robustness/aloha.prism";
-                propertiesFile = "./prism-examples/csgs/learning/robustness/aloha.props";
-                propertyIndex = 1;
-                maxNumEpisodes = 1000;
+            case TEST -> {
+                modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
+                propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
+                propertyIndex = 3;
+                addParameters("D", 2, "bcmax", 1, "q", 0.75);
             }
         }
         return this;

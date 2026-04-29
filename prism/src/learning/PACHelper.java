@@ -231,14 +231,14 @@ public class PACHelper {
 
 
     // STRATEGY EVALUATION
-    public double computeCSGValue(
+    public double computeValueInCSG(
             Prism prism,
             CSG<Double> csg,
             CSGStrategy<Double> strategy
     ) throws PrismException, InvalidStrategyStateException {
 
         // 1) Generate induced MDP from strategy
-        MDPSimple<Double> mdp = strategy.generateMDP();
+        MDPSimple<Double> mdp = strategy.generateMDP(csg);
         mdp.findDeadlocks(true);
 
         // 2) Collapse MDP → DTMC

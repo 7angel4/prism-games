@@ -510,28 +510,6 @@ public class PACLearner {
 
     }
 
-
-    public static void main(String[] args) throws Exception {
-        Prism prism = new Prism();
-        prism.initialise();
-        prism.useNative();
-
-        Experiment ex = new Experiment(Experiment.CaseStudy.TEST);
-        ex.setSolverString("Yices");
-        ex.propertyIndex = 1;
-        ex.robustnessExperiment = true;
-        ex.maxNumEpisodes = 10;
-        Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
-
-        PACLearner learner = new PACLearner(prism, 41, true);
-        long start = System.nanoTime();
-        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
-        long end = System.nanoTime();
-        long duration = end - start;
-
-        learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
-    }
-
     private File getExportStrategyFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment, String suffix) throws Exception {
         String root = Paths.get("").toAbsolutePath().toString() + "/prism-examples/csgs/learning/";
         Path rootDir = Paths.get(root);
@@ -545,5 +523,26 @@ public class PACLearner {
         Path experimentDir = stratsDir.resolve(robustnessExperiment ? "robustness" : "full");
         Files.createDirectories(experimentDir);
         return experimentDir.resolve(filename).toFile();
+    }
+
+
+    public static void main(String[] args) throws Exception {
+        Prism prism = new Prism();
+        prism.initialise();
+        prism.useNative();
+
+        Experiment ex = new Experiment(Experiment.CaseStudy.TEST);
+        ex.setSolverString("Yices");
+        ex.robustnessExperiment = true;
+        ex.maxNumEpisodes = 1;
+        Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
+
+        PACLearner learner = new PACLearner(prism, 41, true);
+        long start = System.nanoTime();
+        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
+        long end = System.nanoTime();
+        long duration = end - start;
+
+        learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
     }
 }

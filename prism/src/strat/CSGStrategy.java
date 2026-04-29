@@ -49,7 +49,6 @@ import prism.PrismNotSupportedException;
 import strat.CSGStrategy.CSGStrategyType;
 
 public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value> {
-
 	protected CSG<Value> model;
 	public List<List<List<Map<BitSet, Double>>>> csgchoices; // player -> iteration -> state -> indexes -> value
 	protected ModelCheckerResult[] prechoices;
@@ -230,12 +229,15 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		mainLog.println("Additional info on transitions and states added to file.");
 	}
 
-	public MDPSimple generateMDP() throws PrismException, InvalidStrategyStateException {
-		return type.equals(CSGStrategyType.ZERO_SUM)? generateMDPZeroSum() : generateMDPEquilibria();
+	public MDPSimple generateMDP(CSG<Value> model) throws PrismException, InvalidStrategyStateException {
+		return type.equals(CSGStrategyType.ZERO_SUM)? generateMDPZeroSum(model) : generateMDPEquilibria(model);
 	}
 
-
 	public MDPSimple generateMDPEquilibria() throws PrismException, InvalidStrategyStateException {
+		return generateMDPEquilibria(model);
+	}
+
+	public MDPSimple generateMDPEquilibria(CSG<Value> model) throws PrismException, InvalidStrategyStateException {
 		MDPSimple mdp = new MDPSimple();
 		Map<Integer, Integer> onmap = new HashMap<Integer, Integer>();
 		List<State> statelist = new ArrayList<State>();
@@ -272,10 +274,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				}
 			}
 			if (type == CSGStrategyType.EQUILIBRIA_P || type == CSGStrategyType.EQUILIBRIA_R)
-				generateMDPEquilibria(mdp, onmap, statelist, reach, explored, 0, s);
+				generateMDPEquilibria(mdp, onmap, statelist, reach, explored, 0, s, model);
 			if (type == CSGStrategyType.EQUILIBRIA_CE_P || type == CSGStrategyType.EQUILIBRIA_CE_R)
 				generateMDPCorrelatedEquilibria(mdp, onmap, statelist, reach, explored, 0, s);
-			addPrecompStrategies(mdp, onmap, statelist, reach);
+			addPrecompStrategies(mdp, onmap, statelist, reach, model);
 		}
 		mdp.setStatesList(statelist);
 
@@ -322,7 +324,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		mainLog.println("Additional info on transitions and states added to file.");
 	}
 	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach) throws PrismException, InvalidStrategyStateException {
+	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, CSG<Value> model) throws PrismException, InvalidStrategyStateException {
 		BitSet[] minus = new BitSet[targets.length];
 		BitSet[] goals = new BitSet[targets.length];
 		BitSet explored = new BitSet();
@@ -338,14 +340,14 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 			for (i = minus[p].nextSetBit(0); i >= 0; i = minus[p].nextSetBit(i + 1)) {
 				explored = new BitSet();
 				if (statelist.contains(model.getStatesList().get(i)) && !(goals[0].get(i) && goals[1].get(i))) {
-					addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, i);
+					addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, i, model);
 				}
 			}
 		}
 		
 	}
 	
-	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] goals, BitSet[] reach, BitSet explored, int p, int s) throws PrismException, InvalidStrategyStateException {
+	public void addPrecompStrategies(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] goals, BitSet[] reach, BitSet explored, int p, int s, CSG<Value> model) throws PrismException, InvalidStrategyStateException {
 		Distribution d;
 		String label = "MDP: ";
 		String joint = "";
@@ -397,7 +399,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						m = onmap.get(u);
 					}
 					if (!explored.get(u))
-						addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, u);							
+						addPrecompStrategies(mdp, onmap, statelist, goals, reach, explored, p, u, model);
 					d.add(m, v * e.getValue());
 				}
 				for (i = 0; i < model.getActions(s, t).length; i++) {
@@ -615,7 +617,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		}
 	}
 
-	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s) {
+	public void generateMDPEquilibria(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet[] reach, BitSet explored, int k, int s, CSG<Value> model) {
 		Distribution d;
 		String[] action = new String[csgchoices.size()];
 		String label = null;
@@ -668,7 +670,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 								onmap.put(u, m);
 								statelist.add(m, model.getStatesList().get(u));
 								if (!explored.get(u))
-									generateMDPEquilibria(mdp, onmap, statelist, reach, explored, k, u);  // should check for explored?
+									generateMDPEquilibria(mdp, onmap, statelist, reach, explored, k, u, model);  // should check for explored?
 							}
 							else {
 								m = onmap.get(u);
@@ -772,6 +774,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 	}
 
 	public MDPSimple generateMDPZeroSum() throws PrismException {
+		return generateMDPZeroSum(model);
+	}
+
+	public MDPSimple generateMDPZeroSum(CSG<Value> model) throws PrismException {
 		MDPSimple mdp = new MDPSimple();
 
 		Map<Integer, Integer> onmap = new HashMap<>();
@@ -799,14 +805,14 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 
 		} else {
 			// === recurse exactly like equilibria ===
-			generateMDPZeroSum(mdp, onmap, statelist, explored, 0, 0, s);
+			generateMDPZeroSum(mdp, onmap, statelist, explored, 0, 0, s, model);
 		}
 
 		mdp.setStatesList(statelist);
 		return mdp;
 	}
 	
-	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
+	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s, CSG<Value> model) {
 		Distribution d;
 		BitSet tmp1 = new BitSet();
 		BitSet tmp2 = new BitSet();
@@ -854,7 +860,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 								onmap.put(u, m);
 								statelist.add(m, model.getStatesList().get(u));
 								if (!explored.get(u))
-									generateMDPZeroSum(mdp, onmap, statelist, explored, k, p, u); // should check for explored?
+									generateMDPZeroSum(mdp, onmap, statelist, explored, k, p, u, model); // should check for explored?
 							}
 							else {
 								m = onmap.get(u);
@@ -875,6 +881,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 				}
 			}
 		}
+	}
+
+	public void generateMDPZeroSum(MDPSimple mdp, Map<Integer, Integer> onmap, List<State> statelist, BitSet explored, int k, int p, int s) {
+		generateMDPZeroSum(mdp, onmap, statelist, explored, k, p, s, model);
 	}
 
 	private double[] getVal() {
@@ -1042,4 +1052,5 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 
 		return new CSGStrategy<>(model, csgchoices, null, null, CSGStrategyType.EQUILIBRIA_P);
 	}
+
 }
