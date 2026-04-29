@@ -36,7 +36,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     protected final Map<Integer, Map<Integer, Map<Integer, Double>>> chosenTransitions = new HashMap<>();
 
     private static final double EPS = 1e-15;
-    public static final double TRANS_PROB_LB = 1e-6;
+    public static final double TRANS_PROB_LB = 0;
 
     private boolean minUncertainty = true;
 
@@ -65,11 +65,6 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     }
 
 
-//    @Override
-//    public void setCentre(int s, int i, Distribution<Value> distr) {
-//        setTrans(s, i, distr);
-//    }
-
     public CSGSimple<Value> getCentreCSG() {
         return new CSGSimple<>(this, this.trans);
     }
@@ -77,6 +72,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
     @Override
     public void setCentre(int s, int i, int succ, Value p) {
         getChoice(s, i).set(succ, p);
+        invalidateChosen(s, i);
     }
 
     private void initialiseRadiiFrom(CSG<Value> other)
@@ -275,10 +271,10 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             this.agentIndexes = new ArrayList<>(agentStrat.keySet());
 
             Pair<Set<BitSet>, Map<BitSet, Double>> cacheKey = new Pair<>(new HashSet<>(agentIndexes), otherStrat);
-            if (optimisticValCache.containsKey(cacheKey)) {
-                buildFull = false;
-                return;
-            }
+//            if (optimisticValCache.containsKey(cacheKey)) {
+//                buildFull = false;
+//                return;
+//            }
 
             for (int s = 0; s < csg.getNumStates(); s++) {
                 final int state = s;
@@ -333,18 +329,16 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
         }
 
         double[] computeOptimisticValue(boolean min, double[] val) {
-            if (!buildFull) {
-                // Cache hit: if you want to make this fully exact, store the value vector
-                // in the cache after the first solve and return it here.
-                double[] cached = optimisticValCache.values().iterator().next();
-                if (cached != null && cached.length == getNumStates()) {
-                    return cached;
-                }
-            }
+//            if (!buildFull) {
+//                // Cache hit: if you want to make this fully exact, store the value vector
+//                // in the cache after the first solve and return it here.
+//                double[] cached = optimisticValCache.values().iterator().next();
+//                if (cached != null && cached.length == getNumStates()) {
+//                    return cached;
+//                }
+//            }
 
-            MinMax minMax = min ? MinMax.min().setMinUnc(true)
-                    : MinMax.max().setMinUnc(false);
-
+            MinMax minMax = min ? MinMax.min().setMinUnc(true) : MinMax.max().setMinUnc(false);
             double[] result = new double[getNumStates()];
             if (this.rewards == null) {
                 ((L1MDP<Double>) this).mvMultUnc(val, minMax, result, null, false, null);
@@ -401,6 +395,7 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             rs.add(INIT_RADIUS);
         }
         rs.set(c, r);
+        invalidateChosen(s, c);
     }
 
     @Override
@@ -689,12 +684,9 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
         Distribution<Value> distr = getNominalChoice(s, i);
         double radius = getRadius(s, i);
 
-        MinMax minMax = MinMax.minMin(false, true).setMinUnc(minUncertainty);
+        MinMax minMax = MinMax.minMin(false, false).setMinUnc(minUncertainty);
         Distribution<Double> extreme = buildExtremeDistribution(distr, radius, val, minMax);
-
-        chosenTransitions.computeIfAbsent(s, ss -> new HashMap<>())
-                .put(i, new HashMap<>());
-
+        chosenTransitions.computeIfAbsent(s, ss -> new HashMap<>()).put(i, new HashMap<>());
         Map<Integer, Double> cache = chosenTransitions.get(s).get(i);
         for (Map.Entry<Integer, Double> e : extreme) {
             cache.put(e.getKey(), e.getValue());
@@ -727,6 +719,22 @@ public class L1CSGSimple<Value> extends CSGSimple<Value> implements L1CSG<Value>
             return Collections.<Integer, Double>emptyMap().entrySet().iterator();
         }
         return byChoice.entrySet().iterator();
+    }
+
+    private void invalidateChosen(int s, int i) {
+        Map<Integer, Map<Integer, Double>> byState = chosenTransitions.get(s);
+        if (byState != null) {
+            byState.remove(i);
+            if (byState.isEmpty()) chosenTransitions.remove(s);
+        }
+    }
+
+    private void invalidateChosenState(int s) {
+        chosenTransitions.remove(s);
+    }
+
+    private void invalidateChosenAll() {
+        chosenTransitions.clear();
     }
 
     @Override
