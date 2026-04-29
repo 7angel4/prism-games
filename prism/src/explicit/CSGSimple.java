@@ -405,7 +405,7 @@ public class CSGSimple<Value> extends MDPSimple<Value> implements CSG<Value>
 		int[] indexes = getIndexes(s, i);
 		String[] result = new String[indexes.length];
 		for (int a = 0; a < indexes.length; a++) {
-			result[a] = (indexes[a] > 0) ? getActions().get(indexes[a] - 1).toString() : "<" + a + ">";
+			result[a] = (indexes[a] > 0) ? getActions().get(indexes[a]).toString() : "<" + a + ">";
 		}
 		return result;
 	}
