@@ -20,7 +20,7 @@ public class Experiment {
         HIDE_OR_RUN,
         NO_NE,
         MIXED_NE,
-        TEST
+        DELAYED_COORD
     }
 
     public static final class PacRunSpec {
@@ -415,7 +415,7 @@ public class Experiment {
                 propertyIndex = 3;
                 addParameters("scenario", 1, "K", 1, "rounds", 25);
             }
-            case TEST -> {
+            case DELAYED_COORD -> {
                 modelFile = "./prism-examples/csgs/learning/delayed_coord.prism";
                 propertiesFile = "./prism-examples/csgs/learning/delayed_coord.props";
                 propertyIndex = 1;
