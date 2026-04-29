@@ -13,6 +13,8 @@ public class Experiment {
 
     public enum CaseStudy {
 //        VERY_SIMPLE,
+        ALOHA,
+        IDS,
         SAFE_RISKY,
         TRAFFIC_MERGE,
         HIDE_OR_RUN,
@@ -400,11 +402,18 @@ public class Experiment {
                 propertyIndex = 2;
 //                epsilon = 0.2;
             }
-            case TEST -> {
+            case ALOHA -> {
                 modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
                 propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
                 propertyIndex = 2;
                 addParameters("D", 1, "bcmax", 1, "q", 0.05);
+                robustnessExperiment = true;
+            }
+            case IDS -> {
+                modelFile = "./prism-examples/csgs/ids/ids_scenarios.prism";
+                propertiesFile = "./prism-examples/csgs/ids/ids.props";
+                propertyIndex = 3;
+                addParameters("scenario", 1, "K", 1, "rounds", 25);
             }
         }
         return this;
