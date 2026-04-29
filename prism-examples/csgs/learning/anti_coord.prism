@@ -1,0 +1,39 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+    [a1] true -> true; // risky aggressive
+    [b1] true -> true; // safe
+endmodule
+
+module m2 = m1[a1=a2,b1=b2] endmodule
+
+module game
+    s : [0..3] init 0; // 0 play, 1 p1 win, 2 p2 win, 3 catastrophe
+
+    // both aggressive → high reward BUT hidden catastrophe
+    [a1,a2] s=0 -> 0.75:(s'=1) + 0.2:(s'=2) + 0.05:(s'=3);
+
+    // both safe → stable but lower
+    [b1,b2] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+
+    // mismatch
+    [a1,b2] s=0 -> 0.7:(s'=1) + 0.25:(s'=2) + 0.05:(s'=3);
+    [b1,a2] s=0 -> 0.25:(s'=1) + 0.7:(s'=2) + 0.05:(s'=3);
+
+    [] s>0 -> (s'=s);
+endmodule
+
+rewards "r1"
+    s=1 : 1;
+    s=2 : 0;
+    s=3 : -2; // catastrophe penalty
+endrewards
+
+rewards "r2"
+    s=1 : 0;
+    s=2 : 1;
+    s=3 : -2;
+endrewards
