@@ -26,14 +26,7 @@ import parser.ast.RewardStruct;
 import parser.type.Type;
 import parser.type.TypeClock;
 import parser.visitor.ASTTraverseModify;
-import prism.Evaluator;
-import prism.ModelGenerator;
-import prism.ModelType;
-import prism.PrismComponent;
-import prism.PrismException;
-import prism.PrismLangException;
-import prism.PrismNotSupportedException;
-import prism.RewardGenerator;
+import prism.*;
 
 public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, RewardGenerator<Value>, L1RadiusProvider
 {
@@ -962,11 +955,23 @@ public class ModulesFileModelGenerator<Value> implements ModelGenerator<Value>, 
 			BitSet active = new BitSet();
 			BitSet indexes = new BitSet();
 			BitSet tmp;
-			int[] actions = (int[]) action;
-			for (int i = 0; i < actions.length; i++) {
-				if (actions[i] != -1)
-					active.set(actions[i]);
-			}
+			if (action instanceof int[]) {
+				int[] actions = (int[]) action;
+				for (int i = 0; i < actions.length; i++) {
+					if (actions[i] != -1)
+						active.set(actions[i]);
+				}
+			} else if (action instanceof JointAction ja) {
+				for (Object a : ja) {
+					if (a != null && a != JointAction.IDLE_ACTION) {
+						int idx = modulesFile.getSynchs().indexOf(a);
+						if (idx >= 0) {
+							active.set(idx + 1); // IMPORTANT: PRISM uses 1-indexed actions
+						}
+					}
+				}
+			} else
+				throw new PrismException("Expected action of type int[] or JointAction for concurrent model, got " + (action == null ? "null" : action.getClass().getName()));
 			for (int i = 0; i < n; i++) {
 				if (rewStr.getRewardStructItem(i).isTransitionReward()) {
 					Expression guard = rewStr.getStates(i);
