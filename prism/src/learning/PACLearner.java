@@ -531,11 +531,11 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.NO_NE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
-        ex.robustnessExperiment = false;
-        ex.maxNumEpisodes = 1;
+        ex.robustnessExperiment = true;
+        ex.maxNumEpisodes = 5;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
