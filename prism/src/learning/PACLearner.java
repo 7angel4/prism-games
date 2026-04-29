@@ -435,9 +435,9 @@ public class PACLearner {
     }
 
     private void verifyInTrueGame(SolveOutcome sol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String strategyFileSuffix) throws Exception {
-        if (sol.getStrategy() == null) {
-            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
-            System.out.println("No strategy returned (" + reason + "). Skipping true value computation.");
+        if (helper.spec.finiteHorizon && sol.getStrategy() == null) {
+//            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
+            System.out.println("Strategy generation only supported for infinite-horizon properties. Skipping true value computation.");
         } else if (!sol.foundRNE()) {
             System.out.println("No exact NE found. Skipping true value computation.");
         } else {
@@ -531,9 +531,10 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.TEST);
+        Experiment ex = new Experiment(Experiment.CaseStudy.NO_NE);
         ex.setSolverString("Yices");
-        ex.robustnessExperiment = true;
+        ex.propertyIndex = 1;
+        ex.robustnessExperiment = false;
         ex.maxNumEpisodes = 1;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
