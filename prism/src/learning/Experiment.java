@@ -15,7 +15,9 @@ public class Experiment {
 //        VERY_SIMPLE,
         SAFE_RISKY,
         TRAFFIC_MERGE,
+        HIDE_OR_RUN,
         NO_NE,
+        MIXED_NE,
         TEST
     }
 
@@ -375,9 +377,20 @@ public class Experiment {
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 propertyIndex = 1;
             }
-            case NO_NE -> { // TODO: problematic, need to be able to initialise MCs without solving
+            case NO_NE -> {
                 modelFile = "./prism-examples/csgs/learning/no_ne.prism";
                 propertiesFile = "./prism-examples/csgs/learning/no_ne.props";
+                propertyIndex = 1;
+                epsilon = 0.5;
+            }
+            case HIDE_OR_RUN -> {
+                modelFile = "./prism-examples/csgs/learning/hide_or_run.prism";
+                propertiesFile = "./prism-examples/csgs/learning/hide_or_run.props";
+                propertyIndex = 1;
+            }
+            case MIXED_NE -> {
+                modelFile = "./prism-examples/csgs/learning/mixed_ne.prism";
+                propertiesFile = "./prism-examples/csgs/learning/mixed_ne.props";
                 propertyIndex = 1;
                 epsilon = 0.2;
             }
