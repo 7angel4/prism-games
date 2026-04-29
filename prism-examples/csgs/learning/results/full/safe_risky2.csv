@@ -1,2 +1,0 @@
-p_reach,p_T,eps,confidence,effective horizon,Execution time (ms),episodes,deltaT,nMin,Robust foundNE,Robust value,Robust strategy,Robust true value,Robust value gap,Robust dev gain,Point foundNE,Point value,Point strategy,Point true value,Point value gap,Point dev gain,True found,True value,True SW,True strategy
-1.0000000000287557e-06,,0.1,0.05,,889006.625583,350850,0.02499998411647848,2584440,TRUE,0.997414970358,,,,,TRUE,1.0,,,,,TRUE,"(0.5,0.5)",1.0,

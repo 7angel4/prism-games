@@ -312,12 +312,14 @@ public class PACLearner {
                 int sFinal = s;
                 int cFinal = c;
 
-                empiricalGame.getSuccessorsIterator(s, c).forEachRemaining(succ -> {
+                Set<Integer> succs = new HashSet<>(empiricalGame.getChoice(s, c).getSupport()); // snapshot of empiricalGame.getSuccessorsIterator
+                for (int succ : succs) {
                     double pHat = transitionCounts[sFinal][cFinal][succ] / (double) saCount;
                     pHat = Math.max(L1CSGSimple.TRANS_PROB_LB, pHat);
+
                     empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
                     explorationRMDP.setCentre(sFinal, cFinal, succ, pHat);
-                });
+                }
             }
         }
     }
@@ -531,9 +533,9 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
+        Experiment ex = new Experiment(Experiment.CaseStudy.TEST);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 1;
+        ex.propertyIndex = 3;
         ex.robustnessExperiment = true;
         ex.maxNumEpisodes = 5;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);

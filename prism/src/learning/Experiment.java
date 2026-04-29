@@ -406,7 +406,7 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
                 propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
                 propertyIndex = 2;
-                addParameters("D", 1, "bcmax", 1, "q", 0.05);
+                addParameters("D", 8, "bcmax", 2, "q", 0.9);
                 robustnessExperiment = true;
             }
             case IDS -> {
@@ -414,6 +414,11 @@ public class Experiment {
                 propertiesFile = "./prism-examples/csgs/ids/ids.props";
                 propertyIndex = 3;
                 addParameters("scenario", 1, "K", 1, "rounds", 25);
+            }
+            case TEST -> {
+                modelFile = "./prism-examples/csgs/learning/delayed_coord.prism";
+                propertiesFile = "./prism-examples/csgs/learning/delayed_coord.props";
+                propertyIndex = 1;
             }
         }
         return this;
