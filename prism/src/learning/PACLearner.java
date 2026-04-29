@@ -337,8 +337,8 @@ public class PACLearner {
         robustMC.setGenStrat(prism.getGenStrat());
         robustMC.setSilentPrecomputations(true);
         robustMC.setVerbosity(0);
-        robustMC.checkExpression(empiricalGame, property.getExpression(), null, true);
-//        robustSolveL1CSG(property); // solve once so that the model checker records the target states
+//        robustMC.checkExpression(empiricalGame, property.getExpression(), null, true);
+        robustSolveL1CSG(property); // solve once so that the model checker records the target states
 
         StateModelChecker csgMC = explicit.StateModelChecker.createModelChecker(empiricalGame.getCentreCSG().getModelType(), prism);
         if (!(csgMC instanceof CSGModelChecker)) {
@@ -350,8 +350,8 @@ public class PACLearner {
         pointMC.setGenStrat(prism.getGenStrat());
         pointMC.setSilentPrecomputations(true);
         pointMC.setVerbosity(0);
-        pointMC.checkExpression(empiricalGame.getCentreCSG(), property.getExpression(), null, true);
-//        solvePointModel(property); // solve once so that the model checker records the target states
+//        pointMC.checkExpression(empiricalGame.getCentreCSG(), property.getExpression(), null, true);
+        solvePointModel(property); // solve once so that the model checker records the target states
 
         helper.targets = robustMC.getTargets();
         if (zeroSum) {
@@ -458,7 +458,7 @@ public class PACLearner {
         double eqVal = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
         // for zero-sum this is just true value - value under the given strategy
         if (helper.spec.zeroSum) {
-//            if (trueValue == Double.NaN) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
+//            if (Double.isNaN(trueValue)) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
             return trueValue - sol.getValue();
         }
         int s0 = trueGame.getFirstInitialState();
