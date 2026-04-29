@@ -441,7 +441,7 @@ public class PACLearner {
         } else if (!sol.foundRNE()) {
             System.out.println("No exact NE found. Skipping true value computation.");
         } else {
-            double valueInTrueGame = helper.computeCSGValue(prism, trueGame, sol.getStrategy());
+            double valueInTrueGame = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
             System.out.println("True value of learned strategy: " + valueInTrueGame);
             System.out.println("Estimation error: " + (valueInTrueGame - sol.getValue()));
             System.out.println("Value gap: " + (trueValue - valueInTrueGame));
@@ -455,10 +455,10 @@ public class PACLearner {
     }
 
     protected double computeNashMargin(SolveOutcome sol) throws Exception {
-        double eqVal = helper.computeCSGValue(prism, trueGame, sol.getStrategy());
+        double eqVal = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
         // for zero-sum this is just true value - value under the given strategy
         if (helper.spec.zeroSum) {
-            if (trueValue == Double.NaN) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
+//            if (trueValue == Double.NaN) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
             return trueValue - sol.getValue();
         }
         int s0 = trueGame.getFirstInitialState();
@@ -516,11 +516,11 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA);
+        Experiment ex = new Experiment(Experiment.CaseStudy.TEST);
         ex.setSolverString("Yices");
         ex.propertyIndex = 1;
         ex.robustnessExperiment = true;
-        ex.maxNumEpisodes = 500;
+        ex.maxNumEpisodes = 10;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
