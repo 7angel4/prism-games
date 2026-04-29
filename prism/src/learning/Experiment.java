@@ -172,7 +172,23 @@ public class Experiment {
         // ---------- ZERO-SUM ----------
         if (inner instanceof ExpressionProb prob) return minMaxFromRelOp(prob.getRelOp());
         if (inner instanceof ExpressionReward rew) return minMaxFromRelOp(rew.getRelOp());
-        return null; // should not use minMax for general-sum properties
+
+        // ---------- GENERAL-SUM ----------
+        if (inner instanceof ExpressionMultiNash multi) {
+            // All operands must agree on direction (PRISM enforces this anyway)
+            ExpressionQuant first = multi.getOperands().get(0);
+            RelOp relOp = null;
+            if (first instanceof ExpressionMultiNashProb p) {
+                relOp = p.getRelOp();
+            } else if (first instanceof ExpressionMultiNashReward r) {
+                relOp = r.getRelOp();
+            } else {
+                throw new PrismException("Unsupported multi-nash operand");
+            }
+            return minMaxFromRelOp(relOp);
+        }
+
+        throw new PrismException("Unsupported property type for min/max derivation");
     }
 
     private MinMax minMaxFromRelOp(RelOp relOp) throws PrismException {
@@ -385,7 +401,7 @@ public class Experiment {
                 modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
                 propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
                 propertyIndex = 3;
-                addParameters("D", 2, "bcmax", 1, "q", 0.75);
+                addParameters("D", 2, "bcmax", 1, "q", 0.05);
             }
         }
         return this;
