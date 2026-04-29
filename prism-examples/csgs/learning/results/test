@@ -1,0 +1,84 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Wed Apr 29 02:12:22 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/robust_mixed.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [a1] [b1] [a2] [b2]
+Variables:   s
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 4 states
+Reachable states exploration and model construction done in 0.018 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.082 seconds.
+
+Type:        CSG
+Players:     2
+States:      4 (1 initial)
+Transitions: 20
+Choices:     16
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/robustness/robust_mixed1.csv
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Stopping probability: 1.0
+Effective horizon: 4
+Lower bound on reachability probability: 1.0000000000287557E-6
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+
+---------------------------------------
+Epsilon: 2.0
+Confidence: 0.05
+
+Execution time: 222.4225 ms
+Episodes=10
+DeltaT=101.87846654293315
+nMin=8663565
+
+---------------------------------------
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting equilibria computation (solver=Yices 2.6.4)...
+Checking whether all objectives are reachable...
+
+
+Value iteration converged after 2 iterations.
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (1.0,0.8)
+True SolveOutcome{found = true, value = 1.8, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 1.62224828684, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating robust strategy in true CSG...
+Exception in thread "main" java.lang.NullPointerException: Cannot invoke "Object.toString()" because the return value of "java.util.List.get(int)" is null
+	at explicit.CSGSimple.getActions(CSGSimple.java:408)
+	at strat.CSGStrategy.addPrecompStrategies(CSGStrategy.java:405)
+	at strat.CSGStrategy.addPrecompStrategies(CSGStrategy.java:343)
+	at strat.CSGStrategy.generateMDPEquilibria(CSGStrategy.java:280)
+	at strat.CSGStrategy.generateMDP(CSGStrategy.java:233)
+	at learning.PACHelper.computeValueInCSG(PACHelper.java:241)
+	at learning.PACLearner.verifyInTrueGame(PACLearner.java:444)
+	at learning.PACLearner.printResult(PACLearner.java:503)
+	at learning.PACLearner.main(PACLearner.java:532)

@@ -1,0 +1,54 @@
+csg
+
+player p1 m1 endplayer
+player p2 m2 endplayer
+
+module m1
+    [a1] true -> true;
+    [b1] true -> true;
+endmodule
+
+module m2 = m1[a1=a2,b1=b2] endmodule
+
+
+module game
+    s : [0..3] init 0;
+    // 0 = decision
+    // 1 = high reward
+    // 2 = low reward
+    // 3 = terminal
+
+    // --- SAFE ---
+    [b1,b2] s=0 -> 0.5:(s'=1) + 0.5:(s'=2);
+
+    // --- RISKY ---
+    [a1,a2] s=0 -> 0.7:(s'=1) + 0.3:(s'=2);
+
+    // mismatches → safe
+    [a1,b2] s=0 -> 0.8:(s'=1) + 0.2:(s'=2);
+    [b1,a2] s=0 -> 0.1:(s'=1) + 0.9:(s'=2);
+
+    // terminal
+    [a1,a2] s=1 -> (s'=3);
+    [b1,b2] s=1 -> (s'=3);
+    [a1,b2] s=1 -> (s'=3);
+    [b1,a2] s=1 -> (s'=3);
+
+    [a1,a2] s=2 -> (s'=3);
+    [b1,b2] s=2 -> (s'=3);
+    [a1,b2] s=2 -> (s'=3);
+    [b1,a2] s=2 -> (s'=3);
+
+    [] s=3 -> (s'=3);
+endmodule
+
+
+rewards "r1"
+    s=1 : 20;
+    s=2 : 0;
+endrewards
+
+rewards "r2"
+    s=1 : 20;
+    s=2 : 0;
+endrewards
