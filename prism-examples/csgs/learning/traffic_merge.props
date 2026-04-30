@@ -3,3 +3,7 @@ const int k=5;
 <<car1:car2>>max=? (P[ !"crash" U<=k "goal" ] + P[ !"crash" U "goal" ])
 
 <<car1:car2>>min=? (R{"time1"}[F "goal"] + R{"time2"}[F "goal"])
+
+<<car1>>Pmax=? [F<=k "goal"]; // test k=1,3,5,7,9
+
+<<car1>>Pmax=? [F "goal"]
