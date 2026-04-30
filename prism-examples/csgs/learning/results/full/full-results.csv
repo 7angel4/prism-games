@@ -1,0 +1,10 @@
+case study,property,p_reach,p_T,effective horizon,Execution time (ms),episodes,deltaT,nMin,Robust foundNE,Robust value,Robust estimation error,Robust value gap,Point foundNE,Point value,Point estimation error,Point value gap,True found,True coalition results,True SW value
+delayed_coord2,,1,,,,,,,,,,,,,,,,"(0.5,0.5)",
+safe_risky1,,1.00E-06,1,4,2629848.942,729213,0.02499999,8663565,TRUE,0.998238964,,0.001761036,TRUE,1,,0,TRUE,"(0.6,0.4)",1
+traffic_merge1,,4.00E-06,1,6,8969063.775,754414,0.024999999,49433708,FALSE,nan,,-2,TRUE,2,,-2,TRUE,"(1.0,1.0)",2
+hide_or_run,,1,1,4,496694.2412,1136426,0.049999987,2016622,TRUE,0.999000999,-0.999000999,0.999000999,TRUE,0.999000999,-0.999000999,0.999000999,TRUE,,0.999000999
+mixed_ne,,1,1,4,2472610.855,4781146,0.024999993,8663565,TRUE,0.998386052,0.001613948,0,TRUE,1,0,0,TRUE,"(0.5,0.5)",1
+cyclic_prefs,,1,1,4,5709649.838,8683224,0.024999999,8663565,FALSE,nan,,,FALSE,nan,,,FALSE,,nan
+safe_risky3,,1.00E-06,1,4,2583136.894,729213,0.02499999,8663565,TRUE,inf,,nan,TRUE,inf,,nan,TRUE,,inf
+safe_risky2,,1.00E-06,,,889006.6256,350850,0.024999984,2584440,TRUE,0.99741497,,,TRUE,1,,,TRUE,"(0.5,0.5)",1
+traffic_merge2,,4.00E-06,1,6,8883412.922,754413,0.024999999,49433708,FALSE,nan,-2,2,TRUE,2,-2,2,TRUE,"(1.0,1.0)",2

@@ -1,9 +1,9 @@
 case study,property,p_reach,p_T,effective horizon,Execution time (ms),episodes,deltaT,nMin,Robust foundNE,Robust value,Robust estimation error = robust true value - robust value,Robust value gap = true value - robust true value,Point foundNE,Point value,Point estimation error,Point value gap,True found,True SW value
-ids,,0,1,75,2971.055542,5,16875,7.4229E+11,TRUE,0,1.109444688,13.47273422,TRUE,14.54364869,-13.94796828,13.9864985,TRUE,14.58217891
-ids,,0,1,75,2653.452667,5,16875,7.4229E+11,TRUE,0,1,-0.666666667,TRUE,0.333333333,0.333333333,-0.333333333,TRUE,0.333333333
-ids,,0,1,75,2236.900917,5,16875,7.4229E+11,TRUE,0,0.8,-0.466666667,TRUE,0.333333333,-5.55E-17,5.55E-17,TRUE,0.333333333
-ids,,0,1,75,2520.851542,5,16875,7.4229E+11,TRUE,0,0.8,-0.8,TRUE,0,0.8,-0.8,TRUE,0
-ids,,0,1,75,2569.940084,5,16875,7.4229E+11,TRUE,0,0.8,-0.8,TRUE,0,0.8,-0.8,TRUE,0
+ids,"<<policy>> R{""damage""}min=? [F r=rounds ]",0,1,75,2971.055542,5,16875,7.4229E+11,TRUE,0,1.109444688,13.47273422,TRUE,14.54364869,-13.94796828,13.9864985,TRUE,14.58217891
+ids,"<<policy>> R{""i_damage""}min=? [ F r=K ]",0,1,75,2653.452667,5,16875,7.4229E+11,TRUE,0,1,-0.666666667,TRUE,0.333333333,0.333333333,-0.333333333,TRUE,0.333333333
+ids,"<<attacker>> R{""i_damage""}max=? [ F r=K ]",0,1,75,2236.900917,5,16875,7.4229E+11,TRUE,0,0.8,-0.466666667,TRUE,0.333333333,-5.55E-17,5.55E-17,TRUE,0.333333333
+ids,"<<policy,attacker>> R{""damage""}min=? [F r=rounds ]",0,1,75,2520.851542,5,16875,7.4229E+11,TRUE,0,0.8,-0.8,TRUE,0,0.8,-0.8,TRUE,0
+ids,"<<policy,attacker>> R{""i_damage""}min=? [ F r=K ]",0,1,75,2569.940084,5,16875,7.4229E+11,TRUE,0,0.8,-0.8,TRUE,0,0.8,-0.8,TRUE,0
 ,,,,,,,,,,,,,,,,,,
 aloha1,"<<usr1>>R{""time""}min=?[F (s1=3 & t<=D)]",0,1,1575,165074.253,5,2480625,9.22337E+18,TRUE,inf,nan,nan,TRUE,inf,nan,nan,TRUE,inf
 aloha2,<<usr1>>Pmax=?[F (s1=3 & t<=D)],0,1,1575,160664.2133,5,2480625,9.22337E+18,TRUE,0.31207262,-0.131109147,0.799981206,TRUE,0.966997501,-0.838041114,0.851988292,TRUE,0.980944679
