@@ -18,7 +18,7 @@ public class Experiment {
         SAFE_RISKY,
         TRAFFIC_MERGE,
         HIDE_OR_RUN,
-        NO_NE,
+        CYCLIC_PREFS,
         MIXED_NE,
         DELAYED_COORD
     }
@@ -379,9 +379,9 @@ public class Experiment {
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
                 propertyIndex = 1;
             }
-            case NO_NE -> {
-                modelFile = "./prism-examples/csgs/learning/no_ne.prism";
-                propertiesFile = "./prism-examples/csgs/learning/no_ne.props";
+            case CYCLIC_PREFS -> {
+                modelFile = "./prism-examples/csgs/learning/cyclic_prefs.prism";
+                propertiesFile = "./prism-examples/csgs/learning/cyclic_prefs.props";
                 propertyIndex = 1;
 //                epsilon = 0.5;
             }
