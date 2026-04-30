@@ -115,12 +115,7 @@ public class PACHelper {
             double p3 = p2 * p;
             double p4 = p2 * p2;
             double p5 = p4 * p;
-            w = -1.0
-                    - p
-                    - p2 / 3.0
-                    - 11.0 * p3 / 72.0
-                    - 43.0 * p4 / 540.0
-                    - 769.0 * p5 / 17280.0;
+            w = -1.0 - p - p2 / 3.0 - 11.0 * p3 / 72.0 - 43.0 * p4 / 540.0 - 769.0 * p5 / 17280.0;
         } else {
             double L1 = Math.log(-x);
             double L2 = Math.log(-L1);
@@ -130,7 +125,6 @@ public class PACHelper {
         for (int i = 0; i < 30; i++) {
             double ew = Math.exp(w);
             double f = w * ew - x;
-
             if (Math.abs(f) <= 1e-16 * (1.0 + Math.abs(x))) {
                 return w;
             }
@@ -147,14 +141,11 @@ public class PACHelper {
             }
 
             double wNext = w - step;
-
             if (wNext == w || Math.abs(wNext - w) <= 1e-15 * (1.0 + Math.abs(wNext))) {
                 return wNext;
             }
-
             w = wNext;
         }
-
         return w;
     }
 

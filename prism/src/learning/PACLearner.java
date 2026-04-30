@@ -72,6 +72,7 @@ public class PACLearner {
     private final PACHelper helper = new PACHelper();
     private Logger logger;
     private double totalRadius = 0.0;
+    private int totalNumSamples = 0;
 
     /**
      * The effective horizon
@@ -93,6 +94,7 @@ public class PACLearner {
     public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws PrismException {
         helper.spec = spec;
         logger = new Logger(modelFilePath, propertyIndex, robustnessExperiment);
+        System.out.println("Property: " + spec.property);
 
         return runPacLoop(
                 spec.trueGame,
@@ -105,7 +107,7 @@ public class PACLearner {
                 spec.solver,
                 spec.zeroSum,
                 spec.finiteHorizon,
-                spec.maxNumEpisodes,
+                spec.maxNumSamples,
                 robustnessExperiment
                 );
     }
@@ -122,7 +124,7 @@ public class PACLearner {
             String solver,
             boolean zeroSum,
             boolean finiteHorizon,
-            int maxNumEpisodes,
+            int maxNumSamples,
             boolean robustnessExperiment
     ) throws PrismException {
 
@@ -153,7 +155,7 @@ public class PACLearner {
         while (true) {
             deltaT = computeDeltaT(rMax, effHorizon);
 
-            if ((robustnessExperiment && episode > maxNumEpisodes) || (deltaT <= stopThresh || numUnknownSlots == 0)) {
+            if ((robustnessExperiment && totalNumSamples > maxNumSamples) || (deltaT <= stopThresh || numUnknownSlots == 0)) {
                 logger.close(); // ===== NEW =====
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
@@ -175,6 +177,7 @@ public class PACLearner {
             }
 
             int numSamples = computeNumSamples(deltaCov, episode, pReach);
+            totalNumSamples += numSamples;
 
             for (int i = 0; i < numSamples; i++)
                 helper.sampleTrajectory(effHorizon, this::updateCount);
@@ -535,9 +538,9 @@ public class PACLearner {
 
         Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 1;
+        ex.propertyIndex = 2;
         ex.robustnessExperiment = false;
-        ex.maxNumEpisodes = 5;
+        ex.maxNumSamples = 10000;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
