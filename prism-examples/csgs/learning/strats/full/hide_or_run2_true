@@ -7,8 +7,8 @@ numMemory=1
 PLAYER 0
 MEMORY 0
 STATE 0
-0.6666666666666666 : [null]
-0.33333333333333337 : [hide1]
+0.8888888888888888 : [null]
+0.11111111111111116 : [hide1]
 STATE 1
 NULL
 STATE 2
@@ -20,6 +20,18 @@ STATE 4
 STATE 5
 1.0 : [null]
 STATE 6
+1.0 : [null]
+STATE 7
+1.0 : [null]
+STATE 8
+1.0 : [null]
+STATE 9
+1.0 : [null]
+STATE 10
+1.0 : [null]
+STATE 11
+1.0 : [null]
+STATE 12
 NULL
 
 

@@ -1,0 +1,134 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Fri May 01 16:02:42 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/hide_or_run.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [hide1] [run1] [wait2] [throw2]
+Variables:   s
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 4 states
+Reachable states exploration and model construction done in 0.008 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.049 seconds.
+
+Type:        CSG
+Players:     2
+States:      4 (1 initial)
+Transitions: 16
+Choices:     16
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/H/hide_or_run2.csv
+Property: <<p1>>Pmax=? [ F<=k s=1 ]
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Lower bound on reachability probability: 1.0
+Slot (1,2) is now known. Remaining unknown slots: 15
+Episode 486768: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 14
+Episode 486930: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 13
+Episode 487100: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 12
+Episode 487297: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 11
+Episode 755639: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 10
+Episode 755673: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 9
+Episode 755800: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 8
+Episode 755899: Resolving exploration RMDP
+Slot (3,1) is now known. Remaining unknown slots: 7
+Episode 818698: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 6
+Episode 818932: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 5
+Episode 818988: Resolving exploration RMDP
+Slot (3,2) is now known. Remaining unknown slots: 4
+Episode 819056: Resolving exploration RMDP
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+
+---------------------------------------
+Epsilon: 0.1
+Confidence: 0.05
+
+Execution time: 974690.393458 ms
+Episodes=2747006
+DeltaT=0.04999999498899551
+nMin=5158185
+
+---------------------------------------
+
+Starting probabilistic reachability (until)...
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+target=1, yes=1, no=0, maybe=3
+
+Starting value iteration...
+
+Value iteration converged after 5 iterations.
+Precomputation took 0.0 seconds.
+True SolveOutcome{found = true, value = 0.8, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.8, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating robust strategy in true CSG...
+
+Starting probabilistic reachability (min)...
+target=1, yes=2, no=2, maybe=0
+Probabilistic reachability took 0.0 seconds.
+True value of learned strategy: 0.0
+Estimation error: -0.8
+Value gap: 0.8
+
+Starting probabilistic reachability (min)...
+target=1, yes=2, no=2, maybe=0
+Probabilistic reachability took 0.001 seconds.
+Max deviation gain: 0.0
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 0.8, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating point strategy in true CSG...
+
+Starting probabilistic reachability (min)...
+target=1, yes=2, no=2, maybe=0
+Probabilistic reachability took 0.0 seconds.
+True value of learned strategy: 0.0
+Estimation error: -0.8
+Value gap: 0.8
+
+Starting probabilistic reachability (min)...
+target=1, yes=2, no=2, maybe=0
+Probabilistic reachability took 0.0 seconds.
+Max deviation gain: 0.0
