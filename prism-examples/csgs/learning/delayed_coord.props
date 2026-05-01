@@ -1,4 +1,4 @@
-// 1) Unbounded reachability (core objective)
+// 1) Unbounded reachability 
 <<p1:p2>>max=? ( P[F "goal"] + P[F "goal"] )
 
 // 2) Bounded reachability (hard exploration signal)
