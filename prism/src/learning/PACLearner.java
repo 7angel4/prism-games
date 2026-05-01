@@ -143,6 +143,9 @@ public class PACLearner {
         } else {
             this.effHorizon = horizon;
         }
+        if (effHorizon == 1) { // corner case - only transitions from s0 matter
+            initialiseNumUnknownSlots(empiricalGame.getNumChoices(empiricalGame.getFirstInitialState()));
+        }
 
         double pReach = computeMinReachProb();
         System.out.println("Lower bound on reachability probability: " + pReach);
@@ -183,7 +186,8 @@ public class PACLearner {
                 helper.sampleTrajectory(effHorizon, this::updateCount);
 
             update(deltaContain);
-            logger.logEpisode(episode, deltaT, numSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
+            if ((episode - 1) % 10 == 0)
+                logger.logEpisode(episode, deltaT, numSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
             episode++;
         }
     }
@@ -253,9 +257,7 @@ public class PACLearner {
             }
         }
 
-        prevNumUnknownSlots = numUnknownSlots;
-        totalNumSlots = numUnknownSlots;
-        totalRadius = totalNumSlots * L1CSGSimple.INIT_RADIUS;
+        initialiseNumUnknownSlots(numUnknownSlots);
 
         empiricalGame = new L1CSGSimple<>(trueGame, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
@@ -267,6 +269,13 @@ public class PACLearner {
         initialiseMCs(propertiesFile, property, zeroSum);
         prism.loadModelIntoSimulator();
         helper.sim = prism.getSimulator();
+    }
+
+    private void initialiseNumUnknownSlots(int numUnknownSlots) {
+        this.numUnknownSlots = numUnknownSlots;
+        prevNumUnknownSlots = numUnknownSlots;
+        totalNumSlots = numUnknownSlots;
+        totalRadius = totalNumSlots * L1CSGSimple.INIT_RADIUS;
     }
 
     private void updateExplorationReward(int s, int c) {
@@ -293,6 +302,9 @@ public class PACLearner {
         int numStates = empiricalGame.getNumStates();
 
         for (int s = 0; s < numStates; s++) {
+            if (this.effHorizon == 1 && s != empiricalGame.getFirstInitialState()) {
+                continue; // only transitions from initial state matter for 1-step properties
+            }
             for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
                 long saCount = slotCounts[s][c];
                 if (saCount == 0L) { // radius hasn't changed
@@ -300,7 +312,7 @@ public class PACLearner {
                     continue;
                 }
                 double oldRadius = empiricalGame.getRadius(s, c);
-                double deltaSlot = deltaContain / (empiricalGame.getNumChoices() * saCount * (saCount + 1.0));
+                double deltaSlot = deltaContain / (totalNumSlots * saCount * (saCount + 1.0));
                 double radius = helper.weissmanRadius(empiricalGame, saCount, deltaSlot);
                 if (radius > maxRadius) {
                     maxRadius = radius;
@@ -536,11 +548,12 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 2;
+        ex.propertyIndex = 4;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
+        ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
