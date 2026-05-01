@@ -1,0 +1,62 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Thu Apr 30 21:28:10 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/traffic_merge.prism"...
+
+Type:        CSG
+Players:     car1 car2
+Modules:     m1 m2 road
+Actions:     [] [go1] [wait1] [go2] [wait2]
+Variables:   s
+Labels:      "goal" "crash"
+Rewards:     "time1" "time2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 6 states
+Reachable states exploration and model construction done in 0.011 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.055 seconds.
+
+Type:        CSG
+Players:     2
+States:      6 (1 initial)
+Transitions: 28
+Choices:     24
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/traffic_merge3.csv
+Property: <<car1:car2>>max=? (P[!"crash" U<=k "goal"] + P[!"crash" U "goal"])
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.064 seconds.
+Constructing L1CSG-DFA product...
+
+Building deterministic automaton (for "L0" U<=k "L1")...
+Taking DRA from library...
+DFA has 9 states, 1 goal states.
+Time for DFA translation: 0.001 seconds.
+Constructing CSG-DFA product...
+Time for product construction: 0.017 seconds, product has , 2 players12 states (6 initial), 58 transitions, 48 choices, dist max/avg = 4/4.00.
+
+Skipping BSCC computation since acceptance is defined via goal states...
+
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Stopping probability: 1.0
+Effective horizon: 6
+Lower bound on reachability probability: 0.0
