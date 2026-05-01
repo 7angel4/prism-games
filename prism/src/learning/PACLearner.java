@@ -283,7 +283,7 @@ public class PACLearner {
         double rew = 0.0;
         if (!known[s][c]) {
             double r = empiricalGame.getRadius(s, c);
-            rew = r * r; // quadratic in radius to incentivise reducing uncertainty
+            rew = Math.sqrt(r); // quadratic in radius to incentivise reducing uncertainty
         }
         explorationRewards.setTransitionReward(s, c, rew);
     }
@@ -549,7 +549,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.MIXED_NE);
         ex.setSolverString("Yices");
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
