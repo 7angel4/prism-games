@@ -13,14 +13,17 @@ public class Experiment {
 
     public enum CaseStudy {
 //        VERY_SIMPLE,
-        ALOHA,
-        IDS,
         SAFE_RISKY,
         TRAFFIC_MERGE,
         HIDE_OR_RUN,
         CYCLIC_PREFS,
         MIXED_NE,
-        DELAYED_COORD
+        DELAYED_COORD,
+        // robustness experiments
+        ALOHA_DDL,
+        ALOHA,
+        JAMMING, MEDIUM_ACCESS, ROBOT_COORD_ZS, ROBOT_COORD_NZ_SAMEH, ROBOT_COORD_NZ_DIFFH, USER_CENTRIC,
+
     }
 
     public static final class PacRunSpec {
@@ -402,23 +405,66 @@ public class Experiment {
                 propertyIndex = 2;
 //                epsilon = 0.2;
             }
-            case ALOHA -> {
-                modelFile = "./prism-examples/csgs/aloha/aloha_backoff2.prism";
-                propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff2.props";
-                propertyIndex = 2;
-                addParameters("D", 8, "bcmax", 2, "q", 0.9);
-                robustnessExperiment = true;
-            }
-            case IDS -> {
-                modelFile = "./prism-examples/csgs/ids/ids_scenarios.prism";
-                propertiesFile = "./prism-examples/csgs/ids/ids.props";
-                propertyIndex = 3;
-                addParameters("scenario", 1, "K", 1, "rounds", 25);
-            }
             case DELAYED_COORD -> {
                 modelFile = "./prism-examples/csgs/learning/delayed_coord.prism";
                 propertiesFile = "./prism-examples/csgs/learning/delayed_coord.props";
                 propertyIndex = 1;
+            }
+            // robustness experiments
+            case ALOHA -> {
+                modelFile = "./prism-examples/csgs/aloha/aloha_backoff3.prism";
+                propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff3.props";
+                propertyIndex = 2;
+                addParameters("D", 8, "bcmax", 2, "q", 0.9);
+                robustnessExperiment = true;
+            }
+            case ALOHA_DDL -> {
+                modelFile = "./prism-examples/csgs/aloha/aloha_backoff3.prism";
+                propertiesFile = "./prism-examples/csgs/aloha/aloha_backoff3.props";
+                propertyIndex = 5;
+                addParameters("D", 8, "bcmax", 1, "q", 0.9);
+                robustnessExperiment = true;
+            }
+            case JAMMING -> {
+                modelFile = "./prism-examples/csgs/jamming/jamming4.prism";
+                propertiesFile = "./prism-examples/jamming/jamming.props";
+                propertyIndex = 1;
+                addParameters("chans", 4, "slots", 6);
+            }
+            case MEDIUM_ACCESS -> {
+                modelFile = "./prism-examples/csgs/simple/medium_access3.prism";
+                propertiesFile = "./prism-examples/csgs/simple/medium_access3.props";
+                propertyIndex = 2;
+                addParameters("emax", 10, "k1", 20, "k2", 25, "q1", 0.95, "q2", 0.75, "q3", 0.5);
+                robustnessExperiment = true;
+            }
+            case ROBOT_COORD_ZS -> {
+                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
+                propertyIndex = 3;
+                addParameters("q", 0.1, "l", 4);
+                robustnessExperiment = true;
+            }
+            case ROBOT_COORD_NZ_SAMEH -> {
+                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
+                propertyIndex = 5;
+                addParameters("q", 0.1, "l", 4, "k", 4); // 0.1 for prop 5, 0.25 for prop 6
+                robustnessExperiment = true;
+            }
+            case ROBOT_COORD_NZ_DIFFH -> {
+                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
+                propertyIndex = 6;
+                addParameters("q", 0.25, "l", 4, "k", 8); // 0.1 for prop 5, 0.25 for prop 6
+                robustnessExperiment = true;
+            }
+            case USER_CENTRIC -> {
+                modelFile = "./prism-examples/csgs/user-centric/user-centric.prism";
+                propertiesFile = "./prism-examples/csgs/user-centric/user-centric.props";
+                propertyIndex = 3;
+                addParameters("td", 1, "K", 3);
+                robustnessExperiment = true;
             }
         }
         return this;
