@@ -3,7 +3,6 @@
 
 // 2) Bounded reachability (hard exploration signal)
 const int k=5;
-<<p1:p2>>max=? ( P[F<=k "goal"] + P[F<=k "goal"] )
-
-// 3) Bounded cumulative rewards
+// <<p1:p2>>max=? ( P[F<=k "goal"] + P[F<=k "goal"] )
+// Equivalent to bounded cumulative rewards
 <<p1:p2>>max=? ( R{"r1"}[C<=k] + R{"r2"}[C<=k] )
