@@ -54,3 +54,7 @@ prism-examples/csgs/learning/results/failed/
 prism-examples/csgs/learning/results/robustness-old/
 prism-examples/csgs/learning/logs/robustness-old/
 prism-examples/csgs/learning/strats/robustness-old/
+prism-examples/csgs/learning/logs/full/delayed_coord*
+prism-examples/csgs/learning/logs/full/cyclic_prefs1.csv
+prism-examples/csgs/learning/logs/full/mixed_ne1.csv
+prism-examples/csgs/learning/logs/H/safe_risky4_9.csv
