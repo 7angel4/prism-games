@@ -523,7 +523,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
 							joint = "";
 							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-								joint += "[" + model.getActions().get(i - 1) + "]";
+								joint += "[" + model.getActions().get(i) + "]";
 							}
 							c--;
 							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
@@ -686,7 +686,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
 							joint = "";
 							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-								joint += "[" + model.getActions().get(i - 1) + "]";
+								joint += "[" + model.getActions().get(i) + "]";
 							}
 							c--;
 							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : "");
@@ -869,9 +869,9 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						}
 						for (i = tmp1.nextSetBit(0); i >= 0; i = tmp1.nextSetBit(i + 1)) {
 							if (act.get(i))
-								act1 += "[" + model.getActions().get(i - 1) + "]";
+								act1 += "[" + model.getActions().get(i) + "]";
 							else
-								act2 += "[" + model.getActions().get(i - 1) + "]";
+								act2 += "[" + model.getActions().get(i) + "]";
 						}
 						act1 = csgchoices.get(p).get(k).get(s).get(act) + ": " + act1;
 					}
@@ -926,7 +926,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 						for (BitSet act : csgchoices.get(p).get(k).get(s).keySet()) {
 							joint = "";
 							for (i = act.nextSetBit(0); i >= 0; i = act.nextSetBit(i + 1)) {
-								joint += "[" + model.getActions().get(i - 1) + "]";
+								joint += "[" + model.getActions().get(i) + "]";
 							}
 							c--;
 							action[p] += csgchoices.get(p).get(k).get(s).get(act) +": " + joint + ((c > 0)? " + " : ""); 
@@ -973,7 +973,7 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 							StringBuilder actionStr = new StringBuilder();
 							for (int i = bs.nextSetBit(0); i >= 0; i = bs.nextSetBit(i + 1)) {
 								actionStr.append("[")
-										.append(model.getActions().get(i - 1))
+										.append(model.getActions().get(i))
 										.append("]");
 							}
 							out.println(prob + " : " + actionStr);
@@ -1051,6 +1051,10 @@ public class CSGStrategy<Value> extends PrismComponent implements Strategy<Value
 		br.close();
 
 		return new CSGStrategy<>(model, csgchoices, null, null, CSGStrategyType.EQUILIBRIA_P);
+	}
+
+	public boolean sameChoices(CSGStrategy other) {
+		return this.csgchoices.equals(other.csgchoices);
 	}
 
 }

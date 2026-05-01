@@ -65,3 +65,5 @@ prism-examples/csgs/learning/safe_risky.props
 prism-examples/csgs/learning/results/full/full-results.csv
 prism-examples/csgs/learning/results/robustness/full-results.csv
 prism-examples/csgs/learning/results/full/full-results.csv
+prism-examples/csgs/learning/results/full/full-results.csv
+prism-examples/csgs/learning/logs/full/mixed_ne1.csv
