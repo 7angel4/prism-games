@@ -427,17 +427,18 @@ public class Experiment {
             }
             case JAMMING -> {
                 modelFile = "./prism-examples/csgs/jamming/jamming4.prism";
-                propertiesFile = "./prism-examples/jamming/jamming.props";
+                propertiesFile = "./prism-examples/csgs/jamming/jamming.props";
                 propertyIndex = 1;
                 addParameters("chans", 4, "slots", 6);
             }
-            case MEDIUM_ACCESS -> {
-                modelFile = "./prism-examples/csgs/simple/medium_access3.prism";
-                propertiesFile = "./prism-examples/csgs/simple/medium_access3.props";
-                propertyIndex = 2;
-                addParameters("emax", 10, "k1", 20, "k2", 25, "q1", 0.95, "q2", 0.75, "q3", 0.5);
-                robustnessExperiment = true;
-            }
+            // out of memory error - java heap space
+//            case MEDIUM_ACCESS -> {
+//                modelFile = "./prism-examples/csgs/simple/medium_access3.prism";
+//                propertiesFile = "./prism-examples/csgs/simple/medium_access3.props";
+//                propertyIndex = 2;
+//                addParameters("emax", 10, "k1", 20, "k2", 25, "q1", 0.95, "q2", 0.75, "q3", 0.5);
+//                robustnessExperiment = true;
+//            }
             case ROBOT_COORD_ZS -> {
                 modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
                 propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
@@ -445,27 +446,29 @@ public class Experiment {
                 addParameters("q", 0.1, "l", 4);
                 robustnessExperiment = true;
             }
-            case ROBOT_COORD_NZ_SAMEH -> {
-                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
-                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
-                propertyIndex = 5;
-                addParameters("q", 0.1, "l", 4, "k", 4); // 0.1 for prop 5, 0.25 for prop 6
-                robustnessExperiment = true;
-            }
-            case ROBOT_COORD_NZ_DIFFH -> {
-                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
-                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
-                propertyIndex = 6;
-                addParameters("q", 0.25, "l", 4, "k", 8); // 0.1 for prop 5, 0.25 for prop 6
-                robustnessExperiment = true;
-            }
-            case USER_CENTRIC -> {
-                modelFile = "./prism-examples/csgs/user-centric/user-centric.prism";
-                propertiesFile = "./prism-examples/csgs/user-centric/user-centric.props";
-                propertyIndex = 3;
-                addParameters("td", 1, "K", 3);
-                robustnessExperiment = true;
-            }
+            // strategy synthesis not supported for bounded properties
+//            case ROBOT_COORD_NZ_SAMEH -> {
+//                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+//                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
+//                propertyIndex = 5;
+//                addParameters("q", 0.1, "l", 4, "k", 4); // 0.1 for prop 5, 0.25 for prop 6
+//                robustnessExperiment = true;
+//            }
+//            case ROBOT_COORD_NZ_DIFFH -> {
+//                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
+//                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
+//                propertyIndex = 6;
+//                addParameters("q", 0.25, "l", 4, "k", 8); // 0.1 for prop 5, 0.25 for prop 6
+//                robustnessExperiment = true;
+//            }
+            // out of memory error - java heap space
+//            case USER_CENTRIC -> {
+//                modelFile = "./prism-examples/csgs/user-centric/user-centric.prism";
+//                propertiesFile = "./prism-examples/csgs/user-centric/user-centric.props";
+//                propertyIndex = 3;
+//                addParameters("td", 1, "K", 3);
+//                robustnessExperiment = true;
+//            }
         }
         return this;
     }
