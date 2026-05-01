@@ -12,7 +12,6 @@ import java.io.FileNotFoundException;
 public class Experiment {
 
     public enum CaseStudy {
-//        VERY_SIMPLE,
         SAFE_RISKY,
         TRAFFIC_MERGE,
         HIDE_OR_RUN,
@@ -22,8 +21,8 @@ public class Experiment {
         // robustness experiments
         ALOHA_DDL,
         ALOHA,
-        JAMMING, MEDIUM_ACCESS, ROBOT_COORD_ZS, ROBOT_COORD_NZ_SAMEH, ROBOT_COORD_NZ_DIFFH, USER_CENTRIC,
-
+        JAMMING,
+        ROBOT_COORD_ZS
     }
 
     public static final class PacRunSpec {
@@ -371,12 +370,6 @@ public class Experiment {
         this.parameterValues = new Values();
 
         switch (model) {
-//            case VERY_SIMPLE -> {
-//                modelFile = "./prism-examples/csgs/learning/very_simple.prism";
-//                propertiesFile = "./prism-examples/csgs/learning/very_simple.props";
-//                propertyIndex = 1;
-//                epsilon = 0.1;
-//            }
             case SAFE_RISKY -> {
                 modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
@@ -431,14 +424,6 @@ public class Experiment {
                 propertyIndex = 1;
                 addParameters("chans", 4, "slots", 6);
             }
-            // out of memory error - java heap space
-//            case MEDIUM_ACCESS -> {
-//                modelFile = "./prism-examples/csgs/simple/medium_access3.prism";
-//                propertiesFile = "./prism-examples/csgs/simple/medium_access3.props";
-//                propertyIndex = 2;
-//                addParameters("emax", 10, "k1", 20, "k2", 25, "q1", 0.95, "q2", 0.75, "q3", 0.5);
-//                robustnessExperiment = true;
-//            }
             case ROBOT_COORD_ZS -> {
                 modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
                 propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
@@ -446,29 +431,6 @@ public class Experiment {
                 addParameters("q", 0.1, "l", 4);
                 robustnessExperiment = true;
             }
-            // strategy synthesis not supported for bounded properties
-//            case ROBOT_COORD_NZ_SAMEH -> {
-//                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
-//                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
-//                propertyIndex = 5;
-//                addParameters("q", 0.1, "l", 4, "k", 4); // 0.1 for prop 5, 0.25 for prop 6
-//                robustnessExperiment = true;
-//            }
-//            case ROBOT_COORD_NZ_DIFFH -> {
-//                modelFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.prism";
-//                propertiesFile = "./prism-examples/csgs/robot_coordination/robot_coordination2.props";
-//                propertyIndex = 6;
-//                addParameters("q", 0.25, "l", 4, "k", 8); // 0.1 for prop 5, 0.25 for prop 6
-//                robustnessExperiment = true;
-//            }
-            // out of memory error - java heap space
-//            case USER_CENTRIC -> {
-//                modelFile = "./prism-examples/csgs/user-centric/user-centric.prism";
-//                propertiesFile = "./prism-examples/csgs/user-centric/user-centric.props";
-//                propertyIndex = 3;
-//                addParameters("td", 1, "K", 3);
-//                robustnessExperiment = true;
-//            }
         }
         return this;
     }
