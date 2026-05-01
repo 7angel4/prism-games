@@ -92,9 +92,9 @@ public class PACLearner {
         this.prism.setGenStrat(genStrat);
     }
 
-    public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws PrismException {
+    public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String logSubdir) throws PrismException {
         helper.spec = spec;
-        logger = new Logger(modelFilePath, propertyIndex, robustnessExperiment);
+        logger = new Logger(modelFilePath, propertyIndex, logSubdir);
         System.out.println("Property: " + spec.property);
 
         return runPacLoop(
@@ -549,16 +549,17 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA_DDL);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
-        ex.robustnessExperiment = true;
+        ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
         ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
+        String logSubdir = "g(r)";
         long start = System.nanoTime();
-        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
+        PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
         long duration = end - start;
 
