@@ -384,7 +384,7 @@ public class Experiment {
             case HIDE_OR_RUN -> {
                 modelFile = "./prism-examples/csgs/learning/hide_or_run.prism";
                 propertiesFile = "./prism-examples/csgs/learning/hide_or_run.props";
-                propertyIndex = 1;
+                propertyIndex = 2;
             }
             case MIXED_NE -> {
                 modelFile = "./prism-examples/csgs/learning/mixed_ne.prism";
