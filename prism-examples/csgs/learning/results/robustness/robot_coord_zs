@@ -1,0 +1,134 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Fri May 01 11:14:07 BST 2026
+Hostname: MacBook-Pro-288.local
+Memory limits: cudd=1g, java(heap)=2g
+
+Parsing PRISM model file "./prism-examples/csgs/robot_coordination/robot_coordination2.prism"...
+
+Type:        CSG
+Players:     robot1 robot2
+Modules:     robot1 robot2
+Actions:     [n1] [e1] [ne1] [done1] [s2] [w2] [sw2] [done2]
+Variables:   x1 y1 x2 y2
+Labels:      "goal1" "goal2" "crash"
+Rewards:     "time1" "time2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+Model constants: q=0.1,l=4
+
+Computing reachable states... 226 states
+Reachable states exploration and model construction done in 0.066 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.094 seconds.
+
+Type:        CSG
+Players:     2
+States:      226 (1 initial)
+Transitions: 6610
+Choices:     970
+Max/avg:     9/4.29
+Logging to: /Users/Angel/Desktop/prism-games/prism-examples/csgs/learning/logs/robustness/robot_coordination23.csv
+Property: <<robot1>>R{"time1"}min=? [ F "goal1" ]
+Building reward structure...
+Max/avg (actions): (3,3)/(2.07,2.07)
+Max/avg (actions): (3,3)/(2.07,2.07)
+
+Value iteration converged after 4 iterations.
+
+Value iteration converged after 4 iterations.
+Building reward structure...
+Max/avg (actions): (3,3)/(2.07,2.07)
+Max/avg (actions): (3,3)/(2.07,2.07)
+
+Value iteration converged after 26 iterations.
+
+Value iteration converged after 22 iterations.
+Stopping probability: 1.0
+Effective horizon: 226
+Lower bound on reachability probability: 0.0
+Building reward structure...
+Max/avg (actions): (3,3)/(2.07,2.07)
+Max/avg (actions): (3,3)/(2.07,2.07)
+
+Value iteration converged after 8 iterations.
+
+Value iteration converged after 8 iterations.
+Building reward structure...
+Max/avg (actions): (3,3)/(2.07,2.07)
+Max/avg (actions): (3,3)/(2.07,2.07)
+
+Value iteration converged after 11 iterations.
+
+Value iteration converged after 9 iterations.
+
+---------------------------------------
+Epsilon: 0.2
+Confidence: 0.05
+
+Execution time: 9318.882458 ms
+Episodes=3
+DeltaT=510760.0
+nMin=3132052465358948
+
+---------------------------------------
+Building reward structure...
+
+Starting expected reachability...
+Max/avg (actions): (3,3)/(2.07,2.07)
+Max/avg (actions): (3,3)/(2.07,2.07)
+target=15, inf=0, rest=211
+Computing the upper bound where 0.1 is used instead of 0.0
+
+Starting value iteration...
+
+Value iteration converged after 10 iterations.
+Computed an over-approximation of the solution (in 0.038 seconds), this will now be used to get the solution
+
+Starting value iteration...
+
+Value iteration converged after 9 iterations.
+Expected reachability took 0.086 seconds.
+Precomputation took 0.012 seconds.
+True SolveOutcome{found = true, value = 4.551100539544, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 ->  $ s:6 ->  $ s:7 ->  $ s:8 ->  $ s:9 ->  $ s:10 ->  $ s:11 ->  $ s:12 ->  $ s:13 ->  $ s:14 ->  $ s:15 ->  $ s:16 ->  $ s:17 ->  $ s:18 ->  $ s:19 ->  $ s:20 ->  $ s:21 ->  $ s:22 ->  $ s:23 ->  $ s:24 ->  $ s:25 ->  $ s:26 ->  $ s:27 ->  $ s:28 ->  $ s:29 ->  $ s:30 ->  $ s:31 ->  $ s:32 ->  $ s:33 ->  $ s:34 ->  $ s:35 ->  $ s:36 ->  $ s:37 ->  $ s:38 ->  $ s:39 ->  $ s:40 ->  $ s:41 ->  $ s:42 ->  $ s:43 ->  $ s:44 ->  $ s:45 ->  $ s:46 ->  $ s:47 ->  $ s:48 ->  $ s:49 ->  $ s:50 ->  $ s:51 ->  $ s:52 ->  $ s:53 ->  $ s:54 ->  $ s:55 ->  $ s:56 ->  $ s:57 ->  $ s:58 ->  $ s:59 ->  $ s:60 ->  $ s:61 ->  $ s:62 ->  $ s:63 ->  $ s:64 ->  $ s:65 ->  $ s:66 ->  $ s:67 ->  $ s:68 ->  $ s:69 ->  $ s:70 ->  $ s:71 ->  $ s:72 ->  $ s:73 ->  $ s:74 ->  $ s:75 ->  $ s:76 ->  $ s:77 ->  $ s:78 ->  $ s:79 ->  $ s:80 ->  $ s:81 ->  $ s:82 ->  $ s:83 ->  $ s:84 ->  $ s:85 ->  $ s:86 ->  $ s:87 ->  $ s:88 ->  $ s:89 ->  $ s:90 ->  $ s:91 ->  $ s:92 ->  $ s:93 ->  $ s:94 ->  $ s:95 ->  $ s:96 ->  $ s:97 ->  $ s:98 ->  $ s:99 ->  $ s:100 ->  $ s:101 ->  $ s:102 ->  $ s:103 ->  $ s:104 ->  $ s:105 ->  $ s:106 ->  $ s:107 ->  $ s:108 ->  $ s:109 ->  $ s:110 ->  $ s:111 ->  $ s:112 ->  $ s:113 ->  $ s:114 ->  $ s:115 ->  $ s:116 ->  $ s:117 ->  $ s:118 ->  $ s:119 ->  $ s:120 ->  $ s:121 ->  $ s:122 ->  $ s:123 ->  $ s:124 ->  $ s:125 ->  $ s:126 ->  $ s:127 ->  $ s:128 ->  $ s:129 ->  $ s:130 ->  $ s:131 ->  $ s:132 ->  $ s:133 ->  $ s:134 ->  $ s:135 ->  $ s:136 ->  $ s:137 ->  $ s:138 ->  $ s:139 ->  $ s:140 ->  $ s:141 ->  $ s:142 ->  $ s:143 ->  $ s:144 ->  $ s:145 ->  $ s:146 ->  $ s:147 ->  $ s:148 ->  $ s:149 ->  $ s:150 ->  $ s:151 ->  $ s:152 ->  $ s:153 ->  $ s:154 ->  $ s:155 ->  $ s:156 ->  $ s:157 ->  $ s:158 ->  $ s:159 ->  $ s:160 ->  $ s:161 ->  $ s:162 ->  $ s:163 ->  $ s:164 ->  $ s:165 ->  $ s:166 ->  $ s:167 ->  $ s:168 ->  $ s:169 ->  $ s:170 ->  $ s:171 ->  $ s:172 ->  $ s:173 ->  $ s:174 ->  $ s:175 ->  $ s:176 ->  $ s:177 ->  $ s:178 ->  $ s:179 ->  $ s:180 ->  $ s:181 ->  $ s:182 ->  $ s:183 ->  $ s:184 ->  $ s:185 ->  $ s:186 ->  $ s:187 ->  $ s:188 ->  $ s:189 ->  $ s:190 ->  $ s:191 ->  $ s:192 ->  $ s:193 ->  $ s:194 ->  $ s:195 ->  $ s:196 ->  $ s:197 ->  $ s:198 ->  $ s:199 ->  $ s:200 ->  $ s:201 ->  $ s:202 ->  $ s:203 ->  $ s:204 ->  $ s:205 ->  $ s:206 ->  $ s:207 ->  $ s:208 ->  $ s:209 ->  $ s:210 ->  $ s:211 ->  $ s:212 ->  $ s:213 ->  $ s:214 ->  $ s:215 ->  $ s:216 ->  $ s:217 ->  $ s:218 ->  $ s:219 ->  $ s:220 ->  $ s:221 ->  $ s:222 ->  $ s:223 ->  $ s:224 ->  $ s:225 -> }
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 3.8950349452737036, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 ->  $ s:6 ->  $ s:7 ->  $ s:8 ->  $ s:9 ->  $ s:10 ->  $ s:11 ->  $ s:12 ->  $ s:13 ->  $ s:14 ->  $ s:15 ->  $ s:16 ->  $ s:17 ->  $ s:18 ->  $ s:19 ->  $ s:20 ->  $ s:21 ->  $ s:22 ->  $ s:23 ->  $ s:24 ->  $ s:25 ->  $ s:26 ->  $ s:27 ->  $ s:28 ->  $ s:29 ->  $ s:30 ->  $ s:31 ->  $ s:32 ->  $ s:33 ->  $ s:34 ->  $ s:35 ->  $ s:36 ->  $ s:37 ->  $ s:38 ->  $ s:39 ->  $ s:40 ->  $ s:41 ->  $ s:42 ->  $ s:43 ->  $ s:44 ->  $ s:45 ->  $ s:46 ->  $ s:47 ->  $ s:48 ->  $ s:49 ->  $ s:50 ->  $ s:51 ->  $ s:52 ->  $ s:53 ->  $ s:54 ->  $ s:55 ->  $ s:56 ->  $ s:57 ->  $ s:58 ->  $ s:59 ->  $ s:60 ->  $ s:61 ->  $ s:62 ->  $ s:63 ->  $ s:64 ->  $ s:65 ->  $ s:66 ->  $ s:67 ->  $ s:68 ->  $ s:69 ->  $ s:70 ->  $ s:71 ->  $ s:72 ->  $ s:73 ->  $ s:74 ->  $ s:75 ->  $ s:76 ->  $ s:77 ->  $ s:78 ->  $ s:79 ->  $ s:80 ->  $ s:81 ->  $ s:82 ->  $ s:83 ->  $ s:84 ->  $ s:85 ->  $ s:86 ->  $ s:87 ->  $ s:88 ->  $ s:89 ->  $ s:90 ->  $ s:91 ->  $ s:92 ->  $ s:93 ->  $ s:94 ->  $ s:95 ->  $ s:96 ->  $ s:97 ->  $ s:98 ->  $ s:99 ->  $ s:100 ->  $ s:101 ->  $ s:102 ->  $ s:103 ->  $ s:104 ->  $ s:105 ->  $ s:106 ->  $ s:107 ->  $ s:108 ->  $ s:109 ->  $ s:110 ->  $ s:111 ->  $ s:112 ->  $ s:113 ->  $ s:114 ->  $ s:115 ->  $ s:116 ->  $ s:117 ->  $ s:118 ->  $ s:119 ->  $ s:120 ->  $ s:121 ->  $ s:122 ->  $ s:123 ->  $ s:124 ->  $ s:125 ->  $ s:126 ->  $ s:127 ->  $ s:128 ->  $ s:129 ->  $ s:130 ->  $ s:131 ->  $ s:132 ->  $ s:133 ->  $ s:134 ->  $ s:135 ->  $ s:136 ->  $ s:137 ->  $ s:138 ->  $ s:139 ->  $ s:140 ->  $ s:141 ->  $ s:142 ->  $ s:143 ->  $ s:144 ->  $ s:145 ->  $ s:146 ->  $ s:147 ->  $ s:148 ->  $ s:149 ->  $ s:150 ->  $ s:151 ->  $ s:152 ->  $ s:153 ->  $ s:154 ->  $ s:155 ->  $ s:156 ->  $ s:157 ->  $ s:158 ->  $ s:159 ->  $ s:160 ->  $ s:161 ->  $ s:162 ->  $ s:163 ->  $ s:164 ->  $ s:165 ->  $ s:166 ->  $ s:167 ->  $ s:168 ->  $ s:169 ->  $ s:170 ->  $ s:171 ->  $ s:172 ->  $ s:173 ->  $ s:174 ->  $ s:175 ->  $ s:176 ->  $ s:177 ->  $ s:178 ->  $ s:179 ->  $ s:180 ->  $ s:181 ->  $ s:182 ->  $ s:183 ->  $ s:184 ->  $ s:185 ->  $ s:186 ->  $ s:187 ->  $ s:188 ->  $ s:189 ->  $ s:190 ->  $ s:191 ->  $ s:192 ->  $ s:193 ->  $ s:194 ->  $ s:195 ->  $ s:196 ->  $ s:197 ->  $ s:198 ->  $ s:199 ->  $ s:200 ->  $ s:201 ->  $ s:202 ->  $ s:203 ->  $ s:204 ->  $ s:205 ->  $ s:206 ->  $ s:207 ->  $ s:208 ->  $ s:209 ->  $ s:210 ->  $ s:211 ->  $ s:212 ->  $ s:213 ->  $ s:214 ->  $ s:215 ->  $ s:216 ->  $ s:217 ->  $ s:218 ->  $ s:219 ->  $ s:220 ->  $ s:221 ->  $ s:222 ->  $ s:223 ->  $ s:224 ->  $ s:225 -> }
+Evaluating robust strategy in true CSG...
+Starting expected reachability (max)...
+target=15, inf=0, rest=209
+Starting value iteration (max, with Power method)...
+Value iteration (max, with Power method) took 6 iterations, 19524 multiplications and 0.006 seconds.
+Expected reachability took 0.009 seconds.
+True value of learned strategy: 0.3697729788073435
+Estimation error: -3.5252619664663603
+Value gap: 4.181327560736656
+Starting expected reachability (max)...
+target=15, inf=0, rest=209
+Starting value iteration (max, with Power method)...
+Value iteration (max, with Power method) took 6 iterations, 19524 multiplications and 0.002 seconds.
+Expected reachability took 0.004 seconds.
+Max deviation gain: 0.656065594270296
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 4.472431718440066, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 ->  $ s:5 ->  $ s:6 ->  $ s:7 ->  $ s:8 ->  $ s:9 ->  $ s:10 ->  $ s:11 ->  $ s:12 ->  $ s:13 ->  $ s:14 ->  $ s:15 ->  $ s:16 ->  $ s:17 ->  $ s:18 ->  $ s:19 ->  $ s:20 ->  $ s:21 ->  $ s:22 ->  $ s:23 ->  $ s:24 ->  $ s:25 ->  $ s:26 ->  $ s:27 ->  $ s:28 ->  $ s:29 ->  $ s:30 ->  $ s:31 ->  $ s:32 ->  $ s:33 ->  $ s:34 ->  $ s:35 ->  $ s:36 ->  $ s:37 ->  $ s:38 ->  $ s:39 ->  $ s:40 ->  $ s:41 ->  $ s:42 ->  $ s:43 ->  $ s:44 ->  $ s:45 ->  $ s:46 ->  $ s:47 ->  $ s:48 ->  $ s:49 ->  $ s:50 ->  $ s:51 ->  $ s:52 ->  $ s:53 ->  $ s:54 ->  $ s:55 ->  $ s:56 ->  $ s:57 ->  $ s:58 ->  $ s:59 ->  $ s:60 ->  $ s:61 ->  $ s:62 ->  $ s:63 ->  $ s:64 ->  $ s:65 ->  $ s:66 ->  $ s:67 ->  $ s:68 ->  $ s:69 ->  $ s:70 ->  $ s:71 ->  $ s:72 ->  $ s:73 ->  $ s:74 ->  $ s:75 ->  $ s:76 ->  $ s:77 ->  $ s:78 ->  $ s:79 ->  $ s:80 ->  $ s:81 ->  $ s:82 ->  $ s:83 ->  $ s:84 ->  $ s:85 ->  $ s:86 ->  $ s:87 ->  $ s:88 ->  $ s:89 ->  $ s:90 ->  $ s:91 ->  $ s:92 ->  $ s:93 ->  $ s:94 ->  $ s:95 ->  $ s:96 ->  $ s:97 ->  $ s:98 ->  $ s:99 ->  $ s:100 ->  $ s:101 ->  $ s:102 ->  $ s:103 ->  $ s:104 ->  $ s:105 ->  $ s:106 ->  $ s:107 ->  $ s:108 ->  $ s:109 ->  $ s:110 ->  $ s:111 ->  $ s:112 ->  $ s:113 ->  $ s:114 ->  $ s:115 ->  $ s:116 ->  $ s:117 ->  $ s:118 ->  $ s:119 ->  $ s:120 ->  $ s:121 ->  $ s:122 ->  $ s:123 ->  $ s:124 ->  $ s:125 ->  $ s:126 ->  $ s:127 ->  $ s:128 ->  $ s:129 ->  $ s:130 ->  $ s:131 ->  $ s:132 ->  $ s:133 ->  $ s:134 ->  $ s:135 ->  $ s:136 ->  $ s:137 ->  $ s:138 ->  $ s:139 ->  $ s:140 ->  $ s:141 ->  $ s:142 ->  $ s:143 ->  $ s:144 ->  $ s:145 ->  $ s:146 ->  $ s:147 ->  $ s:148 ->  $ s:149 ->  $ s:150 ->  $ s:151 ->  $ s:152 ->  $ s:153 ->  $ s:154 ->  $ s:155 ->  $ s:156 ->  $ s:157 ->  $ s:158 ->  $ s:159 ->  $ s:160 ->  $ s:161 ->  $ s:162 ->  $ s:163 ->  $ s:164 ->  $ s:165 ->  $ s:166 ->  $ s:167 ->  $ s:168 ->  $ s:169 ->  $ s:170 ->  $ s:171 ->  $ s:172 ->  $ s:173 ->  $ s:174 ->  $ s:175 ->  $ s:176 ->  $ s:177 ->  $ s:178 ->  $ s:179 ->  $ s:180 ->  $ s:181 ->  $ s:182 ->  $ s:183 ->  $ s:184 ->  $ s:185 ->  $ s:186 ->  $ s:187 ->  $ s:188 ->  $ s:189 ->  $ s:190 ->  $ s:191 ->  $ s:192 ->  $ s:193 ->  $ s:194 ->  $ s:195 ->  $ s:196 ->  $ s:197 ->  $ s:198 ->  $ s:199 ->  $ s:200 ->  $ s:201 ->  $ s:202 ->  $ s:203 ->  $ s:204 ->  $ s:205 ->  $ s:206 ->  $ s:207 ->  $ s:208 ->  $ s:209 ->  $ s:210 ->  $ s:211 ->  $ s:212 ->  $ s:213 ->  $ s:214 ->  $ s:215 ->  $ s:216 ->  $ s:217 ->  $ s:218 ->  $ s:219 ->  $ s:220 ->  $ s:221 ->  $ s:222 ->  $ s:223 ->  $ s:224 ->  $ s:225 -> }
+Evaluating point strategy in true CSG...
+Starting expected reachability (max)...
+target=15, inf=0, rest=190
+Starting value iteration (max, with Power method)...
+Value iteration (max, with Power method) took 6 iterations, 18636 multiplications and 0.002 seconds.
+Expected reachability took 0.005 seconds.
+True value of learned strategy: 0.7970901883222895
+Estimation error: -3.6753415301177763
+Value gap: 3.75401035122171
+Starting expected reachability (max)...
+target=15, inf=0, rest=190
+Starting value iteration (max, with Power method)...
+Value iteration (max, with Power method) took 6 iterations, 18636 multiplications and 0.002 seconds.
+Expected reachability took 0.003 seconds.
+Max deviation gain: 0.0786688211039337
