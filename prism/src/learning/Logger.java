@@ -10,7 +10,7 @@ import java.io.PrintWriter;
 public class Logger {
     protected PrintWriter logWriter;
 
-    public Logger(String modelFilePath, int propertyIndex, boolean robustnessExperiment) {
+    public Logger(String modelFilePath, int propertyIndex, String subdir) {
         try {
             String root = Paths.get("").toAbsolutePath().toString() + "/prism-examples/csgs/learning/";
             Path rootDir = Paths.get(root);
@@ -24,7 +24,7 @@ public class Logger {
             // Ensure logs directory exists
             Files.createDirectories(logsDir);
             // Add subdir for each type of experiment
-            Path experimentDir = logsDir.resolve(robustnessExperiment ? "robustness" : "full");
+            Path experimentDir = logsDir.resolve(subdir);
             Files.createDirectories(experimentDir);
 
             // log file path
