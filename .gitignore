@@ -49,5 +49,8 @@ prism-examples/csgs/learning/~$results.xlsx
 .idea/
 out/production/
 *.iml
-/prism-examples/csgs/learning/analysis/.ipynb_checkpoints
+prism-examples/csgs/learning/analysis/.ipynb_checkpoints
 prism-examples/csgs/learning/results/failed/
+prism-examples/csgs/learning/results/robustness-old/
+prism-examples/csgs/learning/logs/robustness-old/
+prism-examples/csgs/learning/strats/robustness-old/
