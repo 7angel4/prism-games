@@ -348,7 +348,7 @@ public class PACHelper {
     // STRATEGY EXTRACTION
     List<Map<BitSet, Double>> extractNEStrategy(CSGStrategy<Double> strategy, int s) {
         List<Map<BitSet, Double>> result = new ArrayList<>();
-        int numPlayers = spec.zeroSum ? 1 : strategy.getNumModelPlayers();
+        int numPlayers = spec.zeroSum ? 1 : PACLearner.NUM_COALITIONS;
 
         for (int p = 0; p < numPlayers; p++) {
             Map<BitSet, Double> dist = strategy.getChoiceDistribution(p, 0, s);

@@ -25,6 +25,7 @@ public class PACLearner {
     public static final String ROBUST_SUFFIX = "_robust";
     public static final String TRUE_SUFFIX = "_true";
     public static final String POINT_SUFFIX = "_point";
+    public static final int NUM_COALITIONS = 2;
 
     public static final class PacResult {
         public final boolean noExactNE;
@@ -548,10 +549,9 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.ALOHA_DDL);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 4;
-        ex.robustnessExperiment = false;
+        ex.robustnessExperiment = true;
         ex.maxNumSamples = 10000;
         ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
