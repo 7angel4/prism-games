@@ -67,8 +67,6 @@ public class PACLearner {
     private CSGModelChecker pointMC;
     private Strategy<Double> explorationStrat;
 
-    private double trueValue = Double.NaN;
-
     private int episode;
     private final PACHelper helper = new PACHelper();
     private Logger logger;
@@ -449,19 +447,27 @@ public class PACLearner {
         return pStop;
     }
 
-    private void verifyInTrueGame(SolveOutcome sol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String strategyFileSuffix) throws Exception {
+    private void verifyInTrueGame(SolveOutcome sol, SolveOutcome trueSol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String strategyFileSuffix) throws Exception {
         if (helper.spec.finiteHorizon && sol.getStrategy() == null) {
 //            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("Strategy generation only supported for infinite-horizon properties. Skipping true value computation.");
         } else if (!sol.foundRNE()) {
             System.out.println("No exact NE found. Skipping true value computation.");
         } else {
-            double valueInTrueGame = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
+            double valueInTrueGame, valueGap;
+            if (trueSol.getStrategy() != null && trueSol.getStrategy().sameChoices(sol.getStrategy())) {
+                System.out.println("Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.");
+                valueInTrueGame = trueSol.getValue();
+                valueGap = 0.0;
+            } else {
+                valueInTrueGame = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
+                valueGap = trueSol.getValue() - valueInTrueGame;
+            }
             System.out.println("True value of learned strategy: " + valueInTrueGame);
             System.out.println("Estimation error: " + (valueInTrueGame - sol.getValue()));
-            System.out.println("Value gap: " + (trueValue - valueInTrueGame));
-            double trueDevGain = computeNashMargin(sol);
-            System.out.println("Max deviation gain: " + trueDevGain);
+            System.out.println("Value gap: " + valueGap);
+//            double trueDevGain = computeNashMargin(sol, trueSol.getValue());
+//            System.out.println("Max deviation gain: " + trueDevGain);
 
             if (exportStrat) {
                 sol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, strategyFileSuffix));
@@ -469,7 +475,7 @@ public class PACLearner {
         }
     }
 
-    protected double computeNashMargin(SolveOutcome sol) throws Exception {
+    protected double computeNashMargin(SolveOutcome sol, double trueValue) throws Exception {
         double eqVal = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
         // for zero-sum this is just true value - value under the given strategy
         if (helper.spec.zeroSum) {
@@ -505,7 +511,6 @@ public class PACLearner {
         SolveOutcome trueSol = solveTrueGame(helper.spec.propertiesFile, helper.spec.property);
         if (trueSol != null) {
             System.out.println("True " + trueSol);
-            trueValue = trueSol.getValue();
             if (exportStrat && trueSol.getStrategy() != null) {
                 trueSol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, TRUE_SUFFIX));
             }
@@ -515,12 +520,12 @@ public class PACLearner {
         System.out.println("Robust " + result.robustSol); // prints "Robust SolveOutcome{...}"
         // evaluate robust vs. point policy in true game
         System.out.println("Evaluating robust strategy in true CSG...");
-        verifyInTrueGame(result.robustSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, ROBUST_SUFFIX);
+        verifyInTrueGame(result.robustSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, ROBUST_SUFFIX);
 
         System.out.println("\n---------------------------------------");
         System.out.println("Point " + result.pointSol);
         System.out.println("Evaluating point strategy in true CSG...");
-        verifyInTrueGame(result.pointSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, POINT_SUFFIX);
+        verifyInTrueGame(result.pointSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, POINT_SUFFIX);
 
 
     }
@@ -546,15 +551,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
         ex.setSolverString("Yices");
+        ex.propertyIndex = 1;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
-        ex.epsilon = 0.2;
+        ex.epsilon = 8.0;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
-        String logSubdir = "H";
+        String logSubdir = "full";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
