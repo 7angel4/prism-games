@@ -1,4 +1,4 @@
 <<p1>> Pmax=? [ F s=1 ]
 
 const int k=3;
-<<p1:p2>>max=? (P[F<=k s=1] + P[F<=k s=2])
+<<p1>> Pmax=? [ F<=k s=1 ] 
