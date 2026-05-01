@@ -283,7 +283,7 @@ public class PACLearner {
         double rew = 0.0;
         if (!known[s][c]) {
             double r = empiricalGame.getRadius(s, c);
-            rew = Math.sqrt(r); // quadratic in radius to incentivise reducing uncertainty
+            rew = r * r; // quadratic in radius to incentivise reducing uncertainty
         }
         explorationRewards.setTransitionReward(s, c, rew);
     }
@@ -325,16 +325,13 @@ public class PACLearner {
                 updateExplorationReward(s, c);
                 updateKnown(s, c);
 
-                int sFinal = s;
-                int cFinal = c;
-
                 Set<Integer> succs = new HashSet<>(empiricalGame.getChoice(s, c).getSupport()); // snapshot of empiricalGame.getSuccessorsIterator
                 for (int succ : succs) {
-                    double pHat = transitionCounts[sFinal][cFinal][succ] / (double) saCount;
+                    double pHat = transitionCounts[s][c][succ] / (double) saCount;
                     pHat = Math.max(L1CSGSimple.TRANS_PROB_LB, pHat);
 
-                    empiricalGame.setCentre(sFinal, cFinal, succ, pHat);
-                    explorationRMDP.setCentre(sFinal, cFinal, succ, pHat);
+                    empiricalGame.setCentre(s, c, succ, pHat);
+                    explorationRMDP.setCentre(s, c, succ, pHat);
                 }
             }
         }
@@ -549,7 +546,7 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.MIXED_NE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
         ex.setSolverString("Yices");
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
@@ -557,7 +554,7 @@ public class PACLearner {
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
-        String logSubdir = "g(r)";
+        String logSubdir = "H";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
