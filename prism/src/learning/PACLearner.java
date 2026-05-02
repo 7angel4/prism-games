@@ -562,7 +562,7 @@ public class PACLearner {
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 299, true);
-        String logSubdir = "H/safe_risky4/run3";
+        String logSubdir = "H/safe_risky4/run3-299";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
