@@ -553,16 +553,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.HIDE_OR_RUN);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 2;
+        ex.propertyIndex = 4;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
         ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 41, true);
-        String logSubdir = "H";
+        PACLearner learner = new PACLearner(prism, 299, true);
+        String logSubdir = "H/safe_risky4/run3";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
