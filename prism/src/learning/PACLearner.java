@@ -186,7 +186,7 @@ public class PACLearner {
 
             update(deltaContain);
             if ((episode - 1) % 10 == 0)
-                logger.logEpisode(episode, deltaT, numSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
+                logger.logEpisode(episode, deltaT, numSamples, totalNumSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
             episode++;
         }
     }
@@ -222,6 +222,7 @@ public class PACLearner {
         int numStates = trueGame.getNumStates();
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
+        slotCounts = new long[numStates][];
         slotCounts = new long[numStates][];
         transitionCounts = new long[numStates][][];
         known = new boolean[numStates][];
@@ -505,6 +506,7 @@ public class PACLearner {
         System.out.println("Episodes=" + result.episodes);
         System.out.println("DeltaT=" + result.deltaT);
         System.out.println("nMin=" + this.nMin);
+        System.out.println("Total number of samples: " + this.totalNumSamples);
 
         // compare to true value
         System.out.println("\n---------------------------------------");

@@ -32,14 +32,14 @@ public class Logger {
             System.out.println("Logging to: " + logFilePath);
 
             logWriter = new PrintWriter(new FileWriter(logFilePath.toFile()));
-            logWriter.println("episode,deltaT,maxRadius,avgRadius,numUnknownSlots,coverage,numSamples");
+            logWriter.println("episode,deltaT,maxRadius,avgRadius,numUnknownSlots,propUnknown,numSamples,totalNumSamples");
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to open log file", e);
         }
     }
 
-    protected void logEpisode(int episode, double deltaT, int numSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage) {
+    protected void logEpisode(int episode, double deltaT, int numSamples, int totalNumSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage) {
         logWriter.println(
                 episode + "," +
                         deltaT + "," +
@@ -47,7 +47,8 @@ public class Logger {
                         avgRadius + "," +
                         numUnknownSlots + "," +
                         coverage + "," +
-                        numSamples
+                        numSamples + "," +
+                        totalNumSamples
         );
         logWriter.flush();
     }

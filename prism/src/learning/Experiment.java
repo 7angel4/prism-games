@@ -373,7 +373,7 @@ public class Experiment {
             case SAFE_RISKY -> {
                 modelFile = "./prism-examples/csgs/learning/safe_risky.prism";
                 propertiesFile = "./prism-examples/csgs/learning/safe_risky.props";
-                propertyIndex = 1;
+                propertyIndex = 4;
             }
             case CYCLIC_PREFS -> {
                 modelFile = "./prism-examples/csgs/learning/cyclic_prefs.prism";
