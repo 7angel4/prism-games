@@ -1,0 +1,100 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Sat May 02 08:24:37 BST 2026
+Hostname: MacBook-Pro-288.local
+Memory limits: cudd=1g, java(heap)=2g
+
+Parsing PRISM model file "./prism-examples/csgs/learning/safe_risky.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [a1] [b1] [a2] [b2]
+Variables:   s
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 4 states
+Reachable states exploration and model construction done in 0.01 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.032 seconds.
+
+Type:        CSG
+Players:     2
+States:      4 (1 initial)
+Transitions: 20
+Choices:     16
+Max/avg:     4/4.00
+Logging to: /Users/Angel/Desktop/prism-games/prism-examples/csgs/learning/logs/H/run2/safe_risky2.csv
+Property: <<p1:p2>>max=? (P[F<=k s=1] + P[F<=k s=2])
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.002 seconds.
+Coalition results (initial state): (0.5,0.5)
+Lower bound on reachability probability: 0.0
+Slot (1,1) is now known. Remaining unknown slots: 15
+Episode 31396: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 14
+Episode 31410: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 13
+Episode 31430: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 12
+Episode 31446: Resolving exploration RMDP
+Slot (3,2) is now known. Remaining unknown slots: 11
+Episode 79525: Resolving exploration RMDP
+Slot (3,1) is now known. Remaining unknown slots: 10
+Episode 79543: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 9
+Episode 79547: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 8
+Episode 79559: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 7
+Episode 91886: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 6
+Episode 92011: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 5
+Episode 92017: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 4
+Episode 92133: Resolving exploration RMDP
+Strategy synthesis for bounded properties is not supported yet.
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.599639866058,0.400360133942)
+
+---------------------------------------
+Epsilon: 0.2
+Confidence: 0.05
+
+Execution time: 1402393.293875 ms
+Episodes=459450
+DeltaT=0.04999999024891831
+nMin=5158185
+
+---------------------------------------
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.6,0.4)
+True SolveOutcome{found = true, value = 1.0, strategy = null}
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.997412339649, strategy = null}
+Evaluating robust strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 1.0, strategy = null}
+Evaluating point strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
