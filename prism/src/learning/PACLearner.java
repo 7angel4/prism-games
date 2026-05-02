@@ -447,7 +447,7 @@ public class PACLearner {
         return pStop;
     }
 
-    private void verifyInTrueGame(SolveOutcome sol, SolveOutcome trueSol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String strategyFileSuffix) throws Exception {
+    private void verifyInTrueGame(SolveOutcome sol, SolveOutcome trueSol, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String strategyFileSuffix, String subdirName) throws Exception {
         if (helper.spec.finiteHorizon && sol.getStrategy() == null) {
 //            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("Strategy generation only supported for infinite-horizon properties. Skipping true value computation.");
@@ -470,7 +470,7 @@ public class PACLearner {
 //            System.out.println("Max deviation gain: " + trueDevGain);
 
             if (exportStrat) {
-                sol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, strategyFileSuffix));
+                sol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, strategyFileSuffix, subdirName));
             }
         }
     }
@@ -496,7 +496,7 @@ public class PACLearner {
     }
 
 
-    private void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment) throws PrismException, InvalidStrategyStateException, Exception {
+    private void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String subdirName) throws PrismException, InvalidStrategyStateException, Exception {
         System.out.println("\n---------------------------------------");
         System.out.println("Epsilon: " + helper.spec.epsilon);
         System.out.println("Confidence: " + helper.spec.confidence);
@@ -512,7 +512,7 @@ public class PACLearner {
         if (trueSol != null) {
             System.out.println("True " + trueSol);
             if (exportStrat && trueSol.getStrategy() != null) {
-                trueSol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, TRUE_SUFFIX));
+                trueSol.getStrategy().exportToFile(getExportStrategyFile(modelFilePath, propertyIndex, robustnessExperiment, TRUE_SUFFIX, subdirName));
             }
         }
 
@@ -520,17 +520,17 @@ public class PACLearner {
         System.out.println("Robust " + result.robustSol); // prints "Robust SolveOutcome{...}"
         // evaluate robust vs. point policy in true game
         System.out.println("Evaluating robust strategy in true CSG...");
-        verifyInTrueGame(result.robustSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, ROBUST_SUFFIX);
+        verifyInTrueGame(result.robustSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, ROBUST_SUFFIX, subdirName);
 
         System.out.println("\n---------------------------------------");
         System.out.println("Point " + result.pointSol);
         System.out.println("Evaluating point strategy in true CSG...");
-        verifyInTrueGame(result.pointSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, POINT_SUFFIX);
+        verifyInTrueGame(result.pointSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, POINT_SUFFIX, subdirName);
 
 
     }
 
-    private File getExportStrategyFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment, String suffix) throws Exception {
+    private File getExportStrategyFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment, String suffix, String subdirName) throws Exception {
         String root = Paths.get("").toAbsolutePath().toString() + "/prism-examples/csgs/learning/";
         Path rootDir = Paths.get(root);
         Path modelPath = Paths.get(modelFilePath);
@@ -540,7 +540,7 @@ public class PACLearner {
         Path stratsDir = rootDir.resolve("strats");
         // Ensure strats directory exists
         Files.createDirectories(stratsDir);
-        Path experimentDir = stratsDir.resolve(robustnessExperiment ? "robustness" : "full");
+        Path experimentDir = stratsDir.resolve(subdirName);
         Files.createDirectories(experimentDir);
         return experimentDir.resolve(filename).toFile();
     }
@@ -551,21 +551,21 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
+        Experiment ex = new Experiment(Experiment.CaseStudy.HIDE_OR_RUN);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 1;
+        ex.propertyIndex = 2;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
-        ex.epsilon = 8.0;
+        ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
         PACLearner learner = new PACLearner(prism, 41, true);
-        String logSubdir = "full";
+        String logSubdir = "H";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
         long duration = end - start;
 
-        learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment);
+        learner.printResult(duration, res, true, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
     }
 }
