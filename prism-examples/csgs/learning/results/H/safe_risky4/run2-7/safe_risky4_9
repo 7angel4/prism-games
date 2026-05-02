@@ -56,3 +56,45 @@ Slot (3,2) is now known. Remaining unknown slots: 9
 Episode 421502: Resolving exploration RMDP
 Slot (3,0) is now known. Remaining unknown slots: 8
 Episode 421621: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 7
+Episode 1200068: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 6
+Episode 1200364: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 5
+Episode 1200406: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 4
+Episode 1200448: Resolving exploration RMDP
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.001 seconds.
+Coalition results (initial state): (0.59991192411,0.40008807589)
+
+---------------------------------------
+Epsilon: 0.2
+Confidence: 0.05
+
+Execution time: 1.4489495690167E7 ms
+Episodes=1801088
+DeltaT=0.04999999365451049
+nMin=60614971
+
+---------------------------------------
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.001 seconds.
+Coalition results (initial state): (0.6,0.4)
+True SolveOutcome{found = true, value = 1.0, strategy = null}
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.998890253348, strategy = null}
+Evaluating robust strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 1.0, strategy = null}
+Evaluating point strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
