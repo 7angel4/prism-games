@@ -1,0 +1,113 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Sat May 02 00:00:01 BST 2026
+Hostname: MacBook-Pro-288.local
+Memory limits: cudd=1g, java(heap)=2g
+
+Parsing PRISM model file "./prism-examples/csgs/learning/hide_or_run.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [hide1] [run1] [wait2] [throw2]
+Variables:   s
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 4 states
+Reachable states exploration and model construction done in 0.019 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.093 seconds.
+
+Type:        CSG
+Players:     2
+States:      4 (1 initial)
+Transitions: 16
+Choices:     16
+Max/avg:     4/4.00
+Logging to: /Users/Angel/Desktop/prism-games/prism-examples/csgs/learning/logs/H/hide_or_run2.csv
+Property: <<p1>>Pmax=? [ F<=k s=1 ]
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 11 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 11 iterations.
+Lower bound on reachability probability: 1.0
+Slot (1,1) is now known. Remaining unknown slots: 15
+Episode 1030890: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 14
+Episode 1031017: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 13
+Episode 1031080: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 12
+Episode 1031156: Resolving exploration RMDP
+Slot (3,2) is now known. Remaining unknown slots: 11
+Episode 1897952: Resolving exploration RMDP
+Slot (3,1) is now known. Remaining unknown slots: 10
+Episode 1898581: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 9
+Episode 1898713: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 8
+Episode 1899322: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 7
+Episode 4401170: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 6
+Episode 4402411: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 5
+Episode 4402429: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 4
+Episode 4402493: Resolving exploration RMDP
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 11 iterations.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 11 iterations.
+
+---------------------------------------
+Epsilon: 0.2
+Confidence: 0.05
+
+Execution time: 2.1229995723792E7 ms
+Episodes=16076819
+DeltaT=0.09999999950259073
+nMin=32922195
+
+---------------------------------------
+
+Starting probabilistic reachability (until)...
+Max/avg (actions): (2,2)/(2.00,2.00)
+Max/avg (actions): (2,2)/(2.00,2.00)
+target=1, yes=1, no=0, maybe=3
+
+Starting value iteration...
+
+Value iteration converged after 11 iterations.
+Precomputation took 0.0 seconds.
+True SolveOutcome{found = true, value = 0.9090909090909091, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.9090909090909091, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating robust strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: 0.9090909090909091
+Estimation error: 0.0
+Value gap: 0.0
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 0.9090909090909091, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating point strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: 0.9090909090909091
+Estimation error: 0.0
+Value gap: 0.0
