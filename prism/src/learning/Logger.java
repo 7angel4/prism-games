@@ -39,7 +39,7 @@ public class Logger {
         }
     }
 
-    protected void logEpisode(int episode, double deltaT, int numSamples, int totalNumSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage) {
+    protected void logEpisode(int episode, double deltaT, int numSamples, long totalNumSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage) {
         logWriter.println(
                 episode + "," +
                         deltaT + "," +
