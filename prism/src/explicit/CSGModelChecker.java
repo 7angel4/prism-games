@@ -975,9 +975,9 @@ public class CSGModelChecker extends ProbModelChecker
 	public ModelCheckerResult computeReachRewardsValIter(CSG<?> csg, CSGRewards<Double> rewards, BitSet target, BitSet known, BitSet inf, double init[], int limit,
 			boolean bounded, boolean min) throws PrismException
 	{
-		if (genStrat && bounded) {
-			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
-		}
+//		if (genStrat && bounded) {
+//			throw new PrismException("Strategy synthesis for bounded properties is not supported yet.");
+//		}
 		ModelCheckerResult res = new ModelCheckerResult();
 		LpSolve lp;
 		ArrayList<ArrayList<Double>> mgame = new ArrayList<ArrayList<Double>>();

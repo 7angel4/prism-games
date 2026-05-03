@@ -41,7 +41,7 @@ public class PACHelper {
                     '}';
         }
 
-        public boolean foundRNE() {
+        public boolean foundNE() {
             return found;
         }
 
@@ -186,7 +186,7 @@ public class PACHelper {
                 @SuppressWarnings("unchecked")
                 CSGStrategy<Double> strategy = (CSGStrategy<Double>) csgStrat;
                 return new SolveOutcome(true, strategy, value);
-            } else if (strat == null) {
+            } else if (strat == null) { // NE found but strategy generation may not be supported
                 return new SolveOutcome(true, null, value);
             } else {
                 throw new PrismException("Expected a CSGStrategy from solve, but got " + strat.getClass().getSimpleName());

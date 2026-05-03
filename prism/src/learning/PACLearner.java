@@ -28,19 +28,16 @@ public class PACLearner {
     public static final int NUM_COALITIONS = 2;
 
     public static final class PacResult {
-        public final boolean noExactNE;
         public final int episodes;
         public final double deltaT;
         public final SolveOutcome robustSol;
         public final SolveOutcome pointSol;
 
-        public PacResult(boolean noExactNE,
-                         int episodes,
+        public PacResult(int episodes,
                          double deltaT,
                          SolveOutcome robustSol,
                          SolveOutcome pointSol
                          ) {
-            this.noExactNE = noExactNE;
             this.episodes = episodes;
             this.deltaT = deltaT;
             this.robustSol = robustSol;
@@ -161,7 +158,7 @@ public class PACLearner {
                 logger.close(); // ===== NEW =====
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
-                return new PacResult(false, episode-1, deltaT, robustSol, pointSol);
+                return new PacResult(episode-1, deltaT, robustSol, pointSol);
             }
 
             if (episode == 1) {
@@ -186,10 +183,7 @@ public class PACLearner {
     }
 
     private int computeNumSamples(double deltaCov, int episode, double pReach) {
-//        double invDeltaEpisode = (episode * (episode + 1.0)) / deltaCov;
-        double eps = 0.5; // or 0.1, 1.0, etc.
-        double logt = Math.log(episode + 1.0);
-        double invDeltaEpisode = (episode * Math.pow(logt, 1.0 + eps)) / deltaCov; // looser but simpler bound that still gives logarithmic dependence on 1/deltaCov
+        double invDeltaEpisode = (episode * (episode + 1.0)) / deltaCov;
         return (int) Math.ceil(Math.log(invDeltaEpisode) * Math.min(numUnknownSlots, 1.0 / pReach));
 //        return (int) Math.ceil(- Math.log(deltaEpisode) * Math.max(1, numUnknownSlots));
     }
@@ -431,7 +425,7 @@ public class PACLearner {
     private double computeStopProb() throws PrismException {
         // target is now union of the players' targets
         BitSet target = helper.getTargetUnion();
-        double[] sol = helper.computeReachProbs(prism, empiricalGame, target, MinMax.minMin(true, true));
+        double[] sol = helper.computeReachProbs(prism, empiricalGame, target, MinMax.minMin(false, true));
         double pStop = DoubleStream.of(sol)
                 .filter(x -> x > TRANS_PROB_LB)
                 .min()
@@ -446,7 +440,7 @@ public class PACLearner {
         if (helper.spec.finiteHorizon && sol.getStrategy() == null) {
 //            String reason = helper.spec.finiteHorizon ? "strategy generation only supported for infinite-horizon properties" : "strategy generation is disabled for Prob1 precomputation";
             System.out.println("Strategy generation only supported for infinite-horizon properties. Skipping true value computation.");
-        } else if (!sol.foundRNE()) {
+        } else if (!sol.foundNE()) {
             System.out.println("No exact NE found. Skipping true value computation.");
         } else {
             double valueInTrueGame, valueGap;
@@ -547,16 +541,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
+        Experiment ex = new Experiment(Experiment.CaseStudy.CYCLIC_PREFS);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 3;
+        ex.propertyIndex = 2;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
-        ex.epsilon = 2.0;
+//        ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 7, true);
-        String logSubdir = "full/check";
+        PACLearner learner = new PACLearner(prism, 41, true);
+        String logSubdir = "full";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
