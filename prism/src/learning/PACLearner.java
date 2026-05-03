@@ -71,7 +71,7 @@ public class PACLearner {
     private final PACHelper helper = new PACHelper();
     private Logger logger;
     private double totalRadius = 0.0;
-    private int totalNumSamples = 0;
+    private long totalNumSamples = 0;
 
     /**
      * The effective horizon
@@ -161,13 +161,7 @@ public class PACLearner {
                 logger.close(); // ===== NEW =====
                 SolveOutcome robustSol = robustSolveL1CSG(property);
                 SolveOutcome pointSol = solvePointModel(property);
-
-                if (!robustSol.foundRNE()) {
-                    if (zeroSum) throw new PrismException("No NE found but zero-sum property should always have an NE");
-                    return new PacResult(true, episode-1, deltaT, robustSol, pointSol); // this final episode doesn't count
-                } else {
-                    return new PacResult(false, episode-1, deltaT, robustSol, pointSol);
-                }
+                return new PacResult(false, episode-1, deltaT, robustSol, pointSol);
             }
 
             if (episode == 1) {
@@ -476,25 +470,25 @@ public class PACLearner {
         }
     }
 
-    protected double computeNashMargin(SolveOutcome sol, double trueValue) throws Exception {
-        double eqVal = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
-        // for zero-sum this is just true value - value under the given strategy
-        if (helper.spec.zeroSum) {
-//            if (Double.isNaN(trueValue)) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
-            return trueValue - sol.getValue();
-        }
-        int s0 = trueGame.getFirstInitialState();
-        // extract per-player strategies
-        List<Map<BitSet, Double>> strat = helper.extractNEStrategy(sol.getStrategy(), s0);
-        // compute equilibrium value in true game
-        double maxMargin = 0.0;
-        for (int p = 0; p < strat.size(); p++) {
-            double devVal = trueGame.computeDeviationValue(p, strat, helper.rewards, trueGame.getIndexes(), s0);
-            maxMargin = Math.max(maxMargin, devVal - eqVal);
-        }
-
-        return maxMargin;
-    }
+//    protected double computeNashMargin(SolveOutcome sol, double trueValue) throws Exception {
+//        double eqVal = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
+//        // for zero-sum this is just true value - value under the given strategy
+//        if (helper.spec.zeroSum) {
+////            if (Double.isNaN(trueValue)) trueValue = solveTrueGame(helper.spec.propertiesFile, helper.spec.property).getValue();
+//            return trueValue - sol.getValue();
+//        }
+//        int s0 = trueGame.getFirstInitialState();
+//        // extract per-player strategies
+//        List<Map<BitSet, Double>> strat = helper.extractNEStrategy(sol.getStrategy(), s0);
+//        // compute equilibrium value in true game
+//        double maxMargin = 0.0;
+//        for (int p = 0; p < strat.size(); p++) {
+//            double devVal = trueGame.computeDeviationValue(p, strat, helper.rewards, trueGame.getIndexes(), s0);
+//            maxMargin = Math.max(maxMargin, devVal - eqVal);
+//        }
+//
+//        return maxMargin;
+//    }
 
 
     private void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String subdirName) throws PrismException, InvalidStrategyStateException, Exception {
@@ -553,16 +547,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
+        Experiment ex = new Experiment(Experiment.CaseStudy.DELAYED_COORD);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 4;
+        ex.propertyIndex = 3;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
-        ex.epsilon = 0.2;
+        ex.epsilon = 2.0;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 299, true);
-        String logSubdir = "H/safe_risky4/run3-299";
+        PACLearner learner = new PACLearner(prism, 7, true);
+        String logSubdir = "full/check";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
