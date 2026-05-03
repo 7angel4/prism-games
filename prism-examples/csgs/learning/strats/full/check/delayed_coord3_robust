@@ -1,0 +1,69 @@
+CSG_STRATEGY
+type=ZERO_SUM
+numPlayers=1
+numStates=5
+numMemory=5
+
+PLAYER 0
+MEMORY 0
+STATE 0
+1.0 : [c1]
+STATE 1
+1.0 : [c1]
+STATE 2
+1.0 : [c1]
+STATE 3
+1.0 : [c1]
+STATE 4
+1.0 : [c1]
+
+MEMORY 1
+STATE 0
+1.0 : [c1]
+STATE 1
+1.0 : [c1]
+STATE 2
+1.0 : [c1]
+STATE 3
+1.0 : [c1]
+STATE 4
+1.0 : [c1]
+
+MEMORY 2
+STATE 0
+1.0 : [c1]
+STATE 1
+1.0 : [c1]
+STATE 2
+1.0 : [c1]
+STATE 3
+1.0 : [c1]
+STATE 4
+1.0 : [c1]
+
+MEMORY 3
+STATE 0
+1.0 : [c1]
+STATE 1
+1.0 : [c1]
+STATE 2
+1.0 : [c1]
+STATE 3
+1.0 : [c1]
+STATE 4
+1.0 : [c1]
+
+MEMORY 4
+STATE 0
+1.0 : [c1]
+STATE 1
+1.0 : [c1]
+STATE 2
+1.0 : [c1]
+STATE 3
+1.0 : [c1]
+STATE 4
+1.0 : [c1]
+
+
+END

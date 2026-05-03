@@ -1,1 +1,5 @@
 <<p1:p2>>max=? ( R{"r1"}[F s=3] + R{"r2"}[F s=3] )
+
+const int k1=3;
+const int k2=5; 
+<<p1:p2>>max=? ( P[F<=k1 s=3] + P[F<=k2 s=3] ) 
