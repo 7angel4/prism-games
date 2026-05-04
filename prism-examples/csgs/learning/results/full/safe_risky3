@@ -1,3 +1,16 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Mon May 04 10:11:16 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
 Parsing PRISM model file "./prism-examples/csgs/learning/safe_risky.prism"...
 
 Type:        CSG
@@ -12,10 +25,10 @@ Switching to explicit engine, which supports CSGs...
 Building model (engine:explicit)...
 
 Computing reachable states... 4 states
-Reachable states exploration and model construction done in 0.011 secs.
+Reachable states exploration and model construction done in 0.016 secs.
 Sorting reachable states list...
 
-Time for model construction: 0.043 seconds.
+Time for model construction: 0.072 seconds.
 
 Type:        CSG
 Players:     2
@@ -23,36 +36,38 @@ States:      4 (1 initial)
 Transitions: 20
 Choices:     16
 Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/safe_risky3/safe_risky3.csv
+Property: <<p1:p2>>max=? (R{"r1"}[F s=1] + R{"r2"}[F s=2])
 
 Max/avg (actions): (2,2)/(2.00,2.00)
 
 Stopping probability: 1.0
 Effective horizon: 4
-Lower bound on reachability probability: 1.0000000000287557E-6
-Slot (1,2) is now known. Remaining unknown slots: 15
-Episode 49481: Resolving exploration RMDP
-Slot (1,3) is now known. Remaining unknown slots: 14
+Lower bound on reachability probability: 0.0
+Slot (1,1) is now known. Remaining unknown slots: 15
+Episode 49489: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 14
 Episode 49497: Resolving exploration RMDP
-Slot (1,1) is now known. Remaining unknown slots: 13
-Episode 49514: Resolving exploration RMDP
-Slot (1,0) is now known. Remaining unknown slots: 12
+Slot (1,3) is now known. Remaining unknown slots: 13
+Episode 49511: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 12
 Episode 49525: Resolving exploration RMDP
-Slot (0,1) is now known. Remaining unknown slots: 11
-Episode 100989: Resolving exploration RMDP
-Slot (0,3) is now known. Remaining unknown slots: 10
-Episode 101030: Resolving exploration RMDP
-Slot (0,2) is now known. Remaining unknown slots: 9
-Episode 101060: Resolving exploration RMDP
-Slot (0,0) is now known. Remaining unknown slots: 8
-Episode 101070: Resolving exploration RMDP
-Slot (3,1) is now known. Remaining unknown slots: 7
-Episode 134887: Resolving exploration RMDP
-Slot (3,0) is now known. Remaining unknown slots: 6
-Episode 134936: Resolving exploration RMDP
-Slot (3,3) is now known. Remaining unknown slots: 5
-Episode 134995: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 11
+Episode 100970: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 10
+Episode 101038: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 9
+Episode 101051: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 8
+Episode 101097: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 7
+Episode 134851: Resolving exploration RMDP
+Slot (3,1) is now known. Remaining unknown slots: 6
+Episode 134901: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 5
+Episode 134914: Resolving exploration RMDP
 Slot (3,2) is now known. Remaining unknown slots: 4
-Episode 135083: Resolving exploration RMDP
+Episode 135007: Resolving exploration RMDP
 
 Max/avg (actions): (2,2)/(2.00,2.00)
 
@@ -61,40 +76,11 @@ Max/avg (actions): (2,2)/(2.00,2.00)
 Epsilon: 0.1
 Confidence: 0.05
 
-Execution time: 2583136.894125 ms
-Episodes=729213
-DeltaT=0.02499999022207616
+Execution time: 1553789.060042 ms
+Episodes=729144
+DeltaT=0.024999984574498237
 nMin=8663565
-
----------------------------------------
-Robust SolveOutcome{found = true, value = Infinity, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
-Evaluating robust strategy in true CSG...
-
-Starting expected reachability...
-target=0, inf=1, rest=0
-Expected reachability took 0.002 seconds.
-True value of learned strategy: Infinity
-Value gap: NaN
-
-Starting expected reachability...
-target=0, inf=1, rest=0
-Expected reachability took 0.0 seconds.
-Max deviation gain of learned strategy: 0.0
-
----------------------------------------
-Point SolveOutcome{found = true, value = Infinity, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
-Evaluating point strategy in true CSG...
-
-Starting expected reachability...
-target=0, inf=1, rest=0
-Expected reachability took 0.0 seconds.
-True value of learned strategy: Infinity
-Value gap: NaN
-
-Starting expected reachability...
-target=0, inf=1, rest=0
-Expected reachability took 0.0 seconds.
-Max deviation gain of learned strategy: 0.0
+Total number of samples: 112310534
 
 ---------------------------------------
 
@@ -108,4 +94,19 @@ Value iteration converged after 1 iterations.
 Precomputation took 0.0 seconds.
 Coalition results (initial state): (Infinity,Infinity)
 True SolveOutcome{found = true, value = Infinity, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+
 ---------------------------------------
+Robust SolveOutcome{found = true, value = Infinity, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating robust strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: Infinity
+Estimation error: NaN
+Value gap: 0.0
+
+---------------------------------------
+Point SolveOutcome{found = true, value = Infinity, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 -> }
+Evaluating point strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: Infinity
+Estimation error: NaN
+Value gap: 0.0
