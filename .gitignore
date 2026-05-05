@@ -66,5 +66,6 @@ prism-examples/csgs/learning/results/H/traffic_merge*
 prism-examples/csgs/learning/results/H/hide_or_run*
 prism-examples/csgs/learning/logs/H/traffic_merge*
 prism-examples/csgs/learning/logs/H/hide_or_run*
-prism-examples/csgs/learning/**/*full_results.csv
-prism-examples/csgs/learning/results/H/safe_risky4/cleaned.csv
+*full_results.csv
+*cleaned.csv
+*full.csv
