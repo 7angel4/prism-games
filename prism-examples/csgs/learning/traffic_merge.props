@@ -4,5 +4,6 @@ const int k=5;
 
 <<car1:car2>>min=? (R{"time1"}[F "goal"] + R{"time2"}[F "goal"])
 
-const int h=3;
-<<car1>>Pmax=? [ F<=h "goal" ]
+<<car1>>Pmax=? [ F<=k "goal" ]
+
+<<car1>>Pmax=? [ F<=k "goal" ]

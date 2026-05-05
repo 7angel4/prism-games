@@ -1,0 +1,30 @@
+CSG_STRATEGY
+type=ZERO_SUM
+numPlayers=1
+numStates=4
+numMemory=1
+
+PLAYER 0
+MEMORY 0
+STATE 0
+0.8 : [hide1]
+0.19999999999999996 : [run1]
+STATE 1
+NULL
+STATE 2
+1.0 : [hide1]
+STATE 3
+1.0 : [hide1]
+STATE 4
+1.0 : [hide1]
+STATE 5
+1.0 : [hide1]
+STATE 6
+1.0 : [hide1]
+STATE 7
+1.0 : [hide1]
+STATE 8
+NULL
+
+
+END

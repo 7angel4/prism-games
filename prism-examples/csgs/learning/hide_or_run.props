@@ -1,4 +1,4 @@
 <<p1>> Pmax=? [ F s=1 ]
 
-const int k=11;
+const int k=5;
 <<p1>> Pmax=? [ F<=k s=1 ] 

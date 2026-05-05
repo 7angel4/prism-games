@@ -211,7 +211,6 @@ public class PACLearner {
         List<List<Distribution<Double>>> trans = new ArrayList<>();
 
         slotCounts = new long[numStates][];
-        slotCounts = new long[numStates][];
         transitionCounts = new long[numStates][][];
         known = new boolean[numStates][];
         numUnknownSlots = 0;
@@ -541,16 +540,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.CYCLIC_PREFS);
+        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 2;
+        ex.propertyIndex = 3;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
 //        ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 41, true);
-        String logSubdir = "full";
+        PACLearner learner = new PACLearner(prism, 7, true);
+        String logSubdir = "full/traffic_merge3";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
