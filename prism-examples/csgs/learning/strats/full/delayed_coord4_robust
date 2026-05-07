@@ -1,5 +1,5 @@
 CSG_STRATEGY
-type=EQUILIBRIA_P
+type=EQUILIBRIA_R
 numPlayers=2
 numStates=5
 numMemory=1
@@ -15,17 +15,17 @@ STATE 2
 STATE 3
 NULL
 STATE 4
-1.0 : [d1]
+1.0 : [c1]
 
 
 PLAYER 1
 MEMORY 0
 STATE 0
-1.0 : [c2]
+1.0 : [d2]
 STATE 1
-1.0 : [c2]
+1.0 : [d2]
 STATE 2
-1.0 : [c2]
+1.0 : [d2]
 STATE 3
 NULL
 STATE 4

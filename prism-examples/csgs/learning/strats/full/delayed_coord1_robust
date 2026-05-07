@@ -15,7 +15,7 @@ STATE 2
 STATE 3
 NULL
 STATE 4
-1.0 : [c1]
+1.0 : [d1]
 
 
 PLAYER 1
@@ -29,7 +29,7 @@ STATE 2
 STATE 3
 NULL
 STATE 4
-1.0 : [c2]
+1.0 : [d2]
 
 
 END

@@ -1,0 +1,120 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Mon May 04 20:01:24 BST 2026
+Hostname: MacBook-Pro-288.local
+Memory limits: cudd=1g, java(heap)=2g
+
+Parsing PRISM model file "./prism-examples/csgs/learning/delayed_coord.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [c1] [d1] [c2] [d2]
+Variables:   s
+Labels:      "goal" "trap"
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 5 states
+Reachable states exploration and model construction done in 0.009 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.031 seconds.
+
+Type:        CSG
+Players:     2
+States:      5 (1 initial)
+Transitions: 25
+Choices:     20
+Max/avg:     4/4.00
+Logging to: /Users/Angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/delayed_coord3.csv
+Property: <<p1>>R{"r1"}max=? [ C<=k ]
+Building reward structure...
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Building reward structure...
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Lower bound on reachability probability: 1.0
+Slot (0,0) is now known. Remaining unknown slots: 19
+Episode 329804: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 18
+Episode 329914: Resolving exploration RMDP
+Slot (0,2) is now known. Remaining unknown slots: 17
+Episode 330022: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 16
+Episode 330081: Resolving exploration RMDP
+Slot (4,1) is now known. Remaining unknown slots: 15
+Episode 363807: Resolving exploration RMDP
+Slot (4,3) is now known. Remaining unknown slots: 14
+Episode 363940: Resolving exploration RMDP
+Slot (4,0) is now known. Remaining unknown slots: 13
+Episode 363977: Resolving exploration RMDP
+Slot (4,2) is now known. Remaining unknown slots: 12
+Episode 364032: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 11
+Episode 1474852: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 10
+Episode 1475149: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 9
+Episode 1475851: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 8
+Episode 1476003: Resolving exploration RMDP
+Slot (2,2) is now known. Remaining unknown slots: 7
+Episode 6970102: Resolving exploration RMDP
+Slot (2,0) is now known. Remaining unknown slots: 6
+Episode 6971473: Resolving exploration RMDP
+Slot (2,3) is now known. Remaining unknown slots: 5
+Episode 6977123: Resolving exploration RMDP
+Slot (2,1) is now known. Remaining unknown slots: 4
+Episode 6978884: Resolving exploration RMDP
+Building reward structure...
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+Building reward structure...
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Value iteration converged after 5 iterations.
+
+---------------------------------------
+Epsilon: 0.1
+Confidence: 0.05
+
+Execution time: 2.3703464004458E7 ms
+Episodes=20366535
+DeltaT=0.049999998504311846
+nMin=5287537
+Total number of samples: 730426589
+
+---------------------------------------
+Building reward structure...
+Max/avg (actions): (2,2)/(2.00,2.00)
+
+Starting value iteration...
+
+Value iteration converged after 5 iterations.
+True SolveOutcome{found = true, value = 0.0, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 -> }
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.0, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 -> }
+Evaluating robust strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: 0.0
+Estimation error: 0.0
+Value gap: 0.0
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 0.0, strategy = CSG: $ s:0 ->  $ s:1 ->  $ s:2 ->  $ s:3 ->  $ s:4 -> }
+Evaluating point strategy in true CSG...
+Learned strategy has same choices as true NE, so value in true game is the same as in empirical game.
+True value of learned strategy: 0.0
+Estimation error: 0.0
+Value gap: 0.0
