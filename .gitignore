@@ -67,5 +67,5 @@ prism-examples/csgs/learning/logs/H/hide_or_run*
 *cleaned.csv
 *full.csv
 
-
+del
 **/*robustness-old/
