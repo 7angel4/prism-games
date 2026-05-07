@@ -1,137 +1,306 @@
-# PRISM-games
+# Robust PAC Learning of Concurrent Stochastic Games
 
-This is PRISM-games, an extension of the PRISM model checker
-for verification and strategy synthesis for stochastic multi-player games.
+This repository contains the implementation accompanying the NeurIPS 2026 submission:
 
+> **Robust PAC Learning of Concurrent Stochastic Games**
 
-## Installation
+The implementation extends the PRISM-games probabilistic model checker with:
+- PAC learning for concurrent stochastic games (CSGs),
+- robust equilibrium computation over L1 uncertainty sets,
+- exploration via robust MDPs,
+- benchmark suites and reproducibility scripts.
 
-Up-to-date installation instructions can be found here:
+The repository is currently anonymised for double-blind review.
 
-http://www.prismmodelchecker.org/games/installation.php
+---
 
-Very abbreviated instructions for installing/running PRISM are as follows:
+# Overview
 
-For Windows binary distributions:
+This implementation provides:
+- a PAC-learning framework for two-player general-sum CSGs,
+- robust equilibrium computation using L1 confidence sets,
+- online trajectory sampling and uncertainty updates,
+- exploration using an auxiliary robust MDP,
+- support for finite- and infinite-horizon objectives,
+- benchmark environments used in the paper.
 
- * to install, run `prism-XXX-win64-installer.exe`
- * to run, use Desktop/Start menu shortcuts or double-click `bin\xprism.bat`
+The implementation builds on the PRISM-games framework:
+- PRISM-games: https://www.prismmodelchecker.org/games/
 
-For other binary distributions:
+---
 
- * to install, enter the PRISM directory and type `./install.sh`
- * to run, execute `bin/xprism` or `bin/prism`
+# Repository Structure
 
-For source code distributions:
+```text
+prism/
+├── src/
+│   ├── learning/                  # Main PAC-CSG implementation
+│   │   ├── PACLearner.java
+│   │   ├── Experiment.java
+│   │   ├── PACHelper.java
+│   │   └── ...
+│   │
+│   ├── explicit/                  # Extensions to robust model checking
+│   ├── strat/
+│   └── ...
+│
+prism-examples/
+├── csgs/
+│   └── learning/                  # Benchmark suite and property specifications
+│       ├── *.prism
+│       ├── *.props
+│       └── ...
+````
 
- * enter the PRISM directory and type `cd prism` then `make`
- * to check the install, type `make test` or `etc/tests/run.sh`
- * to run, execute `bin/xprism` or `bin/prism`
+---
 
-If you have problems check the manual, especially the section "Common Problems And Questions".
+# Main Contributions in This Branch
 
+This branch extends PRISM-games with:
 
-## Documentation
+* PAC learning for concurrent stochastic games,
+* L1 uncertainty sets over transition kernels,
+* robust equilibrium-based planning,
+* exploration RMDP construction,
+* online trajectory sampling and coverage tracking,
+* benchmark environments for robust PAC-CSG evaluation.
 
-Included in this release is a manual for the version of PRISM
-on which PRISM-games is based.
+The core implementation is located in:
 
-Documentation specifically for PRISM-games can be found here:
+```text
+prism/src/learning/
+```
 
-  http://www.prismmodelchecker.org/games/
+---
 
-For other PRISM-related information, see the website:
+# Requirements
 
-  https://www.prismmodelchecker.org/doc
+Tested on:
 
-Information for developers is kept here:
+* macOS (Apple M1)
+* Java 17
+* PRISM-games 3.x
+* Yices SMT solver
 
-  https://github.com/prismmodelchecker/prism/wiki
+Required dependencies:
 
-## Licensing
+* Java 17+
+* PRISM-games native libraries
+* Yices SMT solver
 
-PRISM-games is distributed under the GNU General Public License (GPL), version 2.
-A copy of this license can be found in the file `COPYING.txt`.
-For more information, see:
+---
 
-  https://www.gnu.org/licenses/
+# Building
 
-PRISM-games also uses various other libraries (mainly to be found in the lib directory).
-For details of those, including licenses and links to downloads and source code, see:
+Clone the repository:
 
-https://www.prismmodelchecker.org/other-downloads.php
+```bash
+git clone <repo-url>
+cd prism-games
+git checkout csg-learning
+```
 
+Build PRISM-games:
 
-## Acknowledgements
+```bash
+make
+```
 
-PRISM was created and is still actively maintained by:
+or using the PRISM build system:
 
- * Dave Parker (University of Oxford)
- * Gethin Norman (University of Glasgow)
- * Marta Kwiatkowska (University of Oxford) 
+```bash
+cd prism
+make
+```
 
-Development of the tool is currently led from Oxford by Dave Parker.
+Ensure native libraries are enabled before running experiments.
 
-The following have made a wide range of contributions to
-PRISM covering many different aspects of the tool
-(in approximately reverse chronological order):
+---
 
- * Steffen Märcker (Technische Universität Dresden)
- * Joachim Klein (formerly Technische Universität Dresden)
- * Vojtech Forejt (formerly University of Oxford)
+# Running Experiments
 
-The following have worked specifically worked on PRISM-games
-(in approximately reverse chronological order):
+Experiments are executed through:
 
-* Gabriel Santos: concurrent stochastic games and equilibria
-* Clemens Wiltsche: multi-objective and compositional techniques
-* Mateusz Ujma: turn-based stochastic games
-* Aistis Simaitis: turn-based stochastic games
+```text
+prism/src/learning/PACLearner.java
+```
 
-We also gratefully acknowledge contributions to the PRISM code-base from
-(in approximately reverse chronological order):
+A typical experiment configuration:
 
- * Max Kurze: Language parser code improvements
- * Ludwig Pauly: Reward import/export
- * Alberto Puggelli: First version of interval DTMC/MDP code
- * Xueyi Zou: Partially observable Markov decision processes (POMDPs)
- * Chris Novakovic: Build infrastructure and explicit engine improvements
- * Clemens Wiltsche: Multi-objective and compositional synthesis for stochastic games
- * Ernst Moritz Hahn: Parametric model checking, fast adaptive uniformisation + various other features
- * Frits Dannenberg: Fast adaptive uniformisation
- * Hongyang Qu: Multi-objective model checking
- * Mateusz Ujma: Bug fixes and GUI improvements
- * Christian von Essen: Symbolic/explicit-state model checking
- * Vincent Nimal: Approximate (simulation-based) model checking techniques
- * Mark Kattenbelt: Wide range of enhancements/additions, especially in the GUI
- * Carlos Bederian (working with Pedro D'Argenio): LTL model checking for MDPs
- * Gethin Norman: Precomputation algorithms, abstraction
- * Alistair John Strachan: Port to 64-bit architectures
- * Alistair John Strachan, Mike Arthur and Zak Cohen: Integration of JFreeChart into PRISM
- * Charles Harley and Sebastian Vermehren: GUI enhancements
- * Rashid Mehmood: Improvements to low-level data structures and numerical solution algorithms
- * Stephen Gilmore: Support for the stochastic process algebra PEPA
- * Paolo Ballarini & Kenneth Chan: Port to Mac OS X
- * Andrew Hinton: Original versions of the GUI, Windows port and simulator
- * Joachim Meyer-Kayser: Original implementation of the "Fox-Glynn" algorithm 
+```java
+Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
 
-For more details see:
+ex.setSolverString("Yices");
+ex.propertyIndex = 4;
+ex.epsilon = 0.2;
 
-  https://www.prismmodelchecker.org/people.php
+Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
+PACLearner learner = new PACLearner(prism, 41, true);
 
-## Contact
+PacResult res = learner.runPacLoop(
+    spec,
+    ex.modelFile,
+    ex.propertyIndex,
+    false,
+    "eps"   # subdirectory for logging
+);
+```
 
-If you have problems or questions regarding PRISM, please use the help forum provided. See:
+Experiments are launched via the `main()` method in:
 
-  https://www.prismmodelchecker.org/support.php
+```text
+prism/src/learning/PACLearner.java
+```
 
-Other comments and feedback about any aspect of PRISM are also very welcome. Please contact:
+---
 
-  Dave Parker  
-  (david.parker@cs.ox.ac.uk)  
-  Department of Computer Science  
-  University of Oxford  
-  Oxford  
-  OX1 3QG
-  UK
+# Benchmark Suite
+
+Benchmark models and property specifications are located in:
+
+```text
+prism-examples/csgs/learning/
+```
+
+The benchmark suite includes:
+
+| Benchmark            | Purpose                                          |
+| -------------------- | ------------------------------------------------ |
+| SAFE_RISKY           | Robust coordination under uncertainty            |
+| TRAFFIC_MERGE        | Multi-step coordination with crash risk          |
+| HIDE_OR_RUN          | Limit equilibria / no stationary optimal profile |
+| MIXED_NE             | Mixed Nash equilibrium behaviour                 |
+| DELAYED_COORD        | Sparse delayed rewards and exploration           |
+| CYCLIC_PREFS / NO_NE | Stationary equilibrium non-existence                        |
+
+These correspond to the benchmark environments described in Section 5 of the paper. 
+
+---
+
+# Property Specifications
+
+Properties are written in rPATL and stored in `.props` files alongside the benchmark models.
+
+Examples include:
+
+* bounded probabilistic reachability,
+* bounded cumulative reward,
+* unbounded probabilistic reachability
+* unbounded reachability reward (stochastic shortest path objectives),
+
+in both zero-sum and nonzero-sum settings.
+
+Example property (unbounded probabilistic reachability):
+
+```text
+<<p1:p2>>max=? ( P[F s1] + P[F s2] )
+```
+
+---
+
+# Reproducing Paper Results
+
+The experiments in:
+
+* Table 1,
+* Table 2,
+* Figure 1
+
+can be reproduced by configuring the corresponding benchmark and property index in `PACLearner.java`.
+
+Experimental settings used in the paper:
+
+* confidence parameter: `δ = 0.05`
+* default `ε = 0.1`; but `ε = 0.2` for DELAYED_COORD andd RQ2's experiments
+* three random seeds
+* Apple M1 CPU / 16GB RAM
+
+See Section 5 and Appendix K of the paper for details. 
+
+---
+
+# Output and Logs
+
+The learner reports:
+
+* total no. of episodes,
+* total no. of samples,
+* robust equilibrium value,
+* point-estimate value,
+* uncertainty radius statistics,
+* equilibrium existence status.
+
+Important quantities:
+
+* `deltaT` — model uncertainty proxy Δ_t
+* `NOT_FOUND` — no robust equilibrium found under the current uncertainty set
+* `known slots` — state-action pairs sufficiently explored
+
+Logs are written during execution and can be used to reproduce:
+
+* convergence plots,
+* uncertainty curves,
+* sample complexity measurements.
+
+---
+
+# PAC-CSG Pipeline
+
+The implementation follows Algorithm 1 from the paper:
+
+1. Construct empirical L1-CSG from sampled trajectories
+2. Build exploration RMDP
+3. Solve robust equilibrium
+4. Execute exploration profile
+5. Update transition uncertainty sets
+6. Repeat until stopping criterion is met
+
+See:
+
+* Section 4,
+* Algorithm 1,
+* Appendix J
+
+for theoretical and algorithmic details. 
+
+---
+
+# Important Source Files
+
+| File               | Purpose                                |
+| ------------------ | -------------------------------------- |
+| `PACLearner.java`  | Main PAC learning loop                 |
+| `Experiment.java`  | Benchmark and experiment configuration |
+| `PACHelper.java`   | Sampling and utility routines          |
+| `UCSGModelChecker` | Robust CSG model checking extensions       |
+| `L1CSGSimple`      | Empirical L1-CSG representation      |
+| `L1MDPSimple`      | Exploration RMDP representation        |
+
+---
+
+# Reproducibility Notes
+
+This repository is intended to satisfy the NeurIPS reproducibility checklist:
+
+* implementation included,
+* benchmark suite included,
+* property specifications included,
+* exact experimental parameters documented,
+* compute environment documented,
+
+All experiments are reproducible from the provided implementation and benchmark specifications.
+
+---
+
+# Licensing and Acknowledgements
+
+This implementation extends PRISM-games, which is distributed under the GNU GPL v2 license.
+
+Relevant references:
+
+* PRISM-games 3.0
+* Robust CSG verification
+* PAC learning and robust reinforcement learning literature
+
+See the paper bibliography for full citations. 
