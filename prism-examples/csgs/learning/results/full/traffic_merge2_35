@@ -2,7 +2,7 @@ PRISM-games
 ===========
 
 Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
-Date: Tue May 05 08:22:21 BST 2026
+Date: Tue May 05 13:21:11 BST 2026
 Hostname: Scotts-MacBook-Pro.local
 Memory limits: cudd=1g, java(heap)=6g
 WARNING: A restricted method in java.lang.System has been called
@@ -26,10 +26,10 @@ Switching to explicit engine, which supports CSGs...
 Building model (engine:explicit)...
 
 Computing reachable states... 6 states
-Reachable states exploration and model construction done in 0.019 secs.
+Reachable states exploration and model construction done in 0.028 secs.
 Sorting reachable states list...
 
-Time for model construction: 0.09 seconds.
+Time for model construction: 0.096 seconds.
 
 Type:        CSG
 Players:     2
@@ -37,7 +37,7 @@ States:      6 (1 initial)
 Transitions: 28
 Choices:     24
 Max/avg:     4/4.00
-Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/traffic_merge3/traffic_merge3.csv
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/traffic_merge2/traffic_merge2.csv
 Property: <<car1>>Pmax=? [ F<=k "goal" ]
 Max/avg (actions): (2,2)/(2.00,2.00)
 Max/avg (actions): (2,2)/(2.00,2.00)
@@ -48,46 +48,45 @@ Max/avg (actions): (2,2)/(2.00,2.00)
 
 Value iteration converged after 5 iterations.
 Lower bound on reachability probability: 0.0
-Slot (0,0) is now known. Remaining unknown slots: 23
-Episode 39370: Resolving exploration RMDP
-Slot (0,1) is now known. Remaining unknown slots: 22
+Slot (0,1) is now known. Remaining unknown slots: 23
+Slot (0,2) is now known. Remaining unknown slots: 22
+Episode 39390: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 21
 Episode 39400: Resolving exploration RMDP
-Slot (0,2) is now known. Remaining unknown slots: 21
-Episode 39403: Resolving exploration RMDP
 Slot (0,3) is now known. Remaining unknown slots: 20
-Episode 39424: Resolving exploration RMDP
-Slot (1,2) is now known. Remaining unknown slots: 19
-Episode 42880: Resolving exploration RMDP
-Slot (1,3) is now known. Remaining unknown slots: 18
-Episode 42898: Resolving exploration RMDP
-Slot (1,1) is now known. Remaining unknown slots: 17
-Episode 42928: Resolving exploration RMDP
+Episode 39413: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 19
+Episode 42892: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 18
+Episode 42911: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 17
+Episode 42919: Resolving exploration RMDP
 Slot (1,0) is now known. Remaining unknown slots: 16
-Episode 42932: Resolving exploration RMDP
-Slot (2,3) is now known. Remaining unknown slots: 15
-Episode 47599: Resolving exploration RMDP
+Episode 42928: Resolving exploration RMDP
+Slot (2,2) is now known. Remaining unknown slots: 15
+Episode 47587: Resolving exploration RMDP
 Slot (2,0) is now known. Remaining unknown slots: 14
-Episode 47610: Resolving exploration RMDP
-Slot (2,1) is now known. Remaining unknown slots: 13
-Episode 47634: Resolving exploration RMDP
-Slot (2,2) is now known. Remaining unknown slots: 12
-Episode 47638: Resolving exploration RMDP
+Episode 47597: Resolving exploration RMDP
+Slot (2,3) is now known. Remaining unknown slots: 13
+Episode 47645: Resolving exploration RMDP
+Slot (2,1) is now known. Remaining unknown slots: 12
+Episode 47654: Resolving exploration RMDP
 Slot (3,2) is now known. Remaining unknown slots: 11
-Episode 54313: Resolving exploration RMDP
+Episode 54276: Resolving exploration RMDP
 Slot (3,1) is now known. Remaining unknown slots: 10
-Episode 54328: Resolving exploration RMDP
-Slot (3,3) is now known. Remaining unknown slots: 9
-Episode 54344: Resolving exploration RMDP
-Slot (3,0) is now known. Remaining unknown slots: 8
-Episode 54378: Resolving exploration RMDP
+Episode 54340: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 9
+Episode 54372: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 8
+Episode 54409: Resolving exploration RMDP
 Slot (4,1) is now known. Remaining unknown slots: 7
-Episode 65044: Resolving exploration RMDP
-Slot (4,3) is now known. Remaining unknown slots: 6
-Episode 65075: Resolving exploration RMDP
-Slot (4,0) is now known. Remaining unknown slots: 5
+Episode 65062: Resolving exploration RMDP
+Slot (4,2) is now known. Remaining unknown slots: 6
+Episode 65080: Resolving exploration RMDP
+Slot (4,3) is now known. Remaining unknown slots: 5
 Episode 65128: Resolving exploration RMDP
-Slot (4,2) is now known. Remaining unknown slots: 4
-Episode 65225: Resolving exploration RMDP
+Slot (4,0) is now known. Remaining unknown slots: 4
+Episode 65180: Resolving exploration RMDP
 Max/avg (actions): (2,2)/(2.00,2.00)
 Max/avg (actions): (2,2)/(2.00,2.00)
 
@@ -101,11 +100,11 @@ Value iteration converged after 5 iterations.
 Epsilon: 0.1
 Confidence: 0.05
 
-Execution time: 569749.372916 ms
-Episodes=71230
-DeltaT=0.04999998074214125
+Execution time: 578818.363541 ms
+Episodes=71133
+DeltaT=0.04999991267197883
 nMin=5406638
-Total number of samples: 30182701
+Total number of samples: 30173109
 
 ---------------------------------------
 

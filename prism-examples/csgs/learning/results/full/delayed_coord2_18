@@ -1,0 +1,118 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Wed May 06 09:11:12 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/delayed_coord.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [d1] [c1] [c2] [d2]
+Variables:   s
+Labels:      "goal" "trap"
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 5 states
+Reachable states exploration and model construction done in 0.013 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.055 seconds.
+
+Type:        CSG
+Players:     2
+States:      5 (1 initial)
+Transitions: 25
+Choices:     20
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/delayed_coord/delayed_coord2.csv
+Property: <<p1:p2>>max=? (R{"r1"}[C<=k] + R{"r2"}[C<=k])
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (1.0,0.8)
+Lower bound on reachability probability: 1.0
+nMin: 2080
+Slot (0,1) is now known. Remaining unknown slots: 19
+Episode 263: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 18
+Episode 268: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 17
+Slot (0,2) is now known. Remaining unknown slots: 16
+Episode 272: Resolving exploration RMDP
+Slot (4,3) is now known. Remaining unknown slots: 15
+Episode 290: Resolving exploration RMDP
+Slot (4,1) is now known. Remaining unknown slots: 14
+Episode 294: Resolving exploration RMDP
+Slot (4,2) is now known. Remaining unknown slots: 13
+Episode 297: Resolving exploration RMDP
+Slot (4,0) is now known. Remaining unknown slots: 12
+Episode 300: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 11
+Episode 1085: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 10
+Slot (1,2) is now known. Remaining unknown slots: 9
+Episode 1096: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 8
+Episode 1123: Resolving exploration RMDP
+Slot (2,0) is now known. Remaining unknown slots: 7
+Episode 4792: Resolving exploration RMDP
+Slot (2,1) is now known. Remaining unknown slots: 6
+Episode 4828: Resolving exploration RMDP
+Slot (2,3) is now known. Remaining unknown slots: 5
+Episode 5098: Resolving exploration RMDP
+Slot (2,2) is now known. Remaining unknown slots: 4
+Episode 5127: Resolving exploration RMDP
+Slot (3,3) is now known. Remaining unknown slots: 3
+Episode 13897: Resolving exploration RMDP
+Slot (3,0) is now known. Remaining unknown slots: 2
+Episode 14222: Resolving exploration RMDP
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (1.795972698179,1.436778158543)
+
+---------------------------------------
+Epsilon: 8.0
+Confidence: 0.05
+
+Execution time: 7296.016875 ms
+Episodes=14253
+DeltaT=1.9995484339042275
+nMin=2080
+Total number of samples: 303781
+
+---------------------------------------
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (1.8,1.44)
+True SolveOutcome{found = true, value = 3.24, strategy = null}
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 3.2327508567220002, strategy = null}
+Evaluating robust strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 3.2327508567220002, strategy = null}
+Evaluating point strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.

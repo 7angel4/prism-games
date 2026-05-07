@@ -1,0 +1,105 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Tue May 05 13:36:36 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/mixed_ne.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [push1] [wait1] [push2] [wait2]
+Variables:   s
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 4 states
+Reachable states exploration and model construction done in 0.01 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.033 seconds.
+
+Type:        CSG
+Players:     2
+States:      4 (1 initial)
+Transitions: 17
+Choices:     16
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/mixed_ne/mixed_ne2.csv
+Property: <<p1:p2>>max=? (P[F<=k1 s=1] + P[F<=k2 s=2])
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.003 seconds.
+Coalition results (initial state): (0.5,0.5)
+Lower bound on reachability probability: 1.0
+Slot (0,2) is now known. Remaining unknown slots: 15
+Episode 933818: Resolving exploration RMDP
+Slot (0,0) is now known. Remaining unknown slots: 14
+Episode 933900: Resolving exploration RMDP
+Slot (0,3) is now known. Remaining unknown slots: 13
+Episode 934255: Resolving exploration RMDP
+Slot (0,1) is now known. Remaining unknown slots: 12
+Episode 934408: Resolving exploration RMDP
+Slot (1,2) is now known. Remaining unknown slots: 11
+Episode 955459: Resolving exploration RMDP
+Slot (1,0) is now known. Remaining unknown slots: 10
+Episode 955591: Resolving exploration RMDP
+Slot (1,1) is now known. Remaining unknown slots: 9
+Episode 955782: Resolving exploration RMDP
+Slot (1,3) is now known. Remaining unknown slots: 8
+Episode 956408: Resolving exploration RMDP
+Slot (2,1) is now known. Remaining unknown slots: 7
+Episode 956423: Resolving exploration RMDP
+Slot (2,3) is now known. Remaining unknown slots: 6
+Episode 956431: Resolving exploration RMDP
+Slot (2,2) is now known. Remaining unknown slots: 5
+Episode 956595: Resolving exploration RMDP
+Slot (2,0) is now known. Remaining unknown slots: 4
+Episode 956692: Resolving exploration RMDP
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (1.0,0.0)
+
+---------------------------------------
+Epsilon: 0.1
+Confidence: 0.05
+
+Execution time: 1441705.881 ms
+Episodes=3345420
+DeltaT=0.024999995869658027
+nMin=8663565
+Total number of samples: 107856988
+
+---------------------------------------
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.5,0.5)
+True SolveOutcome{found = true, value = 1.0, strategy = null}
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 1.0, strategy = null}
+Evaluating robust strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 1.0, strategy = null}
+Evaluating point strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.

@@ -1,0 +1,83 @@
+PRISM-games
+===========
+
+Version: 3.2.3.dev (based on PRISM 4.10.1.dev)
+Date: Tue May 05 20:03:51 BST 2026
+Hostname: Scotts-MacBook-Pro.local
+Memory limits: cudd=1g, java(heap)=6g
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::loadLibrary has been called by jdd.JDD in an unnamed module (file:/Users/angel/Desktop/prism-games/out/production/prism/)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+
+Parsing PRISM model file "./prism-examples/csgs/learning/delayed_coord.prism"...
+
+Type:        CSG
+Players:     p1 p2
+Modules:     m1 m2 game
+Actions:     [] [c1] [d1] [c2] [d2]
+Variables:   s
+Labels:      "goal" "trap"
+Rewards:     "r1" "r2"
+
+Switching to explicit engine, which supports CSGs...
+
+Building model (engine:explicit)...
+
+Computing reachable states... 5 states
+Reachable states exploration and model construction done in 0.016 secs.
+Sorting reachable states list...
+
+Time for model construction: 0.079 seconds.
+
+Type:        CSG
+Players:     2
+States:      5 (1 initial)
+Transitions: 25
+Choices:     20
+Max/avg:     4/4.00
+Logging to: /Users/angel/Desktop/prism-games/prism-examples/csgs/learning/logs/full/delayed_coord/delayed_coord2.csv
+Property: <<p1:p2>>max=? (R{"r1"}[C<=k] + R{"r2"}[C<=k])
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.0,0.0)
+Lower bound on reachability probability: 1.0
+Strategy synthesis for bounded properties is not supported yet.
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.0,0.0)
+
+---------------------------------------
+Epsilon: 40.0
+Confidence: 0.05
+
+Execution time: 149.329958 ms
+Episodes=0
+DeltaT=9.0
+nMin=6
+Total number of samples: 0
+
+---------------------------------------
+Max/avg (actions): (2,2)/(2.00,2.00)
+Starting bounded equilibria computation (solver=Yices 2.6.4)...
+Strategy synthesis for bounded properties is not supported yet.
+
+Precomputation took 0.0 seconds.
+Coalition results (initial state): (0.0,0.0)
+True SolveOutcome{found = true, value = 0.0, strategy = null}
+
+---------------------------------------
+Robust SolveOutcome{found = true, value = 0.0, strategy = null}
+Evaluating robust strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
+
+---------------------------------------
+Point SolveOutcome{found = true, value = 0.0, strategy = null}
+Evaluating point strategy in true CSG...
+Strategy generation only supported for infinite-horizon properties. Skipping true value computation.
