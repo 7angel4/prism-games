@@ -1,9 +1,8 @@
 const int k=5;
 
-<<car1:car2>>max=? (P[ !"crash" U<=k "goal" ] + P[ !"crash" U "goal" ])
-
-<<car1:car2>>min=? (R{"time1"}[F "goal"] + R{"time2"}[F "goal"])
+<<car1:car2>>max =? (R{"time1"}[F "goal"] + R{"time2"}[F "goal"])
 
 <<car1>>Pmax=? [ F<=k "goal" ]
 
-<<car1>>Pmax=? [ F<=k "goal" ]
+<<car1>>R{"time1"}max=? [ F<=k "goal" ]
+

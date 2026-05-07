@@ -5,12 +5,15 @@ player p2 m2 endplayer
 
 // Player 1 actions
 module m1
+    [d1] true -> true; // defect 
     [c1] true -> true; // cooperate
-    [d1] true -> true; // defect
 endmodule
 
 // Player 2 actions
-module m2 = m1[c1=c2, d1=d2] endmodule
+module m2
+    [c2] true -> true; // cooperate
+    [d2] true -> true; // defect 
+endmodule
 
 module game
     // 0 = start
@@ -40,7 +43,10 @@ module game
     [d1,d2] s=2 -> (s'=4);
 
     // --- Trap: reset with probability ---
-    [] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
+    [d1,c2] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
+    [d1,d2] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
+    [c1,c2] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
+    [c1,d2] s=4 -> 0.8:(s'=0) + 0.2:(s'=4);
 
     // --- Goal absorbing ---
     [] s=3 -> (s'=3);
