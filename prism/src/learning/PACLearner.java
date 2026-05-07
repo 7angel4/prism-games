@@ -148,6 +148,7 @@ public class PACLearner {
 
         double stopThreshFactor = zeroSum ? ZERO_SUM_STOP_THRESH : NASH_STOP_THRESH;
         computeNmin(deltaContain, rMax, eps, stopThreshFactor);
+        System.out.println("nMin: " + nMin);
         double stopThresh = eps / stopThreshFactor;
         double deltaT;
 
@@ -540,16 +541,16 @@ public class PACLearner {
         prism.initialise();
         prism.useNative();
 
-        Experiment ex = new Experiment(Experiment.CaseStudy.TRAFFIC_MERGE);
+        Experiment ex = new Experiment(Experiment.CaseStudy.SAFE_RISKY);
         ex.setSolverString("Yices");
-        ex.propertyIndex = 3;
+        ex.propertyIndex = 4;
         ex.robustnessExperiment = false;
         ex.maxNumSamples = 10000;
-//        ex.epsilon = 0.2;
+        ex.epsilon = 0.2;
         Experiment.PacRunSpec spec = ex.buildPacRunSpec(prism);
 
-        PACLearner learner = new PACLearner(prism, 7, true);
-        String logSubdir = "full/traffic_merge3";
+        PACLearner learner = new PACLearner(prism, 88, true);
+        String logSubdir = "eps";
         long start = System.nanoTime();
         PacResult res = learner.runPacLoop(spec, ex.modelFile, ex.propertyIndex, ex.robustnessExperiment, logSubdir);
         long end = System.nanoTime();
