@@ -42,6 +42,11 @@ public class L1MDPSimple<Value> extends ModelExplicit<Value> implements NondetMo
 
     public L1MDPSimple(L1CSGSimple<Value> other) {
         mdp = new MDPSimple<>(other);
+        // Copy model metadata (in particular the states list): strategies produced for this
+        // model (e.g. exploration strategies) perform state lookups via getStatesList(), and
+        // without it the simulator cannot enforce them (it silently falls back to random choices).
+        initialise(other.getNumStates());
+        copyFrom(other);
         radii.clear();
         for (int s = 0; s < getNumStates(); s++) {
             radii.add(new ArrayList<>());

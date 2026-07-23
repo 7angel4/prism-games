@@ -11,12 +11,17 @@ public class Logger {
     protected PrintWriter logWriter;
 
     public Logger(String modelFilePath, int propertyIndex, String subdir) {
+        this(modelFilePath, propertyIndex, subdir, "");
+    }
+
+    public Logger(String modelFilePath, int propertyIndex, String subdir, String runLabel) {
         try {
             String root = Paths.get("").toAbsolutePath().toString() + "/prism-examples/csgs/learning/";
             Path rootDir = Paths.get(root);
             Path modelPath = Paths.get(modelFilePath);
             // Extract filename and change extension
             String logFileName = modelPath.getFileName().toString().replaceFirst("\\.[^.]+$", "") + propertyIndex; // remove extension
+            if (runLabel != null && !runLabel.isEmpty()) logFileName += "_" + runLabel;
             logFileName += ".csv";
 
             // Build all logs directory path
@@ -32,7 +37,7 @@ public class Logger {
             System.out.println("Logging to: " + logFilePath);
 
             logWriter = new PrintWriter(new FileWriter(logFilePath.toFile()));
-            logWriter.println("episode,deltaT,maxRadius,avgRadius,numUnknownSlots,propUnknown,numSamples,totalNumSamples");
+            logWriter.println("episode,deltaT,maxRadius,avgRadius,numUnknownSlots,propUnknown,numSamples,totalNumSamples,modelErrL1,trueValueGap");
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to open log file", e);
@@ -40,6 +45,10 @@ public class Logger {
     }
 
     protected void logEpisode(int episode, double deltaT, int numSamples, long totalNumSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage) {
+        logEpisode(episode, deltaT, numSamples, totalNumSamples, maxRadius, avgRadius, numUnknownSlots, coverage, Double.NaN, Double.NaN);
+    }
+
+    protected void logEpisode(int episode, double deltaT, int numSamples, long totalNumSamples, double maxRadius, double avgRadius, int numUnknownSlots, double coverage, double modelErrL1, double trueValueGap) {
         logWriter.println(
                 episode + "," +
                         deltaT + "," +
@@ -48,7 +57,9 @@ public class Logger {
                         numUnknownSlots + "," +
                         coverage + "," +
                         numSamples + "," +
-                        totalNumSamples
+                        totalNumSamples + "," +
+                        modelErrL1 + "," +
+                        trueValueGap
         );
         logWriter.flush();
     }

@@ -69,6 +69,15 @@ public class PACLearner {
     private Logger logger;
     private double totalRadius = 0.0;
     private long totalNumSamples = 0;
+    private long totalNumTransitions = 0;
+
+    // === Experiment extensions (defaults preserve original behaviour) ===
+    private ExplorationPolicy explorationPolicy = ExplorationPolicy.RMDP;
+    private int valueGapEvery = 0; // if > 0, solve the empirical game every X episodes and log the true value gap
+    private String runLabel = ""; // appended to per-episode log filenames (e.g. seed/explorer tags for batch runs)
+    private L1MDPSimple<Double> pointMDP; // zero-radius (point-estimate) MDP used by ROUND_ROBIN navigation
+    private int rrTargetS = -1, rrTargetC = -1; // current round-robin target slot
+    private double trueValueForGap = Double.NaN; // cached V* for periodic value-gap logging
 
     /**
      * The effective horizon
@@ -85,11 +94,36 @@ public class PACLearner {
         this.prism = prism;
         this.prism.setSimulatorSeed(seed);
         this.prism.setGenStrat(genStrat);
+        helper.rng = new Random(seed);
+    }
+
+    public void setExplorationPolicy(ExplorationPolicy policy) {
+        this.explorationPolicy = policy;
+    }
+
+    public void setValueGapEvery(int valueGapEvery) {
+        this.valueGapEvery = valueGapEvery;
+    }
+
+    public void setRunLabel(String runLabel) {
+        this.runLabel = (runLabel == null) ? "" : runLabel;
+    }
+
+    public long getTotalNumSamples() {
+        return totalNumSamples;
+    }
+
+    public long getTotalNumTransitions() {
+        return totalNumTransitions;
+    }
+
+    public long getNMin() {
+        return nMin;
     }
 
     public PacResult runPacLoop(Experiment.PacRunSpec spec, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String logSubdir) throws PrismException {
         helper.spec = spec;
-        logger = new Logger(modelFilePath, propertyIndex, logSubdir);
+        logger = new Logger(modelFilePath, propertyIndex, logSubdir, runLabel);
         System.out.println("Property: " + spec.property);
 
         return runPacLoop(
@@ -146,6 +180,16 @@ public class PACLearner {
         double pReach = computeMinReachProb();
         System.out.println("Lower bound on reachability probability: " + pReach);
 
+        System.out.println("Exploration policy: " + explorationPolicy);
+        if (explorationPolicy == ExplorationPolicy.ROUND_ROBIN) {
+            initialisePointMDP();
+        }
+        if (valueGapEvery > 0) {
+            SolveOutcome trueSol = solveTrueGame(propertiesFile, property);
+            trueValueForGap = (trueSol != null && trueSol.foundNE()) ? trueSol.getValue() : Double.NaN;
+            System.out.println("Periodic value-gap logging every " + valueGapEvery + " episodes (V* = " + trueValueForGap + ")");
+        }
+
         double stopThreshFactor = zeroSum ? ZERO_SUM_STOP_THRESH : NASH_STOP_THRESH;
         computeNmin(deltaContain, rMax, eps, stopThreshFactor);
         System.out.println("nMin: " + nMin);
@@ -162,12 +206,21 @@ public class PACLearner {
                 return new PacResult(episode-1, deltaT, robustSol, pointSol);
             }
 
-            if (episode == 1) {
-                solveExplorationRMDP();
-            } else if (prevNumUnknownSlots != numUnknownSlots) {
-                System.out.println("Episode " + episode + ": Resolving exploration RMDP");
-                solveExplorationRMDP();
-                prevNumUnknownSlots = numUnknownSlots;
+            switch (explorationPolicy) {
+                case UNIFORM -> {
+                    // no exploration strategy => simulator samples joint actions uniformly at random
+                    helper.explorationStrategy = null;
+                }
+                case ROUND_ROBIN -> updateRoundRobinExploration();
+                default -> { // RMDP (pessimistic) and OPTIMISTIC
+                    if (episode == 1) {
+                        solveExplorationRMDP();
+                    } else if (prevNumUnknownSlots != numUnknownSlots) {
+                        System.out.println("Episode " + episode + ": Resolving exploration RMDP");
+                        solveExplorationRMDP();
+                        prevNumUnknownSlots = numUnknownSlots;
+                    }
+                }
             }
 
             int numSamples = computeNumSamples(deltaCov, episode, pReach);
@@ -177,8 +230,14 @@ public class PACLearner {
                 helper.sampleTrajectory(effHorizon, this::updateCount);
 
             update(deltaContain);
-            if ((episode - 1) % 10 == 0)
-                logger.logEpisode(episode, deltaT, numSamples, totalNumSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots);
+            boolean logRow = (episode - 1) % 10 == 0;
+            double trueValueGap = Double.NaN;
+            if (valueGapEvery > 0 && (episode - 1) % valueGapEvery == 0) {
+                trueValueGap = computeTrueValueGap(property);
+                logRow = true;
+            }
+            if (logRow)
+                logger.logEpisode(episode, deltaT, numSamples, totalNumSamples, maxRadius, totalRadius / totalNumSlots, numUnknownSlots, (double) numUnknownSlots / totalNumSlots, computeModelErrorL1(), trueValueGap);
             episode++;
         }
     }
@@ -194,6 +253,7 @@ public class PACLearner {
         slotCounts[s][c] += 1L;
         long[] counts = transitionCounts[s][c];
         counts[succ] += 1L;
+        totalNumTransitions += 1L;
     }
 
     private void computeNmin(double deltaContain, double rMax, double eps, double stopThreshFactor) {
@@ -250,6 +310,15 @@ public class PACLearner {
         empiricalGame = new L1CSGSimple<>(trueGame, trans);
         explorationRMDP = new L1MDPSimple<>(empiricalGame);
         explorationRewards = new MDPRewardsSimple<>(explorationRMDP.getNumStates());
+        // All slots start unknown with radius INIT_RADIUS, so they must start with the
+        // corresponding exploration reward; update() only refreshes rewards of sampled slots,
+        // and without initialisation never-visited slots would keep reward 0 and never attract
+        // the exploration strategy.
+        for (int s = 0; s < numStates; s++) {
+            for (int c = 0; c < trueGame.getNumChoices(s); c++) {
+                explorationRewards.setTransitionReward(s, c, L1CSGSimple.INIT_RADIUS * L1CSGSimple.INIT_RADIUS);
+            }
+        }
         String chosenSolver = (solver == null || solver.isBlank()) ? DEFAULT_SMT_SOLVER : solver;
         prism.getSettings().set(PrismSettings.PRISM_SMT_SOLVER, chosenSolver);
 
@@ -319,6 +388,7 @@ public class PACLearner {
 
                     empiricalGame.setCentre(s, c, succ, pHat);
                     explorationRMDP.setCentre(s, c, succ, pHat);
+                    if (pointMDP != null) pointMDP.setCentre(s, c, succ, pHat);
                 }
             }
         }
@@ -387,24 +457,125 @@ public class PACLearner {
     }
 
     private void solveExplorationRMDP() throws PrismException {
+        // pessimistic (min over uncertainty set) for RMDP, optimistic (max) for OPTIMISTIC
+        boolean pessimistic = explorationPolicy != ExplorationPolicy.OPTIMISTIC;
+        solveExploration(explorationRMDP, explorationRewards, MinMax.max().setMinUnc(pessimistic));
+    }
+
+    private void solveExploration(UMDP<Double> model, MDPRewardsSimple<Double> rewards, MinMax minMax) throws PrismException {
         UMDPModelChecker mc = new UMDPModelChecker(this.prism);
         mc.setGenStrat(true);
         mc.setPrecomp(true);
         mc.setSilentPrecomputations(true);
         mc.setVerbosity(0);
 
-        ModelCheckerResult res = mc.computeCumulativeRewards(explorationRMDP, explorationRewards, effHorizon, MinMax.max().setMinUnc(true));
+        ModelCheckerResult res = mc.computeCumulativeRewards(model, rewards, effHorizon, minMax);
 
         if (res == null || res.strat == null) {
             throw new PrismException("Exploration solver did not return a strategy.");
         }
 
         explorationStrat = (Strategy<Double>) res.strat;
-        if (!(explorationStrat instanceof StrategyGenerator)) {
-            throw new PrismException("Exploration strategy must be a StrategyGenerator for the simulator");
+        // Enforced by choice index during trajectory sampling (see PACHelper.sampleTrajectory);
+        // action-label-based enforcement via the simulator is unreliable for CSG joint actions.
+        helper.explorationStrategy = explorationStrat;
+        if (DEBUG_EXPLORATION) {
+            StringBuilder sb = new StringBuilder("DEBUG-EXPL ep" + episode + ":");
+            for (int s = 0; s < empiricalGame.getNumStates(); s++) {
+                sb.append(" s").append(s).append("=[");
+                for (int m = 0; m < Math.min(effHorizon, 3); m++) {
+                    sb.append(explorationStrat.getChoiceIndex(s, m)).append(m < Math.min(effHorizon, 3) - 1 ? "," : "");
+                }
+                sb.append("] rew=[");
+                for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
+                    sb.append(String.format("%.2f", explorationRewards.getTransitionReward(s, c))).append(c < empiricalGame.getNumChoices(s) - 1 ? "," : "");
+                }
+                sb.append("]");
+            }
+            System.out.println(sb);
         }
-        helper.sim.loadStrategy((StrategyGenerator<Double>) explorationStrat);
-        helper.sim.setStrategyEnforced(true);
+    }
+
+    private static final boolean DEBUG_EXPLORATION = Boolean.getBoolean("pac.debugExploration");
+
+    /** Zero-radius copy of the empirical model, used by ROUND_ROBIN to navigate on point estimates. */
+    private void initialisePointMDP() {
+        pointMDP = new L1MDPSimple<>(empiricalGame);
+        for (int s = 0; s < pointMDP.getNumStates(); s++) {
+            for (int c = 0; c < pointMDP.getNumChoices(s); c++) {
+                pointMDP.setRadius(s, c, 0.0);
+            }
+        }
+        rrTargetS = -1;
+        rrTargetC = -1;
+    }
+
+    /**
+     * Round-robin baseline: target the unknown (s,a) slot with the fewest samples and
+     * play a point-estimate MDP strategy maximising the expected number of visits to it.
+     * The strategy is only re-solved when the target slot changes.
+     */
+    private void updateRoundRobinExploration() throws PrismException {
+        int bestS = -1, bestC = -1;
+        long bestCount = Long.MAX_VALUE;
+        for (int s = 0; s < empiricalGame.getNumStates(); s++) {
+            if (effHorizon == 1 && s != empiricalGame.getFirstInitialState()) continue;
+            for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
+                if (!known[s][c] && slotCounts[s][c] < bestCount) {
+                    bestCount = slotCounts[s][c];
+                    bestS = s;
+                    bestC = c;
+                }
+            }
+        }
+        if (bestS < 0) return; // all slots known; main loop terminates via numUnknownSlots == 0
+        if (bestS == rrTargetS && bestC == rrTargetC && explorationStrat != null) return;
+
+        rrTargetS = bestS;
+        rrTargetC = bestC;
+        System.out.println("Episode " + episode + ": Round-robin target slot (" + bestS + "," + bestC + ")");
+        MDPRewardsSimple<Double> targetReward = new MDPRewardsSimple<>(pointMDP.getNumStates());
+        targetReward.setTransitionReward(bestS, bestC, 1.0);
+        solveExploration(pointMDP, targetReward, MinMax.max().setMinUnc(true)); // radius 0 => point model
+    }
+
+    /** Max over (s,a) slots of the L1 distance between the empirical centre and the true kernel. */
+    private double computeModelErrorL1() {
+        double maxErr = 0.0;
+        for (int s = 0; s < trueGame.getNumStates(); s++) {
+            if (effHorizon == 1 && s != empiricalGame.getFirstInitialState()) continue;
+            for (int c = 0; c < trueGame.getNumChoices(s); c++) {
+                Distribution<Double> pTrue = trueGame.getChoice(s, c);
+                Distribution<Double> pHat = empiricalGame.getChoice(s, c);
+                Set<Integer> support = new HashSet<>(pTrue.getSupport());
+                support.addAll(pHat.getSupport());
+                double err = 0.0;
+                for (int succ : support) {
+                    double t = pTrue.contains(succ) ? pTrue.get(succ) : 0.0;
+                    double h = pHat.contains(succ) ? pHat.get(succ) : 0.0;
+                    err += Math.abs(t - h);
+                }
+                maxErr = Math.max(maxErr, err);
+            }
+        }
+        return maxErr;
+    }
+
+    /**
+     * Periodically solve the empirical robust game and evaluate the learned profile in the true game.
+     * Returns V* - u(sigma_t, P*), or NaN if unavailable (no NE found / no strategy generated).
+     */
+    private double computeTrueValueGap(Property property) {
+        try {
+            SolveOutcome sol = robustSolveL1CSG(property);
+            if (sol == null || !sol.foundNE() || sol.getStrategy() == null || Double.isNaN(trueValueForGap)) {
+                return Double.NaN;
+            }
+            double v = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
+            return trueValueForGap - v;
+        } catch (Exception e) {
+            return Double.NaN;
+        }
     }
 
 
@@ -485,7 +656,7 @@ public class PACLearner {
 //    }
 
 
-    private void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String subdirName) throws PrismException, InvalidStrategyStateException, Exception {
+    void printResult(long duration, PacResult result, boolean exportStrat, String modelFilePath, int propertyIndex, boolean robustnessExperiment, String subdirName) throws PrismException, InvalidStrategyStateException, Exception {
         System.out.println("\n---------------------------------------");
         System.out.println("Epsilon: " + helper.spec.epsilon);
         System.out.println("Confidence: " + helper.spec.confidence);
@@ -518,6 +689,75 @@ public class PACLearner {
         verifyInTrueGame(result.pointSol, trueSol, exportStrat, modelFilePath, propertyIndex, robustnessExperiment, POINT_SUFFIX, subdirName);
 
 
+    }
+
+    /** Flat per-run summary for machine-readable batch results (one CSV row per run). */
+    public static final class RunSummary {
+        public int episodes;
+        public double deltaT;
+        public long nMin;
+        public long totalSamples;      // number of sampled trajectories
+        public long totalTransitions;  // number of individual environment transitions
+        public double runtimeMs;
+        public boolean trueFound;
+        public double trueValue;
+        public boolean robustFound;
+        public double robustValue;
+        public double robustTrueValue;
+        public double robustValueGap;
+        public boolean pointFound;
+        public double pointValue;
+        public double pointTrueValue;
+        public double pointValueGap;
+    }
+
+    /** Build a machine-readable summary of a finished run (also solves the true game as oracle). */
+    public RunSummary summarise(long durationNs, PacResult result) throws PrismException {
+        RunSummary rs = new RunSummary();
+        rs.episodes = result.episodes;
+        rs.deltaT = result.deltaT;
+        rs.nMin = this.nMin;
+        rs.totalSamples = this.totalNumSamples;
+        rs.totalTransitions = this.totalNumTransitions;
+        rs.runtimeMs = durationNs / 1e6;
+
+        SolveOutcome trueSol = solveTrueGame(helper.spec.propertiesFile, helper.spec.property);
+        rs.trueFound = trueSol != null && trueSol.foundNE();
+        rs.trueValue = trueSol != null ? trueSol.getValue() : Double.NaN;
+
+        rs.robustFound = result.robustSol != null && result.robustSol.foundNE();
+        rs.robustValue = result.robustSol != null ? result.robustSol.getValue() : Double.NaN;
+        double[] robustEval = evalStrategyInTrueGame(result.robustSol, trueSol);
+        rs.robustTrueValue = robustEval[0];
+        rs.robustValueGap = robustEval[1];
+
+        rs.pointFound = result.pointSol != null && result.pointSol.foundNE();
+        rs.pointValue = result.pointSol != null ? result.pointSol.getValue() : Double.NaN;
+        double[] pointEval = evalStrategyInTrueGame(result.pointSol, trueSol);
+        rs.pointTrueValue = pointEval[0];
+        rs.pointValueGap = pointEval[1];
+
+        return rs;
+    }
+
+    /** Returns {value of sol's strategy in the true game, value gap vs. oracle}, NaNs if unavailable. */
+    private double[] evalStrategyInTrueGame(SolveOutcome sol, SolveOutcome trueSol) {
+        if (sol == null || !sol.foundNE() || sol.getStrategy() == null || trueSol == null) {
+            return new double[]{Double.NaN, Double.NaN};
+        }
+        try {
+            double v, gap;
+            if (trueSol.getStrategy() != null && trueSol.getStrategy().sameChoices(sol.getStrategy())) {
+                v = trueSol.getValue();
+                gap = 0.0;
+            } else {
+                v = helper.computeValueInCSG(prism, trueGame, sol.getStrategy());
+                gap = trueSol.getValue() - v;
+            }
+            return new double[]{v, gap};
+        } catch (Exception e) {
+            return new double[]{Double.NaN, Double.NaN};
+        }
     }
 
     private File getExportStrategyFile(String modelFilePath, int propertyIndex, boolean robustnessExperiment, String suffix, String subdirName) throws Exception {

@@ -91,6 +91,13 @@ public class Experiment {
         setModel(model);
     }
 
+    /** Configure an experiment from explicit model/properties files (e.g. generated scaling benchmarks). */
+    public Experiment(String modelFile, String propertiesFile, int propertyIndex) {
+        this.modelFile = modelFile;
+        this.propertiesFile = propertiesFile;
+        this.propertyIndex = propertyIndex;
+    }
+
     public void setValues(Values values) {
         this.parameterValues = values;
     }

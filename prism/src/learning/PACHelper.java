@@ -21,6 +21,16 @@ public class PACHelper {
     protected SimulatorEngine sim;
     protected Experiment.PacRunSpec spec;
 
+    /**
+     * Exploration strategy enforced during trajectory sampling, or null for uniform-random choices.
+     * Enforced by choice index (memory = elapsed steps, matching FMDStrategyStep), since the
+     * explicit model's choice indexing is what the learner's slot counts are keyed on. This avoids
+     * matching strategies to simulator choices via action labels, which is unreliable for CSGs.
+     */
+    protected Strategy<Double> explorationStrategy;
+    /** RNG for sampling successors when enforcing a strategy choice; seeded per run for reproducibility. */
+    protected Random rng = new Random();
+
     public static final class SolveOutcome {
         private final boolean found;
         private final CSGStrategy<Double> strategy;
@@ -74,7 +84,15 @@ public class PACHelper {
                 throw new PrismException("Current state not found in explicit state list: " + before);
             }
 
-            if (!sim.automaticTransition()) break;
+            boolean stepped = false;
+            if (explorationStrategy != null) {
+                int choice = explorationStrategy.getChoiceIndex(s, h);
+                if (choice >= 0 && choice < sim.getNumChoices()) {
+                    takeChoice(choice);
+                    stepped = true;
+                }
+            }
+            if (!stepped && !sim.automaticTransition()) break;
 
             State after = sim.getCurrentState();
             Integer sp = stateToIndex.get(after);
@@ -93,6 +111,34 @@ public class PACHelper {
         }
     }
 
+
+    /**
+     * Execute choice i in the simulator, sampling the successor according to the
+     * choice's transition probabilities.
+     */
+    private void takeChoice(int i) throws PrismException {
+        int numTrans = sim.getNumTransitions(i);
+        int offset = numTrans - 1; // fallback to last transition absorbs numerical residue
+        if (numTrans > 1) {
+            double r = rng.nextDouble();
+            double acc = 0.0;
+            for (int o = 0; o < numTrans - 1; o++) {
+                acc += sim.getTransitionProbability(i, o);
+                if (r < acc) {
+                    offset = o;
+                    break;
+                }
+            }
+        } else {
+            offset = 0;
+        }
+        // total transition index = transitions of all earlier choices + offset within choice i
+        int index = offset;
+        for (int j = 0; j < i; j++) {
+            index += sim.getNumTransitions(j);
+        }
+        sim.manualTransition(index);
+    }
 
     protected double weissmanRadius(L1CSG<Double> game, double saCount, double deltaSlot) {
         double r = Math.sqrt((2.0 / saCount) * (game.getNumStates() * Math.log(2.0) - Math.log(deltaSlot)));
