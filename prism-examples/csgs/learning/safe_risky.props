@@ -10,3 +10,7 @@ const int k=3;
 
 // duplicate of property 2: for H-dependency experiments
 <<p1:p2>>max=? ( P[F<=k s=1] + P[F<=k s=2] )
+
+// H-sweep property for batch experiments: HB is undefined, pass via -const HB=<h>
+const int HB;
+<<p1:p2>>max=? ( P[F<=HB s=1] + P[F<=HB s=2] )

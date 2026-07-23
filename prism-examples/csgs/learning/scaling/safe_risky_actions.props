@@ -1,0 +1,2 @@
+// bounded reachability objective (fixed horizon k=3); labels defined in the model files
+<<p1:p2>>max=? ( P[F<=3 "high"] + P[F<=3 "medium"] )
