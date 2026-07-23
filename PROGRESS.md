@@ -74,8 +74,22 @@ converge on SAFE_RISKY; existing `PACLearner.main` entry point unchanged.
 **Build note:** compile with a JDK ≥ 17 (e.g. `export PATH=/opt/homebrew/opt/openjdk/bin:$PATH`),
 then `cd prism && make`. The default CLI JDK 11 on this machine cannot compile the branch.
 
+### 2026-07-23 — E3 scaling families + run commands
+
+- `prism-examples/csgs/learning/scaling/generate_models.py` + generated families:
+  `safe_risky_states_N{1,2,4,8}` (|S| = 8..36, hub variant, fixed H=3, values/equilibria
+  preserved) and `safe_risky_actions_m{2..5}` (|A| = 4..25; m=2 recovers the original game).
+- `safe_risky.props` property 5: H-sweep via undefined constant `HB` (`-const HB=<h>`),
+  replacing hand-editing of `k`.
+- `analysis/aggregate.py`: mean/std/95% CI tables from batch CSVs.
+- `RUN_COMMANDS.md`: exact commands for both MacBooks, priority-ordered.
+- Verified: actions_m3 converges (12.0M samples vs 5.9M at m=2 — clean |A| scaling signal);
+  states_N1 converges; prop 5 H-sweep works (HB=2: 2.0M samples, 13s) and prop 4 unaffected.
+
 ## TODO
 - [x] E0 batch runner + logging
 - [x] E2 exploration baselines
-- [ ] E3 scaling model families (|S|, |A|) + generator
-- [ ] Final run commands per machine (RUN_COMMANDS.md)
+- [x] E3 scaling model families (|S|, |A|) + generator, H-sweep property
+- [x] Run commands per machine (RUN_COMMANDS.md)
+- [ ] Runs executed on both machines (user)
+- [ ] Aggregate results + rebuttal figures
