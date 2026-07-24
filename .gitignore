@@ -69,5 +69,7 @@ prism-examples/csgs/learning/logs/H/hide_or_run*
 
 del
 **/*robustness-old/
+prism/lib
+/logs
 prism-examples/csgs/learning/results/full/full.xlsx
 /neurips-submission
