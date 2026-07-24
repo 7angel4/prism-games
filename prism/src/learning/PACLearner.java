@@ -378,8 +378,12 @@ public class PACLearner {
                 explorationRMDP.setRadius(s, c, radius);
                 totalRadius += (radius - oldRadius);
 
-                updateExplorationReward(s, c);
+                // updateKnown must run first: the exploration RMDP is only re-solved when a slot
+                // flips to known, so the re-solve must not see the flipped slot's stale positive
+                // reward (else it deterministically targets an already-known slot and, with no
+                // further flips to trigger a re-solve, starves the remaining unknown slots forever).
                 updateKnown(s, c);
+                updateExplorationReward(s, c);
 
                 Set<Integer> succs = new HashSet<>(empiricalGame.getChoice(s, c).getSupport()); // snapshot of empiricalGame.getSuccessorsIterator
                 for (int succ : succs) {
@@ -479,24 +483,7 @@ public class PACLearner {
         // Enforced by choice index during trajectory sampling (see PACHelper.sampleTrajectory);
         // action-label-based enforcement via the simulator is unreliable for CSG joint actions.
         helper.explorationStrategy = explorationStrat;
-        if (DEBUG_EXPLORATION) {
-            StringBuilder sb = new StringBuilder("DEBUG-EXPL ep" + episode + ":");
-            for (int s = 0; s < empiricalGame.getNumStates(); s++) {
-                sb.append(" s").append(s).append("=[");
-                for (int m = 0; m < Math.min(effHorizon, 3); m++) {
-                    sb.append(explorationStrat.getChoiceIndex(s, m)).append(m < Math.min(effHorizon, 3) - 1 ? "," : "");
-                }
-                sb.append("] rew=[");
-                for (int c = 0; c < empiricalGame.getNumChoices(s); c++) {
-                    sb.append(String.format("%.2f", explorationRewards.getTransitionReward(s, c))).append(c < empiricalGame.getNumChoices(s) - 1 ? "," : "");
-                }
-                sb.append("]");
-            }
-            System.out.println(sb);
-        }
     }
-
-    private static final boolean DEBUG_EXPLORATION = Boolean.getBoolean("pac.debugExploration");
 
     /** Zero-radius copy of the empirical model, used by ROUND_ROBIN to navigate on point estimates. */
     private void initialisePointMDP() {

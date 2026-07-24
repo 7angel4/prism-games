@@ -86,6 +86,38 @@ then `cd prism && make`. The default CLI JDK 11 on this machine cannot compile t
 - Verified: actions_m3 converges (12.0M samples vs 5.9M at m=2 — clean |A| scaling signal);
   states_N1 converges; prop 5 H-sweep works (HB=2: 2.0M samples, 13s) and prop 4 unaffected.
 
+### 2026-07-24 — Bug fix #3: stale-reward exploration deadlock (N=1 |S|-sweep anomaly)
+
+Symptom: `safe_risky_states_N1` was slower than N4 — the run froze with the 4 medium-state
+slots unknown and `maxRadius` bit-identical for 465k+ episodes (zero samples reaching them).
+
+Root cause: in `update()`, `updateExplorationReward` ran *before* `updateKnown`, so on the
+episode a slot flips to known it keeps its stale positive reward; the exploration RMDP is only
+re-solved *on flips*, i.e. every re-solve saw the just-flipped slot's stale reward. When that
+stale value exceeded the (reachability-discounted) value of the remaining unknown slots, the
+new strategy deterministically targeted the already-known slot; with no further flips there was
+no further re-solve — a permanent starvation loop. N1's two-hop route to `medium`
+(s0 → channel → medium, discount 0.4) made it the reliable victim; other benchmarks escaped by
+terminating via the Δ_t condition first (at some endgame-sample cost).
+
+Fix: swap the two calls (`updateKnown` before `updateExplorationReward`). One line.
+Consequence: **all E3 sweeps (and E2 rmdp/optimistic runs) should be rerun on the fixed build**
+for internally-consistent numbers — completed runs are *correct* (values match oracle) but their
+sample totals include stale-endgame waste and will improve after the fix.
+
+### Results snapshot (pre-fix builds, values verified correct)
+
+- **E2**: uniform needs 2× (Safe-vs-Risky), 2.4× (Cyclic Prefs), **17×** (Delayed Coord) more
+  samples than rmdp — and on Delayed Coord converges to a worse robust value (1.80 vs 2.00).
+  Round-robin comparable on small games, 2.2× worse on Traffic Merge. Optimistic ≈ pessimistic
+  in samples, but on Delayed Coord its learned value is worse on some seeds (1.92 ± 0.14 vs
+  2.000 ± 0.000) — pessimism costs nothing here and is safer.
+- **E1** (10 seeds fast / 5 slow): all correctness results reproduce with negligible variance;
+  Cyclic Prefs returns the non-existence certificate in 10/10 seeds; Delayed Coord: robust
+  profile optimal in 4/5 seeds while the point-estimate profile fails (gap ≈ V*/2) in 4/5.
+- **E3**: ε-sweep slope ≈ 2.1 in log-log (theory 1/ε²); |A|-sweep slope ≈ 0.89 (theory ≤ 1);
+  H-sweep polynomial; |S|-sweep to be rerun post-fix.
+
 ## TODO
 - [x] E0 batch runner + logging
 - [x] E2 exploration baselines
