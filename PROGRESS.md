@@ -118,10 +118,25 @@ sample totals include stale-endgame waste and will improve after the fix.
 - **E3**: ε-sweep slope ≈ 2.1 in log-log (theory 1/ε²); |A|-sweep slope ≈ 0.89 (theory ≤ 1);
   H-sweep polynomial; |S|-sweep to be rerun post-fix.
 
+### 2026-07-25 — All runs landed; analysis + rebuttal draft
+
+All batch results landed (E1, E2, E3, E0 value-gap). Confirmed scaling exponents match theory
+closely: H 4.02 (theory 4), 1/eps 2.12 (theory 2), |A| 0.89 (theory <=1), |S| 1.47 (theory <=1 for
+the dominant term). Confirmed E2 baseline wins (up to 17x on Delayed Coordination) hold post-fix.
+
+Analysis, pgfplots source, and rebuttal draft edits are in `neurips-submission/` (gitignored, not
+tracked in this repo — see `rebuttal-analysis.md` and `rebuttal-figures.tex` there). Flagged one
+open item for the user: a strategy-transfer anomaly on 1/5 Delayed Coordination seeds (robust value
+estimate correct, but the specific transferred strategy underperforms) — not a rerun of the known
+bugs, likely solver tie-breaking among multiple robust-optimal strategies; not included in the
+rebuttal pending the user's decision.
+
 ## TODO
 - [x] E0 batch runner + logging
 - [x] E2 exploration baselines
 - [x] E3 scaling model families (|S|, |A|) + generator, H-sweep property
 - [x] Run commands per machine (RUN_COMMANDS.md)
-- [ ] Runs executed on both machines (user)
-- [ ] Aggregate results + rebuttal figures
+- [x] Runs executed on both machines
+- [x] Aggregate results + rebuttal figures + draft rebuttal text (see neurips-submission/)
+- [ ] Camera-ready paper updates (see rebuttal-analysis.md "what to add" list)
+- [ ] Decide on Delayed Coordination strategy-transfer anomaly (investigate vs. leave for future work)
