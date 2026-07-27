@@ -1,0 +1,2 @@
+timestamp,model,propertyIndex,consts,epsilon,confidence,explorer,seed,valueGapEvery,episodes,totalSamples,totalTransitions,nMin,deltaT,runtimeMs,trueFound,trueValue,robustFound,robustValue,robustTrueValue,robustValueGap,pointFound,pointValue,pointTrueValue,pointValueGap
+2026-07-27T13:04:23.996004,SAFE_RISKY,5,HB=15,0.2,0.05,rmdp,1,0,17212999,2031684774,30475271610,510872568,0.04999999885534503,85375832.5,true,1.0,true,0.999555555565,NaN,NaN,true,1.0,NaN,NaN
