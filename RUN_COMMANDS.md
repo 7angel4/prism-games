@@ -79,6 +79,17 @@ for H in 7 9; do
 done
 ```
 
+Fit scaling:
+```bash
+python3 prism-examples/csgs/learning/analysis/fit_scaling.py \
+  prism-examples/csgs/learning/results/batch/e3_H.csv --const-key HB --exclude 1`
+```
+
+Summarise stats:
+```bash
+python3 prism-examples/csgs/learning/analysis/aggregate.py prism-examples/csgs/learning/results/batch/e3_H.csv
+```
+
 ### |S|-sweep (hub family; |S| = 8, 12, 20, 36)
 
 ```bash
