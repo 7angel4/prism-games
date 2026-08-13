@@ -33,7 +33,7 @@ import os
 
 OUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
-STATES_FAMILY_CHANNELS = [1, 2, 4, 8]   # |S| = 8, 12, 20, 36
+STATES_FAMILY_CHANNELS = [1, 2, 4, 8, 14]   # |S| = 8, 12, 20, 36, 60
 ACTIONS_FAMILY_M = [2, 3, 4, 5, 6]      # |A| = 4, 9, 16, 25, 36
 
 PROP = '<<p1:p2>>max=? ( P[F<=3 "high"] + P[F<=3 "medium"] )\n'
