@@ -1,0 +1,2 @@
+timestamp,model,propertyIndex,consts,epsilon,confidence,explorer,seed,valueGapEvery,episodes,totalSamples,totalTransitions,nMin,deltaT,runtimeMs,trueFound,trueValue,robustFound,robustValue,robustTrueValue,robustValueGap,pointFound,pointValue,pointTrueValue,pointValueGap
+2026-08-13T19:36:57.33347,DELAYED_COORD,2,-,0.1,0.05,rmdp,1,50000,5524081,183636311,918181555,22602874,0.024999983337208292,8467735.7,true,3.24,true,3.238457725715,NaN,NaN,true,3.2400165244909997,NaN,NaN
