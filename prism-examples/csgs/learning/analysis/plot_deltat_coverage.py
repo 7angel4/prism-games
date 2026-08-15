@@ -57,6 +57,12 @@ def main():
     p.add_argument("log_csv")
     p.add_argument("out_pdf")
     p.add_argument("--title", default=None)
+    p.add_argument("--final-point", metavar="EPISODE:GAP", default=None,
+                    help="mark the actual reported final value gap (computed once, "
+                         "post-loop, after the run stops) with a star -- this is what "
+                         "every other table/figure in the paper reports, and can differ "
+                         "from the last *periodic* in-loop checkpoint plotted above it "
+                         "when the run is still resolving right at the stopping boundary.")
     args = p.parse_args()
 
     rows = load(args.log_csv)
@@ -99,6 +105,19 @@ def main():
             ax1.annotate(f"gap=0 from t={zx0}", xy=(zx0, ax1.get_ylim()[0]),
                          xytext=(5, 5), textcoords="offset points",
                          fontsize=7, color=c_gap)
+        lines1, labels1 = ax1.get_legend_handles_labels()
+
+    if args.final_point:
+        fep, fgap = args.final_point.split(":")
+        fep, fgap = int(fep), float(fgap)
+        if fgap > 0:
+            ax1.plot([fep], [fgap], marker="*", markersize=13, color=c_gap,
+                     linestyle="none", zorder=5, label=r"final $u(\hat\sigma,P^\star)$")
+        else:
+            ymin = ax1.get_ylim()[0]
+            ax1.plot([fep], [ymin], marker="*", markersize=13, color=c_gap,
+                     linestyle="none", zorder=5, clip_on=False,
+                     label=r"final: gap$=0$")
         lines1, labels1 = ax1.get_legend_handles_labels()
 
     lines2, labels2 = ax2.get_legend_handles_labels()

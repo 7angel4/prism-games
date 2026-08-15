@@ -22,6 +22,7 @@ import csv
 import math
 import re
 from collections import defaultdict
+from matplotlib.ticker import FuncFormatter, LogLocator
 
 import matplotlib
 # The PGF backend emits true vector LaTeX text (via pdflatex) instead of
@@ -110,6 +111,14 @@ def main():
                     help="manually inject a point sourced from a different CSV/config "
                          "(e.g. a base-case run that predates this sweep's file naming); "
                          "repeatable. X is in natural (display) units, e.g. |S|=4.")
+    p.add_argument(
+        "--x-tick-power",
+        type=int,
+        default=None,
+        help="factor 10^power out of x-axis tick labels; "
+            "e.g. -1 displays 0.1, 0.2, ... as 1, 2, ... and "
+            "adds ×10^power to the x-axis label"
+    )
     args = p.parse_args()
 
     rows = load(args.csv)
@@ -175,14 +184,45 @@ def main():
 
     ax.set_xscale("log")
     ax.set_yscale("log")
-    # the x-axis is always log-scaled here (the underlying values are the
-    # natural parameter, e.g. eps, not log(eps)) -- say so explicitly
-    ax.set_xlabel(args.xlabel + " (log scale)")
+
+    # The x-axis is always log-scaled. By default, retain Matplotlib's normal
+    # log tick formatting. With --x-tick-power, instead show mantissas after
+    # factoring out the specified power of ten.
+    #
+    # For example, with --x-tick-power -1:
+    #     0.1, 0.2, 0.5, 1, 2, 5, 10
+    # are displayed as:
+    #     1,   2,   5,   10, 20, 50, 100
+    # with ×10^{-1} stated in the axis label.
+    if args.x_tick_power is not None:
+        scale = 10 ** args.x_tick_power
+
+        # Show every integer 1--9 within each decade, rather than only at
+        # powers of ten.
+        ax.xaxis.set_major_locator(
+            LogLocator(base=10, subs=(1.0,))
+        )
+        ax.xaxis.set_minor_locator(
+            LogLocator(base=10, subs=tuple(range(2, 10)))
+        )
+
+        tick_formatter = FuncFormatter(
+            lambda x, pos: f"{x / scale:g}"
+        )
+        ax.xaxis.set_major_formatter(tick_formatter)
+        ax.xaxis.set_minor_formatter(tick_formatter)
+
+        ax.set_xlabel(
+            rf"{args.xlabel} ($\times 10^{{{args.x_tick_power}}}$; log scale)"
+        )
+    else:
+        ax.set_xlabel(args.xlabel + " (log scale)")
+
     ax.set_ylabel(args.ylabel)
     ax.grid(True, which="both", alpha=0.3)
 
     symbol = args.symbol or args.xlabel.replace("$", "")
-    eqn = rf"$N \propto {symbol}^{{{slope:.2f}}}$"
+    eqn = rf"$N^\pi \propto {symbol}^{{{slope:.2f}}}$"
     # display-space slope sign: inverting the x-axis for plotting flips it
     disp_slope = -slope if args.invert else slope
     max_rel_std = max((s / m for s, m in zip(stds, means) if m > 0), default=0.0)
@@ -197,7 +237,7 @@ def main():
         # error bars (+-1 std over seeds) exist but are smaller than the marker
         # at this scale -- say so explicitly rather than let them look absent
         note = rf"($R^2={r2:.3f}$; error < {max_rel_std*100:.2f}%)"
-        ax.text(x0, 0.88, note, transform=ax.transAxes, ha=ha, va="top", fontsize=12)
+        ax.text(x0, 0.85, note, transform=ax.transAxes, ha=ha, va="top", fontsize=12)
 
     if args.title:
         ax.set_title(args.title)
