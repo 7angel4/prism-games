@@ -121,7 +121,10 @@ def main():
         lines1, labels1 = ax1.get_legend_handles_labels()
 
     lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines1 + lines2, labels1 + labels2, loc="center right", framealpha=0.9)
+    # Top-left, but nudged down (via bbox_to_anchor) so it sits just below the
+    # Delta_t line's flat opening segment instead of overlapping it.
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left",
+               bbox_to_anchor=(0.01, 0.955), framealpha=0.9)
 
     if args.title:
         ax1.set_title(args.title)
