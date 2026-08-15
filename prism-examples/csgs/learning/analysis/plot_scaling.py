@@ -22,7 +22,7 @@ import csv
 import math
 import re
 from collections import defaultdict
-from matplotlib.ticker import FuncFormatter, LogLocator
+from matplotlib.ticker import FuncFormatter, LogLocator, FixedLocator, NullLocator
 
 import matplotlib
 # The PGF backend emits true vector LaTeX text (via pdflatex) instead of
@@ -119,6 +119,12 @@ def main():
             "e.g. -1 displays 0.1, 0.2, ... as 1, 2, ... and "
             "adds ×10^power to the x-axis label"
     )
+    p.add_argument(
+        "--ticks-at-data", action="store_true",
+        help="label only the x-positions where a data point sits, instead of "
+             "Matplotlib's default dense log-scale ticks -- avoids overlapping "
+             "labels when points aren't evenly spaced in log-space."
+    )
     args = p.parse_args()
 
     rows = load(args.csv)
@@ -194,7 +200,16 @@ def main():
     # are displayed as:
     #     1,   2,   5,   10, 20, 50, 100
     # with ×10^{-1} stated in the axis label.
-    if args.x_tick_power is not None:
+    if args.ticks_at_data:
+        # Only label the x-positions that actually have a data point (the
+        # extra-point injections included), rather than every log-decade
+        # subdivision -- prevents e.g. "2x10^1 3x10^1" collisions when the
+        # points themselves aren't evenly log-spaced.
+        ax.xaxis.set_major_locator(FixedLocator(xs_disp))
+        ax.xaxis.set_minor_locator(NullLocator())
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x:g}"))
+        ax.set_xlabel(args.xlabel + " (log scale)")
+    elif args.x_tick_power is not None:
         scale = 10 ** args.x_tick_power
 
         # Show every integer 1--9 within each decade, rather than only at
