@@ -131,6 +131,17 @@ estimate correct, but the specific transferred strategy underperforms) — not a
 bugs, likely solver tie-breaking among multiple robust-optimal strategies; not included in the
 rebuttal pending the user's decision.
 
+### 2026-08-18 — Extend |A|-scaling family to m=7,8 (|A|=49, 64)
+
+Extended `ACTIONS_FAMILY_M` in `generate_models.py` from `[1..6]` to `[1..8]` for the camera-ready
+scaling figure (paper had excluded the degenerate |A|=1 point; adding two more real points beyond
+|A|=36 to strengthen the fit). Regenerated the full model set — existing `m1`-`m6`/states files are
+byte-identical (deterministic generator, unchanged inputs for those m). New
+`safe_risky_actions_m7.prism` (|A|=49) and `safe_risky_actions_m8.prism` (|A|=64) validated directly
+in PRISM (`prism <model> safe_risky_actions.props`): both build to 4 states as expected, with 49 and
+64 choices respectively, and solve to the same equilibrium value (0.6, 0.4) / 1.0 as the rest of the
+family. Runs not yet launched — see RUN_COMMANDS.md / chat for the exact `RunPac` commands.
+
 ## TODO
 - [x] E0 batch runner + logging
 - [x] E2 exploration baselines
