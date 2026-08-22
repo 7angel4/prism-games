@@ -78,8 +78,7 @@ def main():
     ax1.plot(t, delta_t, color=c_delta, linewidth=2, label=r"$\Delta_t$")
     ax1.set_yscale("log")
     ax1.set_xlabel(r"$t$")
-    ax1.set_ylabel(r"$\Delta_t$ (log scale)", color=c_delta)
-    ax1.tick_params(axis="y", labelcolor=c_delta)
+    ax1.set_ylabel(r"$\Delta_t,\ V^\star-u(\hat\sigma_t,P^\star)$ (log scale)")
     ax1.grid(True, alpha=0.6)
 
     ax2 = ax1.twinx()
@@ -90,6 +89,7 @@ def main():
 
     lines1, labels1 = ax1.get_legend_handles_labels()
 
+    pos = []
     if gap_pts:
         # positive (>0) points plotted on the log axis directly; exact-0 points
         # can't be shown on a log scale, so we annotate the first zero-crossing.
@@ -110,14 +110,21 @@ def main():
     if args.final_point:
         fep, fgap = args.final_point.split(":")
         fep, fgap = int(fep), float(fgap)
-        if fgap > 0:
-            ax1.plot([fep], [fgap], marker="*", markersize=13, color=c_gap,
-                     linestyle="none", zorder=5, label=r"final $u(\hat\sigma,P^\star)$")
-        else:
-            ymin = ax1.get_ylim()[0]
-            ax1.plot([fep], [ymin], marker="*", markersize=13, color=c_gap,
-                     linestyle="none", zorder=5, clip_on=False,
-                     label=r"final: gap$=0$")
+        ymin = ax1.get_ylim()[0]
+        fy = fgap if fgap > 0 else ymin
+        # Connect the final point to the last plotted periodic checkpoint, so
+        # it reads as where the value-gap curve actually ends rather than a
+        # disconnected marker. Exact 0 can't be shown on a log axis, so the
+        # segment runs down to the bottom of the visible range instead --
+        # the star (and "gap=0" label) makes clear that's a floor, not the
+        # true value.
+        if pos:
+            lx, ly = pos[-1]
+            ax1.plot([lx, fep], [ly, fy], color=c_gap, linewidth=1.5,
+                     linestyle="-.", zorder=4)
+        label = r"final $u(\hat\sigma,P^\star)$" if fgap > 0 else r"final: gap$=0$"
+        ax1.plot([fep], [fy], marker="*", markersize=13, color=c_gap,
+                 linestyle="none", zorder=5, clip_on=(fgap > 0), label=label)
         lines1, labels1 = ax1.get_legend_handles_labels()
 
     lines2, labels2 = ax2.get_legend_handles_labels()

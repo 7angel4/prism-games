@@ -1,13 +1,30 @@
 #!/usr/bin/env python3
 """
 Regenerate the "radius ratio" and "samples per episode" learning-dynamics
-panels from a per-episode log produced by learning.RunPac. Companion to
-plot_deltat_coverage.py (same log format, same PGF rendering setup); that
-script covers the Delta_t/kappa_t(/true value gap) panel, this one covers
-the other two panels used alongside it in fig:delayed-coord2-fine.
+panels from a per-episode log produced by learning.RunPac.
+
+The radius-ratio output is legacy: that panel now lives combined with
+kappa_t in plot_kappa_radius.py (fig:radius-ratio-delayed-coord1), so
+OUT_RADIUS_PDF is written but no longer referenced by the paper. The
+samples-per-episode panel (OUT_SAMPLES_PDF) is still current
+(fig:samples-delayed-coord1) and plots N_t^pi alone (a Delta_t overlay was
+tried and then dropped -- N_t^pi is the per-episode trajectory count, not
+the currently-worst slot's own cumulative sample count, so it doesn't
+actually verify the Delta_t ~ 1/sqrt(N_t) claim and was judged more
+confusing than illuminating alongside it).
 
 Usage:
     python3 plot_radius_and_samples.py LOG_CSV OUT_RADIUS_PDF OUT_SAMPLES_PDF
+
+Exact command used to regenerate the paper's copy (run from
+prism-examples/csgs/learning/) -- OUT_RADIUS_PDF is still written (see the
+legacy note above) but only OUT_SAMPLES_PDF is copied into the paper:
+    python3 analysis/plot_radius_and_samples.py \
+      logs/e0vg/delayed_coord1_rmdp_s1.csv \
+      analysis/plots/delayed_coord1/delayed_coord1_radius_ratio.pdf \
+      analysis/plots/delayed_coord1/delayed_coord1_numSamples.pdf
+    cp analysis/plots/delayed_coord1/delayed_coord1_numSamples.pdf \
+      /tmp/paper-updated-new/experiments/delayed_coord1/delayed_coord1_numSamples.pdf
 """
 
 import argparse
