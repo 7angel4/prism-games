@@ -6,7 +6,7 @@ Code for the NeurIPS 2026 paper:
 > In *Advances in Neural Information Processing Systems (NeurIPS)*, 2026.
 
 - Paper: [arXiv:2609.04189](https://arxiv.org/abs/2609.04189)
-- Project page: <https://7angel4.github.io/robust-pac-csg/>
+- Project page: <https://7angel4.github.io/prism-games/>
 
 This branch (`csg-learning`) of [PRISM-games](https://www.prismmodelchecker.org/games/) adds a PAC learner
 for two-player general-sum concurrent stochastic games (CSGs) whose transition probabilities are unknown.
