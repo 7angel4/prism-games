@@ -1,0 +1,615 @@
+/* Project page: Robust PAC Learning of Concurrent Stochastic Games.
+   A standalone page, served from the gh-pages branch of 7angel4/prism-games.
+   The base styles below come from the 7angel4.github.io design system (assets/main.css),
+   copied here so the page does not depend on the personal site.
+   The paper's colour code (as on the poster): blue = confidence sets, orange = exploration,
+   green = (a) epsilon-NE, violet = (b) certificate. */
+
+/* ---------------------------------------------------------------- base (from main.css) */
+:root {
+    --bg: #F8EDE3;              /* page background (latte) */
+    --surface: #FFFBF0;         /* cards */
+    --cream: #FFF4C2;           /* highlight blocks */
+    --tan: #E3CAA5;             /* accents, borders */
+    --tan-dark: #A9907E;        /* strong accents */
+    --brown: #7d5d3d;           /* primary brand brown */
+    --brown-deep: #5b432c;      /* headings */
+    --muted: #8F7A5A;           /* secondary text */
+    --ink: #2e261e;             /* body text */
+    --link: #0b6bc8;            /* hyperlinks */
+    --border: rgba(125, 93, 61, 0.15);
+    --shadow: 0 1px 3px rgba(93, 64, 35, 0.08);
+    --shadow-hover: 0 6px 18px rgba(93, 64, 35, 0.14);
+    --content-width: 920px;
+}
+
+*,
+*::before,
+*::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+main {
+    width: 100%;
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: 0 1.5rem 4rem;
+}
+
+h2.section-title {
+    display: inline-block;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--brown-deep);
+    padding-bottom: 0.25rem;
+    border-bottom: 3px solid var(--tan);
+    margin-bottom: 1.2rem;
+}
+
+p {
+    line-height: 1.7;
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+    word-wrap: break-word;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+section {
+    margin-top: 2.8rem;
+}
+
+.pub-links {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.pub-link {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--brown-deep);
+    background-color: #F1E0C6;
+    border: none;
+    border-radius: 999px;
+    padding: 0.2rem 0.75rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.pub-link:hover {
+    background-color: var(--tan);
+    text-decoration: none;
+}
+
+.project {
+    --c-blue: #1c5cab;
+    --c-orange: #b5461a;
+    --c-green: #0b7a52;
+    --c-violet: #4a3aa7;
+    --tint-green: #e3f6ee;
+    --tint-violet: #eeecf8;
+    --tint-neutral: #f4eadc;
+    --ink-2: #5a5148;
+}
+
+/* ---------------------------------------------------------------- header */
+.proj-header {
+    margin-top: 3.4rem;
+}
+
+.proj-title {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: clamp(1.9rem, 4.6vw, 2.7rem);
+    line-height: 1.12;
+    letter-spacing: -0.02em;
+    color: var(--brown-deep);
+    max-width: 24ch;
+}
+
+.proj-authors {
+    margin-top: 1rem;
+    font-size: 1.12rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 1.4rem;
+}
+
+.proj-authors a {
+    color: var(--brown-deep);
+    font-weight: 600;
+}
+
+.proj-authors sup,
+.proj-affil sup {
+    font-size: 0.7em;
+    margin-left: 0.08em;
+}
+
+.proj-affil {
+    color: var(--muted);
+    font-size: 0.95rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.1rem;
+}
+
+.proj-venue {
+    margin-top: 0.35rem;
+    font-weight: 600;
+    color: var(--brown);
+}
+
+.proj-links {
+    margin-top: 1.1rem;
+}
+
+.proj-links .pub-link {
+    font-size: 0.9rem;
+    padding: 0.3rem 0.95rem;
+}
+
+.pub-link:focus-visible,
+.copy-bibtex:focus-visible,
+.poster-link:focus-visible,
+details.table-view summary:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------- TL;DR */
+.tldr {
+    margin-top: 1.8rem;
+    font-size: 1.04rem;
+    background-color: rgba(255, 244, 194, 0.55);
+    border-left: 3px solid var(--tan-dark);
+    border-radius: 0 10px 10px 0;
+    padding: 0.95rem 1.2rem;
+}
+
+.tldr strong {
+    color: var(--brown-deep);
+    margin-right: 0.35rem;
+}
+
+/* ---------------------------------------------------------------- figures */
+.project figure.card {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 1.2rem 1.3rem 1rem;
+    margin: 1.6rem 0;
+}
+
+.project figure.card > svg,
+.fig-scroll > svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    font-family: 'Inter', sans-serif;
+}
+
+.project figcaption {
+    margin-top: 0.8rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--ink-2);
+}
+
+.fig-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+}
+
+.fig-title.blue { color: var(--c-blue); }
+.fig-title.orange { color: var(--c-orange); }
+
+/* the two wide visuals and the two wide equations have narrow-screen versions */
+.fig-scroll {
+    overflow-x: auto;
+}
+
+.fig-scroll > svg.fig-algorithm-portrait,
+.fig-scroll > svg.chart-rq2-narrow,
+.eq-narrow {
+    display: none;
+}
+
+@media (max-width: 640px) {
+    .fig-scroll > svg.fig-algorithm,
+    .fig-scroll > svg.chart-rq2,
+    .eq-wide {
+        display: none;
+    }
+
+    .fig-scroll > svg.fig-algorithm-portrait,
+    .fig-scroll > svg.chart-rq2-narrow,
+    .eq-narrow {
+        display: block;
+    }
+
+    .fig-scroll > svg.fig-algorithm-portrait {
+        max-width: 420px;
+        margin: 0 auto;
+    }
+
+    .eq-narrow .katex {
+        font-size: 1.1em;
+    }
+
+    .theorem .eq-narrow .katex {
+        font-size: 1em;
+    }
+
+    .theorem {
+        padding: 1.1rem 1rem 1rem;
+    }
+
+    .bound-legend {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ---------------------------------------------------------------- sections */
+.project h3 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    color: var(--brown-deep);
+    line-height: 1.4;
+}
+
+.project section > p + p,
+.project section > p + .katex-display,
+.project section > .katex-display + p {
+    margin-top: 0.9rem;
+}
+
+.project .katex-display {
+    margin: 0.9rem 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0.2rem 0;
+}
+
+.two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.4rem;
+}
+
+.setting {
+    margin-bottom: 1.3rem;
+}
+
+.method-figs {
+    margin-bottom: 1.2rem;
+}
+
+.method-figs figure.card {
+    margin: 0;
+}
+
+/* the two challenges: a coloured rule says which part of the method answers it */
+.note-card {
+    border-top: 3px solid var(--tan);
+    padding-top: 0.8rem;
+}
+
+.note-card h3 {
+    margin-bottom: 0.35rem;
+}
+
+.note-card p {
+    font-size: 0.97rem;
+}
+
+.note-violet { border-top-color: var(--c-violet); }
+.note-violet h3 { color: var(--c-violet); }
+.note-orange { border-top-color: #eb6834; }
+.note-orange h3 { color: var(--c-orange); }
+
+/* ---------------------------------------------------------------- theorem */
+.theorem {
+    background-color: var(--surface);
+    border: 1.5px solid var(--brown);
+    border-radius: 12px;
+    padding: 1.3rem 1.5rem 1.2rem;
+}
+
+.theorem > p + p {
+    margin-top: 0.8rem;
+}
+
+.bound .katex-display {
+    margin: 0.7rem 0 0.5rem;
+}
+
+.bound .katex {
+    font-size: 1.75em;
+}
+
+.bound-legend {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem 1.6rem;
+    margin: 0.2rem 0 1rem;
+    font-size: 0.93rem;
+    color: var(--ink-2);
+}
+
+.bound-legend li {
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+}
+
+.bound-legend .key {
+    align-self: center;
+}
+
+.key {
+    display: inline-block;
+    width: 0.8rem;
+    height: 0.8rem;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.key-orange { background-color: var(--c-orange); }
+.key-green { background-color: var(--c-green); }
+.key-blue { background-color: var(--c-blue); }
+
+.theorem-note {
+    font-size: 0.93rem;
+    color: var(--ink-2);
+    border-top: 1px dashed var(--border);
+    padding-top: 0.8rem;
+}
+
+/* ---------------------------------------------------------------- experiments */
+.rq-title {
+    margin-top: 2rem;
+    margin-bottom: 0.7rem;
+}
+
+.rq1 {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.rq1-row {
+    display: grid;
+    grid-template-columns: 11rem 1fr 1fr;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.rq1-row [role="rowheader"] {
+    font-weight: 600;
+    font-size: 0.93rem;
+    color: var(--brown-deep);
+    align-self: center;
+}
+
+.rq1-head > span {
+    font-weight: 650;
+    font-size: 0.93rem;
+    text-align: center;
+}
+
+.head-a { color: var(--c-green); }
+.head-b { color: var(--c-violet); }
+
+.cell {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.93rem;
+    line-height: 1.45;
+}
+
+.cell svg { flex-shrink: 0; }
+.cell-a { background-color: var(--tint-green); }
+.cell-a2 { background-color: #eef7f2; }
+.cell-b { background-color: var(--tint-violet); }
+.cell-none { background-color: #f1ece4; }
+
+.rq-note {
+    margin-top: 0.8rem;
+    font-size: 0.95rem;
+}
+
+.scaling-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem 1.2rem;
+}
+
+.scaling-grid img {
+    width: 100%;
+    height: auto;
+    display: block;
+    background: #fff;
+    border-radius: 8px;
+}
+
+/* chart table view */
+details.table-view {
+    margin-top: 0.9rem;
+}
+
+details.table-view summary {
+    cursor: pointer;
+    color: var(--brown);
+    font-weight: 600;
+    font-size: 0.92rem;
+    width: fit-content;
+}
+
+.table-scroll {
+    overflow-x: auto;
+    margin-top: 0.7rem;
+}
+
+table.data {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.88rem;
+    font-variant-numeric: tabular-nums;
+}
+
+table.data caption {
+    text-align: left;
+    color: var(--ink-2);
+    font-size: 0.85rem;
+    padding-bottom: 0.4rem;
+}
+
+table.data th,
+table.data td {
+    border-bottom: 1px solid var(--border);
+    padding: 0.4rem 0.6rem;
+    text-align: right;
+    vertical-align: top;
+    white-space: nowrap;
+}
+
+table.data th[scope="row"],
+table.data thead th:first-child {
+    text-align: left;
+}
+
+table.data td > span {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+/* hover tooltip for chart marks */
+.chart-tip {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+    background-color: #2e261e;
+    color: #fffbf0;
+    border-radius: 8px;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    box-shadow: var(--shadow-hover);
+    max-width: 18rem;
+}
+
+.chart-tip strong {
+    display: block;
+    font-size: 0.95rem;
+}
+
+svg .hit { cursor: default; outline: none; }
+svg .hit:focus-visible { stroke: var(--link); stroke-width: 2; }
+
+/* ---------------------------------------------------------------- poster + citation */
+.poster-link {
+    display: block;
+    max-width: 640px;
+}
+
+.poster-link img {
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.poster-note {
+    margin-top: 0.7rem;
+    font-size: 0.95rem;
+}
+
+.bibtex {
+    position: relative;
+}
+
+.bibtex pre {
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+.copy-bibtex {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+}
+
+/* ---------------------------------------------------------------- responsive */
+@media (max-width: 760px) {
+    .two-col { grid-template-columns: 1fr; }
+    .rq1-row { grid-template-columns: 1fr 1fr; }
+    .rq1-row [role="rowheader"] { grid-column: 1 / -1; }
+    .rq1-head > span:first-child { display: none; }
+    .proj-title { max-width: none; }
+}
+
+@media (max-width: 520px) {
+    .scaling-grid { grid-template-columns: 1fr; }
+    .copy-bibtex { position: static; margin-bottom: 0.5rem; }
+}
+
+/* phones: in the RQ1 grid, put each icon above its text so long words fit */
+@media (max-width: 440px) {
+    .rq1-row > * { min-width: 0; }
+    .cell {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.4rem;
+        padding: 0.65rem 0.75rem;
+    }
+    .cell > span { overflow-wrap: break-word; }
+}
+
+/* very narrow phones (320px): shrink display maths so it fits without scrolling */
+@media (max-width: 350px) {
+    .project .katex-display > .katex { font-size: 1em; }
+    .project .eq-narrow .katex-display > .katex { font-size: 0.92em; }
+    .project .theorem .eq-narrow .katex-display > .katex { font-size: 0.85em; }
+    .project .bound .katex-display > .katex { font-size: 1.45em; }
+}
