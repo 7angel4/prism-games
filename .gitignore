@@ -74,3 +74,8 @@ prism/lib
 prism-examples/csgs/learning/results/full/full.xlsx
 /neurips-submission
 /prism-examples/csgs/learning/logs
+
+# internal notes (kept locally, not published)
+/PROGRESS.md
+/RUN_COMMANDS.md
+/REVIEW.md
