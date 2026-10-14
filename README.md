@@ -48,7 +48,7 @@ The branch contains:
 | --- | --- | --- |
 | `SAFE_RISKY` | Safe vs. Risky | Actions that differ in how sensitive they are to the transition probabilities |
 | `TRAFFIC_MERGE` | Traffic Merge | Safety-critical multi-step coordination |
-| `HIDE_OR_RUN` | Hide-or-Run | No stationary NE: the value is reached only in the limit |
+| `HIDE_OR_RUN` | Hide-or-Run | No stationary NE for unbounded reachability: the value is reached only in the limit |
 | `MIXED_NE` | Mixed NE | The equilibrium is mixed |
 | `DELAYED_COORD` | Delayed Coordination | Hard exploration under sparse, delayed rewards |
 | `CYCLIC_PREFS` | Cyclic Preferences | No exact stationary NE for the reachability-reward property |
